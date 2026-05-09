@@ -6,6 +6,9 @@ import Leaderboard from './pages/Leaderboard'
 import EventInstance from './pages/EventInstance'
 import AdminLayout from './layouts/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminEventType from './pages/admin/AdminEventType'
+import AdminEventInstance from './pages/admin/AdminEventInstance'
+import AdminEmailTemplates from './pages/admin/AdminEmailTemplates'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } },
@@ -27,6 +30,9 @@ export default function App() {
           {/* Admin */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="events/:typeSlug" element={<AdminEventType />} />
+            <Route path="events/:typeSlug/:instanceId" element={<AdminEventInstance />} />
+            <Route path="emails" element={<AdminEmailTemplates />} />
             <Route path="*" element={<AdminPlaceholder />} />
           </Route>
 
