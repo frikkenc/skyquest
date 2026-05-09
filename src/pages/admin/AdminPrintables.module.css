@@ -1,0 +1,151 @@
+.container {
+  padding: 24px 0;
+  max-width: 680px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--adm-mute);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.cardDisabled {
+  opacity: .4;
+}
+
+.icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--adm-mute);
+}
+
+.cardText {
+  flex: 1;
+}
+
+.cardTitle {
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--adm-ink);
+  letter-spacing: .02em;
+}
+
+.cardSub {
+  font-size: 11px;
+  color: var(--adm-mute);
+  margin-top: 2px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.printBtn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--sq-signal);
+  background: rgba(76,175,80,.1);
+  border: 1px solid rgba(76,175,80,.3);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+  white-space: nowrap;
+}
+
+.printBtn:hover:not(:disabled) {
+  background: rgba(76,175,80,.2);
+  border-color: var(--sq-signal);
+}
+
+.printBtn:disabled {
+  cursor: default;
+}
+
+.shareBtn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: var(--adm-mute);
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--adm-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color .12s, background .12s;
+  white-space: nowrap;
+}
+
+.shareBtn:hover:not(:disabled) {
+  color: var(--adm-ink);
+  background: rgba(255,255,255,.08);
+}
+
+.shareBtn:disabled {
+  cursor: default;
+}
+
+.shareBtnCopied {
+  color: var(--sq-signal) !important;
+  border-color: rgba(76,175,80,.4) !important;
+}
+
+.emailBtn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: var(--adm-mute);
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--adm-border);
+  border-radius: 5px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color .12s, background .12s;
+  white-space: nowrap;
+}
+
+.emailBtn:hover:not(.emailBtnDisabled) {
+  color: var(--adm-ink);
+  background: rgba(255,255,255,.08);
+}
+
+.emailBtnDisabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.noTeams {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--sq-yellow);
+  padding: 10px 14px;
+  background: rgba(255,171,64,.07);
+  border: 1px solid rgba(255,171,64,.2);
+  border-radius: 6px;
+}

@@ -11,7 +11,6 @@ const NAV_ITEMS = {
   'Event Setup': [
     { label: '📧 Email Templates', to: '/admin/emails' },
     { label: '📤 Send Queue', to: '/admin/send-queue' },
-    { label: '🖨 Printables', to: '/admin/printables' },
   ],
   'Event Types · 2026': [
     { label: '🔵 SCSL', to: '/admin/events/scsl', badge: 2, badgeColor: 'blue' },

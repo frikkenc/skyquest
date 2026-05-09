@@ -1,135 +1,165 @@
-.hero {
+/* Season header */
+.seasonHeader {
   background: var(--sq-black);
   border-bottom: 4px solid var(--sq-red);
-  padding: 64px 0 56px;
+  padding: 32px 0;
   position: relative;
   overflow: hidden;
 }
 
-.hero::after {
+.seasonHeader::after {
   content: '';
   position: absolute;
   top: -30%;
   right: -10%;
-  width: 60%;
-  height: 160%;
-  background: radial-gradient(circle, rgba(216,24,24,0.12) 0%, transparent 60%);
+  width: 50%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(216,24,24,0.10) 0%, transparent 60%);
   pointer-events: none;
 }
 
-.heroInner {
+.seasonHeaderInner {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(320px, 1fr) 1fr;
-  gap: 48px;
+  display: flex;
+  gap: 32px;
   align-items: center;
 }
 
-@media (max-width: 900px) {
-  .heroInner {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-  .ctas { justify-content: center !important; }
+@media (max-width: 700px) {
+  .seasonHeaderInner { flex-direction: column; text-align: center; }
 }
 
-.heroLogo {
-  width: 100%;
-  max-width: 520px;
+.seasonLogo {
+  width: 160px;
   height: auto;
-  display: block;
-  margin: 0 auto;
-  filter: drop-shadow(0 12px 40px rgba(216,24,24,0.35));
+  flex-shrink: 0;
+  filter: drop-shadow(0 8px 24px rgba(216,24,24,0.30));
 }
+
+.seasonText {}
 
 .eyebrow {
   color: var(--sq-yellow);
   font-family: 'Bungee', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.15em;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .h1 {
   font-family: 'Bungee', sans-serif;
-  font-size: clamp(34px, 5vw, 60px);
-  line-height: 0.95;
-  margin-bottom: 18px;
+  font-size: clamp(22px, 3vw, 36px);
+  line-height: 1.1;
+  margin-bottom: 10px;
 }
 
 .red { color: var(--sq-red); }
 
 .tagline {
-  font-size: 17px;
-  max-width: 540px;
-  margin-bottom: 28px;
-  color: #e0e0e0;
-  line-height: 1.6;
+  font-size: 15px;
+  color: #c0c0c0;
+  line-height: 1.5;
 }
 
-.ctas {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-/* Schedule strip */
-.scheduleRow {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--sq-border);
-}
-
-.scheduleRow:last-child { border-bottom: none; }
-
-.scheduleMeta { flex: 1; }
-
-.scheduleMeta h4 {
+/* Section label */
+.sectionLabel {
   font-family: 'Bungee', sans-serif;
-  font-size: 17px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--sq-gray);
+  text-transform: uppercase;
+  margin: 40px 0 14px;
+  padding-left: 12px;
+  border-left: 3px solid var(--sq-red);
+}
+
+/* Event tile grid */
+.eventGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .eventGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .eventGrid { grid-template-columns: 1fr; }
+}
+
+.eventTile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: var(--sq-card);
+  border: 1px solid var(--sq-border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+
+.eventTile:hover {
+  border-color: var(--sq-red);
+  background: rgba(216,24,24,0.06);
+}
+
+.tileBadge {
   margin-bottom: 4px;
 }
 
-.scheduleSub {
-  color: var(--sq-gray);
+.tileName {
+  font-family: 'Bungee', sans-serif;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--sq-white);
+}
+
+.tileMeta {
+  font-size: 12px;
+  color: var(--sq-red);
+  font-family: 'Bungee', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.tileTagline {
   font-size: 13px;
+  color: #b0b0b0;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.tileFooter {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  margin-top: 4px;
   flex-wrap: wrap;
 }
 
-.scheduleDate {
-  font-family: 'Bungee', sans-serif;
-  color: var(--sq-red);
-  font-size: 14px;
-  min-width: 90px;
-  text-align: right;
-  white-space: nowrap;
-}
-
 /* Pillar cards */
-.pillar h3 {
+.pillarTitle {
   font-family: 'Bungee', sans-serif;
   color: var(--sq-red);
-  font-size: 20px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 8px;
 }
 
-.pillar p {
+.pillarBody {
   color: #cfcfcf;
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 /* CTA stripe */
 .stripe {
   background: var(--sq-red);
   padding: 36px 0;
-  margin-top: 80px;
+  margin-top: 64px;
 }
 
 .stripeInner {
@@ -142,5 +172,5 @@
 
 .stripeInner h2 {
   font-family: 'Bungee', sans-serif;
-  font-size: 30px;
+  font-size: 28px;
 }

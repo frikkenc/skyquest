@@ -309,3 +309,169 @@
 .primary:hover { background: #a81010; }
 .danger { border-color: rgba(216,24,24,.4); color: var(--sq-red); }
 .danger:hover { background: rgba(216,24,24,.1); }
+.schedule { border-color: rgba(33,150,243,.4); color: #82c4f8; }
+.schedule:hover { background: rgba(33,150,243,.1); }
+
+/* Schedule panel */
+.schedulePanel {
+  background: rgba(33,150,243,.05);
+  border: 1px solid rgba(33,150,243,.25);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-top: 16px;
+}
+
+.schedulePanelTitle {
+  font-family: 'Bungee', sans-serif;
+  font-size: 13px;
+  color: var(--adm-ink);
+  margin-bottom: 8px;
+  letter-spacing: .03em;
+}
+
+.schedulePanelDesc {
+  font-size: 12px;
+  color: var(--adm-mute);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.scheduleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fieldInputSm {
+  background: var(--adm-bg);
+  border: 1px solid var(--adm-border);
+  border-radius: 5px;
+  color: var(--adm-ink);
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.fieldInputSm:focus { outline: none; border-color: #2196F3; }
+
+/* Gated flow */
+.gateStep {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.gateIcon { font-size: 28px; margin-bottom: 8px; }
+
+.gateTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--adm-ink);
+  margin-bottom: 6px;
+}
+
+.gateDesc {
+  font-size: 12px;
+  color: var(--adm-mute);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.gateActions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Schedule queue */
+.scheduleQueueHd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.scheduleQueueTitle {
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 11px;
+  color: var(--adm-mute);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.scheduleQueue {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scheduleRow2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--adm-border);
+  flex-wrap: wrap;
+}
+
+.scheduleRow2:last-child { border-bottom: none; }
+
+.sqStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.sqStatusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sq_sent { background: var(--sq-signal); }
+.sq_approved { background: #2196F3; }
+.sq_test_sent { background: var(--sq-yellow); }
+.sq_draft { background: var(--adm-mute); }
+.sq_failed { background: var(--sq-red); }
+.sq_scheduled { background: #9c27b0; }
+
+.sqStatusLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--adm-mute);
+}
+
+.sqInfo { flex: 1; min-width: 200px; }
+
+.sqName {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--adm-ink);
+}
+
+.sqSubject {
+  font-size: 11px;
+  color: var(--adm-mute);
+  margin-top: 2px;
+}
+
+.sqMeta {
+  font-size: 11px;
+  color: var(--adm-mute);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.sqActions {
+  display: flex;
+  gap: 6px;
+}

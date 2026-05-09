@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
+import NotifyMeModal from '../components/NotifyMeModal'
 import { EVENT_INSTANCES, EVENT_TYPES } from '../data/mockData'
 import type { EventInstance } from '../types'
 import styles from './Schedule.module.css'
@@ -18,12 +20,38 @@ function formatDate(iso: string) {
 }
 
 function getEventDescription(evt: EventInstance) {
+  if (evt.oneLiner) return evt.oneLiner
   const type = EVENT_TYPES.find(t => t.slug === evt.typeSlug)
   return type?.description ?? ''
 }
 
+function EventCTA({ evt, onNotifyMe }: { evt: EventInstance; onNotifyMe: (name: string) => void }) {
+  if (evt.status === 'complete') {
+    return <Link to={`/events/${evt.typeSlug}/${evt.id}`} className="btn btn-ghost btn-sm">Results</Link>
+  }
+  if (evt.status === 'season-finale') {
+    return <span className="pill pill-awards" style={{ fontSize: 11, padding: '6px 12px' }}>Season Finale</span>
+  }
+  if (evt.status === 'open' && evt.furyRegistrationUrl) {
+    return (
+      <a href={evt.furyRegistrationUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">
+        {evt.registrationLabel ?? 'Sign Up'}
+      </a>
+    )
+  }
+  if (evt.status === 'open') {
+    return <Link to={`/events/${evt.typeSlug}/${evt.id}`} className="btn btn-ghost btn-sm">Learn More</Link>
+  }
+  return (
+    <button className="btn btn-ghost btn-sm" onClick={() => onNotifyMe(evt.name)}>
+      Notify Me
+    </button>
+  )
+}
+
 export default function Schedule() {
-  // Group events by month
+  const [notifyEvent, setNotifyEvent] = useState<string | null>(null)
+
   const grouped: { month: string; events: EventInstance[] }[] = []
   EVENT_INSTANCES.forEach(evt => {
     const month = getMonthLabel(evt.date)
@@ -50,12 +78,12 @@ export default function Schedule() {
                 className={`card ${styles.eventCard}`}
                 style={{
                   opacity: evt.status === 'complete' ? 0.75 : 1,
-                  borderColor: evt.typeSlug === 'awards' ? 'var(--sq-yellow)' : undefined,
+                  borderColor: evt.status === 'season-finale' ? 'var(--sq-yellow)' : undefined,
                 }}
               >
                 <EventBadge slug={evt.typeSlug} size={90} />
                 <div className={styles.eventMeta}>
-                  <h3>{evt.name}</h3>
+                  <h3><Link to={`/events/${evt.typeSlug}/${evt.id}`} style={{ color: 'inherit', textDecoration: 'none' }} className={styles.eventNameLink}>{evt.name}</Link></h3>
                   <div className={styles.sub}>
                     {getEventDescription(evt)} · <StatusPill status={evt.status} />
                   </div>
@@ -63,13 +91,7 @@ export default function Schedule() {
                 <div className={styles.eventActions}>
                   <div className={styles.date}>{formatDate(evt.date)}</div>
                   <div className={styles.dz}>{evt.dropzone}</div>
-                  {evt.status === 'complete' ? (
-                    <Link to={`/events/${evt.typeSlug}/${evt.id}`} className="btn btn-ghost btn-sm">Results</Link>
-                  ) : evt.status === 'open' ? (
-                    <a href="https://furycoaching.com" target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">Sign Up</a>
-                  ) : (
-                    <button className="btn btn-ghost btn-sm" disabled style={{ opacity: 0.5, cursor: 'default' }}>Notify Me</button>
-                  )}
+                  <EventCTA evt={evt} onNotifyMe={setNotifyEvent} />
                 </div>
               </div>
             ))}
@@ -77,6 +99,13 @@ export default function Schedule() {
         ))}
       </div>
       <Footer />
+
+      {notifyEvent && (
+        <NotifyMeModal
+          eventName={notifyEvent}
+          onClose={() => setNotifyEvent(null)}
+        />
+      )}
     </>
   )
 }

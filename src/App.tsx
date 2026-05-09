@@ -9,6 +9,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminEventType from './pages/admin/AdminEventType'
 import AdminEventInstance from './pages/admin/AdminEventInstance'
 import AdminEmailTemplates from './pages/admin/AdminEmailTemplates'
+import AdminSeasons from './pages/admin/AdminSeasons'
+import PrintPage from './pages/PrintPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } },
@@ -33,8 +35,12 @@ export default function App() {
             <Route path="events/:typeSlug" element={<AdminEventType />} />
             <Route path="events/:typeSlug/:instanceId" element={<AdminEventInstance />} />
             <Route path="emails" element={<AdminEmailTemplates />} />
+            <Route path="seasons" element={<AdminSeasons />} />
             <Route path="*" element={<AdminPlaceholder />} />
           </Route>
+
+          {/* Standalone print views — no admin chrome */}
+          <Route path="/print/:instanceId/:type" element={<PrintPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

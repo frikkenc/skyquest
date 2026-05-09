@@ -23,6 +23,10 @@
   margin-bottom: 6px;
 }
 
+.eventNameLink:hover {
+  color: var(--sq-red) !important;
+}
+
 .sub {
   color: var(--sq-gray);
   font-size: 14px;

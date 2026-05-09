@@ -6,79 +6,98 @@ import StatusPill from '../components/StatusPill'
 import { EVENT_INSTANCES, LEADERBOARD_AAA } from '../data/mockData'
 import styles from './Landing.module.css'
 
-export default function Landing() {
-  const upcoming = EVENT_INSTANCES.slice(0, 6)
+function formatDate(iso: string) {
+  const d = new Date(iso + 'T12:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
+}
 
+export default function Landing() {
   return (
     <>
       <Nav />
 
-      {/* Hero */}
-      <section className={styles.hero}>
-        <div className={`wrap ${styles.heroInner}`}>
+      {/* Season header — compact identity strip */}
+      <section className={styles.seasonHeader}>
+        <div className={`wrap ${styles.seasonHeaderInner}`}>
           <img
             src="/logos/skyquest-master.png"
             alt="SoCal SkyQuest"
-            className={styles.heroLogo}
+            className={styles.seasonLogo}
           />
-          <div>
+          <div className={styles.seasonText}>
             <div className={styles.eyebrow}>★ 2026 SEASON · NOW LIVE ★</div>
             <h1 className={styles.h1}>
-              One league.<br />
-              <span className={styles.red}>Six events.</span><br />
-              Every jump counts.
+              One league. <span className={styles.red}>Seven events.</span> Every jump counts.
             </h1>
             <p className={styles.tagline}>
-              Southern California's formation skydiving league — a season-long points race where serious teams and pickup champs share the same scoreboard. Just sign up to team up.
+              Southern California's formation skydiving league. Sign up solo — we build your team.
             </p>
-            <div className={styles.ctas}>
-              <Link to="/schedule" className="btn btn-primary">See the Schedule</Link>
-              <Link to="/leaderboard" className="btn btn-ghost">View Leaderboard</Link>
-            </div>
           </div>
         </div>
       </section>
 
       <div className="wrap">
-        {/* Pillars */}
-        <div className="grid grid-3" style={{ marginTop: 64 }}>
-          <div className={`card ${styles.pillar}`}>
-            <h3>One Scoreboard</h3>
-            <p>Every event in the season rolls into one ranking. One event or six — it all counts toward year-end glory.</p>
-          </div>
-          <div className={`card ${styles.pillar}`}>
-            <h3>For Everyone</h3>
-            <p>Nationals teams, pickup squads, first-timers. Divisions for every level, fun events for every taste.</p>
-          </div>
-          <div className={`card ${styles.pillar}`}>
-            <h3>Swanky Awards</h3>
-            <p>Year wraps at the Bombshelter. Costumes encouraged. Most epic fail gets a medal too.</p>
-          </div>
-        </div>
-
-        {/* Schedule preview */}
-        <div className="section-title">2026 Schedule</div>
-        <div className="card" style={{ padding: 0 }}>
-          {upcoming.map(evt => (
-            <div key={evt.id} className={styles.scheduleRow}>
-              <EventBadge slug={evt.typeSlug} size={72} />
-              <div className={styles.scheduleMeta}>
-                <h4>{evt.name}</h4>
-                <div className={styles.scheduleSub}>
-                  {evt.divisions.join(' · ')}{evt.divisions.length > 0 ? ' · ' : ''}
-                  <StatusPill status={evt.status} />
-                </div>
+        {/* Event tiles — the whole point of the page */}
+        <div className={styles.sectionLabel}>2026 Events</div>
+        <div className={styles.eventGrid}>
+          {EVENT_INSTANCES.map(evt => (
+            <Link
+              key={evt.id}
+              to={`/events/${evt.typeSlug}/${evt.id}`}
+              className={styles.eventTile}
+              style={{
+                borderColor: evt.status === 'season-finale' ? 'var(--sq-yellow)' : undefined,
+                opacity: evt.status === 'complete' ? 0.72 : 1,
+              }}
+            >
+              <div className={styles.tileBadge}>
+                <EventBadge slug={evt.typeSlug} size={56} />
               </div>
-              <div className={styles.scheduleDate}>
-                {formatDate(evt.date)}
+              <div className={styles.tileName}>{evt.name}</div>
+              <div className={styles.tileMeta}>
+                {formatDate(evt.date)} · {evt.dropzone}
               </div>
-            </div>
+              {evt.shortTagline && (
+                <div className={styles.tileTagline}>{evt.shortTagline}</div>
+              )}
+              <div className={styles.tileFooter}>
+                <StatusPill status={evt.status} />
+                {evt.status === 'open' && evt.furyRegistrationUrl && (
+                  <span
+                    className="btn btn-primary btn-sm"
+                    onClick={e => { e.preventDefault(); window.open(evt.furyRegistrationUrl, '_blank') }}
+                  >
+                    {evt.registrationLabel ?? 'Sign Up'}
+                  </span>
+                )}
+              </div>
+            </Link>
           ))}
         </div>
 
+        {/* League at a glance */}
+        <div className={styles.sectionLabel}>How It Works</div>
+        <div className="grid grid-3">
+          <div className="card">
+            <h3 className={styles.pillarTitle}>Just Sign Up to Team Up</h3>
+            <p className={styles.pillarBody}>No pre-formed team needed. Register solo, answer a short questionnaire, and we match you with a balanced team before meet day.</p>
+          </div>
+          <div className="card">
+            <h3 className={styles.pillarTitle}>One Scoreboard All Season</h3>
+            <p className={styles.pillarBody}>Every event rolls into one ranking. Fly one meet or six — it all counts. We drop your lowest score, so a bad day doesn't end your run.</p>
+          </div>
+          <div className="card">
+            <h3 className={styles.pillarTitle}>Swanky Year-End Awards</h3>
+            <p className={styles.pillarBody}>Season closes at the Bombshelter. Divisional medals, most epic fail award, best costume. Free and open to all.</p>
+          </div>
+        </div>
+
         {/* Leaderboard preview */}
-        <div className="section-title">Top of the Board</div>
+        <div className={styles.sectionLabel}>Top of the Board</div>
         <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: '10px 16px 0', color: 'var(--sq-gray)', fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Through 2 of 6 scoring events · AAA
+          </div>
           <table className="lb">
             <thead>
               <tr><th>#</th><th>Team</th><th>Events</th><th>Pts</th></tr>
@@ -104,16 +123,11 @@ export default function Landing() {
       <div className={styles.stripe}>
         <div className={`wrap ${styles.stripeInner}`}>
           <h2>Just Sign Up to Team Up.</h2>
-          <Link to="/schedule" className="btn btn-ghost">Pick an Event</Link>
+          <Link to="/schedule" className="btn btn-ghost">See All Events</Link>
         </div>
       </div>
 
       <Footer />
     </>
   )
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
 }

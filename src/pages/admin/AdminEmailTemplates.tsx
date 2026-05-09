@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react'
 import styles from './AdminEmailTemplates.module.css'
+import { SCHEDULED_EMAILS } from '../../data/mockData'
+import type { ScheduledEmail } from '../../types'
 
 type Scope = 'All' | 'League' | 'SCSL' | 'Poker' | 'Crazy 8' | 'Awards'
 const SCOPES: Scope[] = ['All', 'League', 'SCSL', 'Poker', 'Crazy 8', 'Awards']
@@ -176,6 +178,11 @@ export default function AdminEmailTemplates() {
   const [editedTemplates, setEditedTemplates] = useState<Record<string, Partial<Template>>>({})
   const [saved, setSaved] = useState(true)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>(SCHEDULED_EMAILS)
+  const [showSchedulePanel, setShowSchedulePanel] = useState(false)
+  const [scheduleFor, setScheduleFor] = useState('')
+  const [testSentFor, setTestSentFor] = useState<string | null>(null)
+  const [gateState, setGateState] = useState<'idle' | 'test-sent' | 'approved'>('idle')
 
   const filtered = TEMPLATES.filter(t => {
     const matchScope = scopeFilter === 'All' || t.scope === scopeFilter
@@ -343,7 +350,85 @@ export default function AdminEmailTemplates() {
               <span>AI suggestion available — Claude can rewrite this template in Christy's voice based on Fresh Meet templates.</span>
               <button className={styles.adminBtn} style={{ marginLeft: 'auto' }}>Generate</button>
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+
+            {/* Schedule send panel */}
+            {showSchedulePanel && (
+              <div className={styles.schedulePanel}>
+                <div className={styles.schedulePanelTitle}>Schedule Send</div>
+
+                {gateState === 'idle' && (
+                  <>
+                    <p className={styles.schedulePanelDesc}>
+                      A test email will be sent to you first. Once you approve it, the real send is queued.
+                    </p>
+                    <div className={styles.scheduleRow}>
+                      <label className={styles.fieldLabel}>Send at</label>
+                      <input
+                        className={styles.fieldInputSm}
+                        type="datetime-local"
+                        value={scheduleFor}
+                        onChange={e => setScheduleFor(e.target.value)}
+                      />
+                    </div>
+                    <div className={styles.scheduleRow} style={{ marginTop: 12 }}>
+                      <button
+                        className={`${styles.adminBtn} ${styles.primary}`}
+                        disabled={!scheduleFor}
+                        onClick={() => setGateState('test-sent')}
+                      >
+                        Send Test to Me →
+                      </button>
+                      <button className={styles.adminBtn} onClick={() => setShowSchedulePanel(false)}>Cancel</button>
+                    </div>
+                  </>
+                )}
+
+                {gateState === 'test-sent' && (
+                  <div className={styles.gateStep}>
+                    <div className={styles.gateIcon}>📬</div>
+                    <div className={styles.gateTitle}>Test email sent to christy@furycoaching.com</div>
+                    <p className={styles.gateDesc}>Check your inbox. When it looks good, approve the send below.</p>
+                    <div className={styles.gateActions}>
+                      <button
+                        className={`${styles.adminBtn} ${styles.primary}`}
+                        onClick={() => {
+                          setGateState('approved')
+                          setScheduledEmails(prev => [{
+                            id: 'se-new-' + Date.now(),
+                            templateId: selectedId,
+                            templateName: current.name,
+                            subject: current.subject,
+                            scope: current.scope,
+                            scheduledFor: scheduleFor,
+                            status: 'approved',
+                            testSentAt: new Date().toISOString(),
+                            approvedAt: new Date().toISOString(),
+                            recipientCount: 211,
+                          }, ...prev])
+                        }}
+                      >
+                        ✓ Looks good — Schedule Send
+                      </button>
+                      <button className={styles.adminBtn} onClick={() => setGateState('idle')}>Re-send Test</button>
+                      <button className={`${styles.adminBtn} ${styles.danger}`} onClick={() => { setShowSchedulePanel(false); setGateState('idle') }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {gateState === 'approved' && (
+                  <div className={styles.gateStep}>
+                    <div className={styles.gateIcon}>✅</div>
+                    <div className={styles.gateTitle}>Scheduled!</div>
+                    <p className={styles.gateDesc}>
+                      This email is approved and will send on {scheduleFor ? new Date(scheduleFor).toLocaleString() : '—'}.
+                    </p>
+                    <button className={styles.adminBtn} onClick={() => { setShowSchedulePanel(false); setGateState('idle') }}>Done</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12, flexWrap: 'wrap' }}>
               <button className={styles.adminBtn} onClick={() => {
                 setEditedTemplates(prev => { const n = { ...prev }; delete n[selectedId]; return n })
                 setSaved(true)
@@ -355,8 +440,74 @@ export default function AdminEmailTemplates() {
               >
                 {saved ? 'Saved' : 'Save Template'}
               </button>
+              <button
+                className={`${styles.adminBtn} ${styles.schedule}`}
+                onClick={() => { setShowSchedulePanel(s => !s); setGateState('idle') }}
+              >
+                📅 Schedule Send
+              </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Scheduled email queue */}
+      <div style={{ marginTop: 28 }}>
+        <div className={styles.scheduleQueueHd}>
+          <span className={styles.scheduleQueueTitle}>Scheduled & Recent Emails</span>
+          <span style={{ fontSize: 12, color: 'var(--adm-mute)' }}>
+            {scheduledEmails.filter(e => e.status === 'approved' || e.status === 'test-sent').length} in queue
+          </span>
+        </div>
+        <div className={styles.scheduleQueue}>
+          {scheduledEmails.map(e => (
+            <div key={e.id} className={styles.scheduleRow2}>
+              <div className={styles.sqStatus}>
+                <span className={`${styles.sqStatusDot} ${styles['sq_' + e.status.replace('-', '_')]}`} />
+                <span className={styles.sqStatusLabel}>{e.status}</span>
+              </div>
+              <div className={styles.sqInfo}>
+                <div className={styles.sqName}>{e.templateName}</div>
+                <div className={styles.sqSubject}>{e.subject}</div>
+              </div>
+              <div className={styles.sqMeta}>
+                <div>{e.scope}</div>
+                <div>{new Date(e.scheduledFor).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+                {e.recipientCount && <div>{e.recipientCount} recipients</div>}
+              </div>
+              <div className={styles.sqActions}>
+                {e.status === 'test-sent' && (
+                  <button
+                    className={`${styles.adminBtn} ${styles.primary}`}
+                    onClick={() => setScheduledEmails(prev => prev.map(s => s.id === e.id ? { ...s, status: 'approved', approvedAt: new Date().toISOString() } : s))}
+                  >
+                    ✓ Approve
+                  </button>
+                )}
+                {e.status === 'approved' && (
+                  <button
+                    className={styles.adminBtn}
+                    onClick={() => setScheduledEmails(prev => prev.map(s => s.id === e.id ? { ...s, status: 'test-sent', approvedAt: undefined } : s))}
+                  >
+                    Reschedule
+                  </button>
+                )}
+                {(e.status === 'draft' || e.status === 'test-sent' || e.status === 'approved') && (
+                  <button
+                    className={`${styles.adminBtn} ${styles.danger}`}
+                    onClick={() => setScheduledEmails(prev => prev.filter(s => s.id !== e.id))}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {scheduledEmails.length === 0 && (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>
+              No scheduled emails.
+            </div>
+          )}
         </div>
       </div>
     </div>

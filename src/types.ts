@@ -1,4 +1,4 @@
-export type EventStatus = 'draft' | 'open' | 'closed' | 'complete' | 'upcoming'
+export type EventStatus = 'draft' | 'open' | 'closed' | 'complete' | 'upcoming' | 'season-finale'
 
 export type Division = 'AAA' | 'AA' | 'A' | 'Open' | 'Rookie' | '2-way' | '8-way'
 
@@ -11,10 +11,21 @@ export type EventSlug =
   | 'fury-classic-8way'
   | 'awards'
 
+export type ScoringType = 'rounds' | 'poker' | 'crazy8s' | 'none'
+
 export interface Jumper {
   id: string
   name: string
   uspaNumber?: string
+}
+
+export interface TeamMember {
+  id: string
+  name: string
+  uspaNumber?: string
+  isSoft?: boolean       // said they're coming but hasn't registered yet
+  isAlternate?: boolean  // takes turns in a slot (overfull team)
+  isVideo?: boolean      // video person role
 }
 
 export interface EventType {
@@ -22,17 +33,29 @@ export interface EventType {
   name: string
   shortName: string
   description: string
+  longDescription: string
   format: string
   logo: string
   badgeClass: string
   color: string
 }
 
+export type RegistrationMethod = 'fury' | 'manual'
+
+export interface EventTypeSettings {
+  typeSlug: EventSlug
+  defaultTeamSize: number
+  minTeamSize: number
+  hasVideoSlot: boolean
+  scoringType: ScoringType
+  registrationMethod: RegistrationMethod  // fury = via Fury Reg; manual = names entered by hand
+}
+
 export interface EventInstance {
   id: string
   typeSlug: EventSlug
   name: string
-  date: string          // ISO date
+  date: string
   dropzone: string
   status: EventStatus
   divisions: Division[]
@@ -40,18 +63,46 @@ export interface EventInstance {
   approvedCount: number
   revenue?: number
   waitlistCount?: number
+  pendingBalance?: number
+  furyEventId?: string
+  furyRegistrationUrl?: string
+  registrationLabel?: string      // custom button label; defaults to 'Sign Up'
+  registrationDeadline?: string   // ISO date, e.g. '2026-08-08'
+  shortTagline?: string           // 6–10 words for card/schedule views
+  oneLiner?: string               // 1–2 sentences for meta and detail pages
+  contactEmail?: string           // for manual-registration events
+  lookingForTeamCount?: number
+  teamsNotFullCount?: number
 }
+
+export type OfferingType = 'jumper' | 'video' | 'captain'
 
 export interface TeamRegistration {
   id: string
   eventId: string
   division: Division
   teamName: string
-  members: Jumper[]
-  status: 'pending' | 'approved' | 'waitlist' | 'denied'
+  offeringType?: OfferingType   // role they registered as in Fury (default: jumper)
+  members: TeamMember[]
+  teammateNote?: string   // free-text "who's on your team" from registration form
+  status: 'pending' | 'approved' | 'waitlist' | 'denied' | 'unmatched'
   paymentStatus: 'unpaid' | 'partial' | 'paid'
   balance: number
   submittedAt: string
+  teamAssignmentId?: string
+}
+
+export interface TeamAssignment {
+  id: string
+  eventId: string
+  division?: Division
+  teamName?: string
+  memberIds: string[]          // TeamRegistration ids
+  videoPersonId?: string       // TeamRegistration id
+  alternateIds?: string[]      // TeamRegistration ids
+  isConfirmed: boolean
+  confirmedAt?: string
+  confirmationEmailSentAt?: string
 }
 
 export interface ScoreEntry {
@@ -67,6 +118,7 @@ export interface TeamResult {
   members: Jumper[]
   division: Division
   roundScores: number[]
+  roundBusts?: number[]   // parallel array: busts[i] reduces raw points to net; total = sum(roundScores)
   total: number
 }
 
@@ -77,7 +129,7 @@ export interface LeaderboardEntry {
   members: Jumper[]
   division: Division
   totalPoints: number
-  eventsAttended: string[]   // eventInstance ids
+  eventsAttended: string[]
   bestFinishRank?: number
   bestFinishEvent?: string
 }
@@ -108,4 +160,45 @@ export interface PendingRefund {
   eventName: string
   amount: number
   reason: string
+}
+
+// ── Season Setup ──────────────────────────────────────────────────────────────
+
+export interface SeasonEventConfig {
+  eventTypeSlug: EventSlug
+  instanceId?: string           // links to EventInstance once created
+  tentativeDate?: string        // ISO date
+  dropzone?: string
+  furyEventId?: string
+  furyRegistrationUrl?: string
+  registrationOpenDate?: string
+  registrationCloseDate?: string
+  notes?: string
+}
+
+export interface Season {
+  id: string
+  name: string
+  year: number
+  isActive: boolean
+  events: SeasonEventConfig[]
+}
+
+// ── Email scheduling ───────────────────────────────────────────────────────────
+
+export type EmailScheduleStatus = 'draft' | 'test-sent' | 'approved' | 'scheduled' | 'sent' | 'failed'
+
+export interface ScheduledEmail {
+  id: string
+  templateId: string
+  templateName: string
+  subject: string
+  scope: string
+  eventId?: string
+  scheduledFor: string        // ISO datetime
+  status: EmailScheduleStatus
+  testSentAt?: string
+  approvedAt?: string
+  sentAt?: string
+  recipientCount?: number
 }

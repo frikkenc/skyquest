@@ -12,11 +12,8 @@ export default function Nav() {
           <NavLink to="/" end className={({ isActive }) => isActive ? styles.active : ''}>Home</NavLink>
           <NavLink to="/schedule" className={({ isActive }) => isActive ? styles.active : ''}>Schedule</NavLink>
           <NavLink to="/leaderboard" className={({ isActive }) => isActive ? styles.active : ''}>Leaderboard</NavLink>
-          <NavLink to="/events" className={({ isActive }) => isActive ? styles.active : ''}>Events</NavLink>
         </div>
-        <a href="https://furycoaching.com" target="_blank" rel="noreferrer" className={styles.cta}>
-          Sign Up
-        </a>
+        <NavLink to="/schedule" className={styles.cta}>Sign Up</NavLink>
       </div>
     </nav>
   )
