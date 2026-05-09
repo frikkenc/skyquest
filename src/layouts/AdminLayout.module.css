@@ -1,0 +1,255 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--adm-bg);
+  color: var(--adm-ink);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+/* Top bar */
+.topbar {
+  height: 56px;
+  background: #0a0d14;
+  border-bottom: 1px solid var(--adm-border);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.tbBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  border-right: 1px solid var(--adm-border);
+  height: 100%;
+  min-width: 220px;
+}
+
+.tbLogo {
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--adm-ink);
+}
+
+.tbLogo span { color: var(--sq-red); }
+
+.tbAdminBadge {
+  background: #144a93;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.tbCenter {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.tbSeason {
+  background: var(--adm-card);
+  border: 1px solid var(--adm-border);
+  color: var(--adm-ink);
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.tbSearch {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  max-width: 320px;
+}
+
+.tbSearch input {
+  flex: 1;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-border);
+  border-right: none;
+  color: var(--adm-ink);
+  padding: 7px 12px;
+  border-radius: 5px 0 0 5px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.tbSearch input:focus {
+  outline: none;
+  border-color: #144a93;
+}
+
+.tbSearch button {
+  background: #144a93;
+  border: none;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 0 5px 5px 0;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .05em;
+}
+
+.tbRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.badgeCluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tbBadge {
+  position: relative;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--adm-ink-2);
+}
+
+.tbBadge:hover { border-color: var(--sq-red); color: var(--adm-ink); }
+
+.badgeDot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--sq-red);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.badgeDotYellow { background: var(--sq-yellow); color: #000; }
+
+.tbUser {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 1px solid var(--adm-border);
+  padding-left: 14px;
+}
+
+.tbAvatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #144a93;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.tbUsername { font-size: 12px; color: var(--adm-ink-2); }
+
+/* Shell body */
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 56px);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background: #0a0d14;
+  border-right: 1px solid var(--adm-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.sbSection {
+  padding: 20px 14px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--adm-mute);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.sbItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--adm-ink-2);
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  transition: background .1s;
+}
+
+.sbItem:hover { background: rgba(255,255,255,.04); color: var(--adm-ink); }
+
+.sbItemOn {
+  background: rgba(216,24,24,.1);
+  color: var(--sq-red);
+  border-right: 3px solid var(--sq-red);
+  font-weight: 600;
+}
+
+.sbBadge {
+  margin-left: auto;
+  background: var(--sq-red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.sbBadgeYellow { background: var(--sq-yellow); color: #000; }
+.sbBadgeBlue { background: #2196F3; }
+
+/* Main content */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

@@ -1,0 +1,98 @@
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 28px 0 32px;
+}
+
+.statNum {
+  font-family: 'Bungee', sans-serif;
+  font-size: 30px;
+  color: var(--sq-red);
+  line-height: 1;
+}
+
+.statLbl {
+  color: var(--sq-gray);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.divTabs {
+  display: flex;
+  background: var(--sq-card);
+  border: 1px solid var(--sq-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tab {
+  padding: 10px 24px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border: none;
+  border-right: 1px solid var(--sq-border);
+  background: transparent;
+  color: var(--sq-gray);
+  transition: all 0.15s;
+}
+
+.tab:last-child { border-right: none; }
+.tab:hover:not(.tabActive) { color: var(--sq-white); background: rgba(255,255,255,.05); }
+.tabActive { background: var(--sq-red); color: var(--sq-white); }
+
+.seasonSelect {
+  background: var(--sq-card);
+  color: var(--sq-white);
+  border: 1px solid var(--sq-border);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  margin-left: auto;
+}
+
+/* Attendance dots */
+.dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sq-border);
+  display: inline-block;
+}
+
+.dotOn { background: var(--sq-signal); }
+
+.legend {
+  color: var(--sq-gray);
+  font-size: 12px;
+  margin-top: 12px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}

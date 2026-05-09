@@ -1,0 +1,42 @@
+/* SoCal SkyQuest — Design Tokens */
+:root {
+  /* League Primary — Bear Flag */
+  --sq-red: #D81818;
+  --sq-red-dk: #a81010;
+  --sq-green: #004818;
+  --sq-signal: #007830;
+  --sq-brown: #603018;
+
+  /* Event Accents */
+  --sq-orange: #F28C28;
+  --sq-sky: #29B6F6;
+  --sq-deep: #1565C0;
+  --sq-fire: #E53935;
+  --sq-yellow: #FDD835;
+
+  /* Neutrals */
+  --sq-black: #000000;
+  --sq-white: #FFFFFF;
+  --sq-gray: #8C8C8C;
+
+  /* UI surfaces */
+  --sq-bg: #0a0a0a;
+  --sq-card: #181818;
+  --sq-card-hi: #1e1e1e;
+  --sq-border: #2a2a2a;
+  --sq-border-hi: #3a3a3a;
+  --sq-ink: #e8eaf2;
+  --sq-ink-2: #a0a8c0;
+  --sq-mute: #5a6580;
+
+  /* Admin surfaces */
+  --adm-bg: #0d1017;
+  --adm-card: #161b26;
+  --adm-card-hi: #1c2232;
+  --adm-border: #232a3a;
+  --adm-border-hi: #2e3a52;
+  --adm-ink: #e8eaf2;
+  --adm-ink-2: #a0a8c0;
+  --adm-mute: #5a6580;
+  --adm-blue: #144a93;
+}

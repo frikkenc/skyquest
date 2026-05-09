@@ -1,0 +1,67 @@
+.monthTitle {
+  font-family: 'Bungee', sans-serif;
+  color: var(--sq-yellow);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  margin: 32px 0 12px;
+}
+
+.eventCard {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  gap: 24px;
+  padding: 24px;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.eventCard + .eventCard { margin-top: 12px; }
+
+.eventMeta h3 {
+  font-family: 'Bungee', sans-serif;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.sub {
+  color: var(--sq-gray);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1.6;
+}
+
+.eventActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.date {
+  font-family: 'Bungee', sans-serif;
+  font-size: 17px;
+  color: var(--sq-red);
+  white-space: nowrap;
+}
+
+.dz {
+  font-size: 11px;
+  color: var(--sq-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 700px) {
+  .eventCard {
+    grid-template-columns: 64px 1fr;
+    gap: 16px;
+  }
+  .eventActions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+  }
+}

@@ -1,0 +1,81 @@
+.crumbs {
+  color: var(--sq-gray);
+  font-size: 13px;
+  padding: 16px 0 0;
+}
+
+.crumbs a { color: var(--sq-red); }
+.crumbs a:hover { text-decoration: underline; }
+
+.instanceHero {
+  padding: 48px 0;
+  border-bottom: 1px solid var(--sq-border);
+  margin-top: 8px;
+}
+
+.heroInner {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-family: 'Bungee', sans-serif;
+  font-size: clamp(28px, 4vw, 44px);
+  margin: 10px 0 12px;
+  line-height: 1;
+}
+
+.metaRow {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.metaItem { }
+
+.metaLabel {
+  color: var(--sq-gray);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metaVal {
+  font-family: 'Bungee', sans-serif;
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.divTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid var(--sq-border);
+  border-radius: 6px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--sq-gray);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover:not(.tabActive) {
+  border-color: var(--sq-white);
+  color: var(--sq-white);
+}
+
+.tabActive {
+  background: var(--sq-red);
+  border-color: var(--sq-red);
+  color: var(--sq-white);
+}
