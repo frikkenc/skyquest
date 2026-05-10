@@ -35,9 +35,9 @@ function computeTeamStandings(results: PublishedEventResult[], division: Divisio
       const existing = teamMap.get(key) ?? {
         rank: 0, teamId: team.teamId, teamName: team.teamName,
         members: team.members, division: team.division,
-        totalPoints: 0, eventsAttended: [],
+        totalPoints: 0, eventsAttended: [] as string[],
         bestFinishRank: undefined, bestFinishEvent: undefined,
-        _pts: [],
+        _pts: [] as number[],
       }
       existing.eventsAttended.push(result.instanceId)
       existing._pts.push(team.rankingPoints)

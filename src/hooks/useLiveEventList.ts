@@ -32,7 +32,7 @@ export function useLiveEventList() {
     queryFn: async () => {
       const snap = await getDocs(collection(db, 'eventConfig'))
       const map: Record<string, Partial<EventInstance>> = {}
-      snap.forEach(d => { map[d.id] = d.data() as Partial<EventInstance> })
+      snap.forEach((d: import('firebase/firestore').QueryDocumentSnapshot) => { map[d.id] = d.data() as Partial<EventInstance> })
       return map
     },
     staleTime: 30_000,
