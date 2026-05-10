@@ -1,5 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { signOut } from 'firebase/auth'
+import { auth } from '../firebase'
+import { useAuth } from '../hooks/useAuth'
 import styles from './AdminLayout.module.css'
 
 const NAV_ITEMS = {
@@ -45,6 +48,15 @@ export default function AdminLayout() {
   const [approvalBadge] = useState(4)
   const [refundBadge] = useState(2)
   const [unmatchedBadge] = useState(2)
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  function handleSignOut() {
+    signOut(auth).then(() => navigate('/admin/login'))
+  }
+
+  const displayName = user?.displayName ?? user?.email ?? 'Admin'
+  const initials = displayName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
 
   return (
     <div className={styles.shell}>
@@ -76,9 +88,9 @@ export default function AdminLayout() {
               ⚠<span className={`${styles.badgeDot} ${styles.badgeDotYellow}`}>{unmatchedBadge}</span>
             </div>
           </div>
-          <div className={styles.tbUser}>
-            <div className={styles.tbAvatar}>CF</div>
-            <div className={styles.tbUsername}>Christy F.</div>
+          <div className={styles.tbUser} style={{ cursor: 'pointer' }} onClick={handleSignOut} title="Sign out">
+            <div className={styles.tbAvatar}>{initials}</div>
+            <div className={styles.tbUsername}>{displayName.split(' ')[0]}</div>
           </div>
         </div>
       </header>

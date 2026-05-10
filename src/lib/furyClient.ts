@@ -1,0 +1,89 @@
+import { getIdToken } from 'firebase/auth'
+import { auth } from '../firebase'
+
+const BASE = (import.meta.env.VITE_FURY_API_URL as string | undefined) ?? ''
+
+async function headers(): Promise<Record<string, string>> {
+  const user = auth.currentUser
+  if (!user) throw new Error('Not signed in')
+  const token = await getIdToken(user, /* forceRefresh */ false)
+  return { Authorization: `Bearer ${token}` }
+}
+
+async function furyGet<T>(path: string): Promise<T> {
+  const h = await headers()
+  const res = await fetch(`${BASE}${path}`, { headers: h })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Fury ${path} → ${res.status}: ${text.slice(0, 120)}`)
+  }
+  return res.json() as Promise<T>
+}
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+export interface FurySession {
+  authenticated: boolean
+  uid: string
+  admin: boolean
+}
+
+export interface FuryUnit {
+  id: string
+  type: string
+  subtype: string
+  status: string
+  approvalStatus: string
+  nominalPrice: number
+  eventOfferingId: string
+  createdAt: string
+}
+
+export interface FuryRegistrant {
+  id: string
+  registrationId: string
+  eventId: string
+  clientId: string
+  status: string
+  approvalStatus: string
+  createdAt: string
+  checkoutCompletedAt: string | null
+  name: string
+  email: string
+  phone: string
+  client: {
+    id: string
+    firstName: string
+    lastName: string
+    preferredName: string | null
+    email: string
+    phone: string
+  }
+  formData: {
+    needsTeamUp?: string
+    teammates?: string
+    whatIsYourPreferredDivision?: string
+    doYouNeedHelpFindingVideo?: string
+    firstName?: string
+    lastName?: string
+    preferredName?: string
+    email?: string
+    phone?: string
+  }
+  units: FuryUnit[]
+}
+
+export interface FuryRegistrationsPayload {
+  eventId: string
+  registrations: FuryRegistrant[]
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────────
+
+export function fetchFurySession(): Promise<FurySession> {
+  return furyGet<FurySession>('/api/admin/session')
+}
+
+export function fetchFuryRegistrations(furyEventId: string): Promise<FuryRegistrationsPayload> {
+  return furyGet<FuryRegistrationsPayload>(`/api/events/${furyEventId}/registrations`)
+}

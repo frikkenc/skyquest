@@ -96,3 +96,53 @@
   align-items: center;
   gap: 5px;
 }
+
+/* Special tabs (Individual, Awards) */
+.tabSpecial {
+  border-left: 1px solid var(--sq-border);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--sq-gray);
+}
+.tabSpecial.tabActive { background: var(--sq-red); color: var(--sq-white); }
+
+/* Awards grid */
+.awardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.awardCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.awardCategory {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sq-gray);
+}
+
+.awardWinner {
+  font-family: 'Bungee', sans-serif;
+  font-size: 17px;
+  color: var(--sq-yellow);
+  line-height: 1.2;
+}
+
+.awardNotes {
+  font-size: 13px;
+  color: var(--sq-gray);
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .divTabs { overflow-x: auto; }
+  .tab { padding: 10px 16px; font-size: 12px; }
+  .statRow { grid-template-columns: repeat(2, 1fr); }
+  .toolbar { gap: 10px; }
+  .seasonSelect { margin-left: 0; }
+}

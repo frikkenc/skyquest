@@ -64,8 +64,8 @@ export default function Schedule() {
     <>
       <Nav />
       <div className="wrap" style={{ paddingTop: 48 }}>
-        <h1 className="display" style={{ fontSize: 46 }}>2026 Season Schedule</h1>
-        <p style={{ color: 'var(--sq-gray)', marginTop: 8, maxWidth: 680, lineHeight: 1.6 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(26px, 6vw, 46px)' }}>2026 Season Schedule</h1>
+        <p style={{ color: 'var(--sq-gray)', marginTop: 8, maxWidth: 680, lineHeight: 1.6, fontSize: 'clamp(13px, 3.5vw, 16px)' }}>
           Seven events. Two dropzones. One scoreboard. Sign up for one, sign up for all — every result rolls up to the season leaderboard.
         </p>
 

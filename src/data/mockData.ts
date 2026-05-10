@@ -19,7 +19,7 @@ export const EVENT_TYPES: EventType[] = [
     name: 'SCSL',
     shortName: 'SCSL',
     description: 'The classic 4-way competition — easier to sign up for, with divisions for all levels.',
-    longDescription: 'A sanctioned SCSL meet with real judging, real divisions, and real medals. Register solo and we build your team before meet day — no pre-formed squad required. Eight rounds of 4-way formation skydiving, scored by certified judges, with divisions for Rookie through AAA. Think of it as a skydiving track meet: structured, fair, and genuinely fun at every level. The series runs twice in 2026 — Elsinore in March, Perris in August — and both events count toward the season leaderboard.',
+    longDescription: 'Standard 4-way formation skydiving competition with real judging, real divisions, and real medals. Great for pickup teams, first-time competitors, and teams training toward US Nationals. Register solo and we\'ll do our best to place you with a team — the sooner you register, the better your chances. Eight rounds, divisions from Rookie through AAA. The series runs twice in 2026 — Elsinore in March, Perris in August — and both events count toward the season leaderboard.',
     format: '4-way Formation · 8 rounds',
     logo: '/logos/scsl.png',
     badgeClass: 'badge-scsl',
@@ -40,9 +40,9 @@ export const EVENT_TYPES: EventType[] = [
     slug: 'dueling-dzs',
     name: 'Dueling DZs',
     shortName: 'Dueling DZs',
-    description: 'Takeoff at one dropzone, land in the other! Wingsuiter? We\'ve got you.',
-    longDescription: 'Exit at one dropzone. Land at the other. Your 6-way team boards a plane at Perris, flies the round in between, and touches down at Elsinore — then ground transport takes you back for the next round (or vice versa). It\'s the most logistically wild event on the calendar and also one of the most popular. Wingsuit-friendly, Open division. The day ends with appetizers at the Sports Stop. Counting SkyQuest points, counting memories.',
-    format: '6-way · Cross-DZ · Wingsuit-friendly',
+    description: 'Take off at one dropzone, land at the other — then board the plane and go back. Four rounds.',
+    longDescription: 'You leave from Elsinore or Perris, fly your 6-way round, and land at the other dropzone. Then you board the plane right there and go back — no ground crew, no shuttles, no fuss. Four rounds total. It\'s the most logistically wild event on the calendar and also one of the most popular. Open division.',
+    format: '6-way · Cross-DZ · 4 rounds',
     logo: '/logos/dueling-dzs.png',
     badgeClass: 'badge-dueling',
     color: '#D81818',
@@ -62,8 +62,8 @@ export const EVENT_TYPES: EventType[] = [
     slug: 'ghost-nationals',
     name: 'Ghost Nationals',
     shortName: 'Ghost Nats',
-    description: 'The most fun dives from US Nationals, re-run for everyone who couldn\'t make it to Eloy.',
-    longDescription: "USPA Nationals happens once a year in Eloy. Most people can't go. Ghost Nationals runs the actual 2026 Nationals draw — the same random formation sequences used at the real competition — at Skydive Perris in November, right after Nationals wraps. If you want to see where you'd stack up against a Nationals field without the Arizona hotel bill, this is it. Runs 4-way and 8-way with A / AA / AAA divisions. The season finale before Awards night.",
+    description: 'Part of the previous USPA Nationals draw, run locally — great for a redo, a first meet, or building a team for next season.',
+    longDescription: "USPA Nationals moves around every year — most people can't make it. Ghost Nationals runs part of the previous year's Nationals draw at Skydive Perris, so you can fly the same sequences without the travel. Great for teams wanting a redo after Nationals, beginners looking to sample a friendly meet, and flyers who want to test or build a team heading into next season. Runs 4-way and 8-way with A / AA / AAA divisions.",
     format: '4-way & 8-way · National dive pool · A / AA / AAA',
     logo: '/logos/ghost-nationals.png',
     badgeClass: 'badge-ghost',
@@ -84,8 +84,8 @@ export const EVENT_TYPES: EventType[] = [
     slug: 'awards',
     name: 'Awards Show',
     shortName: 'Awards',
-    description: 'Season-ending swanky awards night at the Bombshelter. Costumes encouraged.',
-    longDescription: "The season closes at the Bombshelter for a night of awards that are partly sincere and partly absurd. Year-end trophies, divisional medals, most creative team name, most epic fail, best costume — and live voting on a few categories. Free and open to anyone who jumped in the league or just wants to celebrate the season. Costumes strongly encouraged. No skydiving on this one.",
+    description: 'Season-ending awards night at the Bombshelter. Fancy dress optional.',
+    longDescription: "The season closes at the Bombshelter for a night of awards that are partly sincere and partly absurd. Year-end trophies, divisional medals, most creative team name, most epic fail — and live voting on a few categories. Free and open to anyone who jumped in the league or just wants to celebrate the season. Fancy dress optional. No skydiving on this one.",
     format: 'Live awards · Open to all · Free',
     logo: '',
     badgeClass: 'badge-awards',
@@ -148,17 +148,14 @@ export const EVENT_INSTANCES: EventInstance[] = [
     typeSlug: 'dueling-dzs',
     name: 'Dueling DZs — Perris ↔ Elsinore',
     shortTagline: 'Take off at one DZ. Land at the other.',
-    oneLiner: 'The fan-favorite cross-DZ jump is back — exit one dropzone, land at the other, and finish the day with appetizers at the Sports Stop.',
+    oneLiner: 'Leave from Elsinore or Perris, land at the other, board the plane, and go back. Four rounds. No ground crew.',
     date: '2026-06-21',
     dropzone: 'Perris ↔ Elsinore',
-    status: 'upcoming',
+    status: 'open',
     divisions: ['Open'],
-    registrationCount: 3,
-    approvedCount: 0,
+    registrationCount: 24,
+    approvedCount: 24,
     pendingBalance: 0,
-    registrationLabel: 'NOTIFY ME',
-    lookingForTeamCount: 3,
-    teamsNotFullCount: 1,
   },
   {
     id: 'scsl-perris-late-summer-2026',
@@ -176,7 +173,7 @@ export const EVENT_INSTANCES: EventInstance[] = [
     pendingBalance: 240,
     lookingForTeamCount: 5,
     teamsNotFullCount: 3,
-    furyEventId: 'fury-scsl-2026-02',
+    furyEventId: 'evt-scsl-4way-perris-2026',
     furyRegistrationUrl: 'https://register.furycoaching.com/registration?eventId=evt-scsl-4way-perris-2026',
   },
   {
@@ -191,6 +188,7 @@ export const EVENT_INSTANCES: EventInstance[] = [
     divisions: ['Open'],
     registrationCount: 0,
     approvedCount: 0,
+    furyEventId: 'evt-frikken-crazy8s-2026',
     furyRegistrationUrl: 'https://register.furycoaching.com/registration?eventId=evt-frikken-crazy8s-2026',
   },
   {
@@ -198,20 +196,21 @@ export const EVENT_INSTANCES: EventInstance[] = [
     typeSlug: 'ghost-nationals',
     name: 'Ghost Nationals @ Perris',
     shortTagline: 'Fly the actual US Nationals draw. Locally.',
-    oneLiner: 'The 2026 season finale: the real USPA Nationals 4-way open draw, run at Skydive Perris for everyone who couldn\'t make it to Eloy.',
+    oneLiner: 'Part of the previous USPA Nationals draw, run at Skydive Perris — a redo, a first meet, or a team-building test before next season.',
     date: '2026-11-28',
     dropzone: 'Perris',
     status: 'upcoming',
     divisions: ['AAA', 'AA', 'A'],
     registrationCount: 0,
     approvedCount: 0,
+    furyEventId: 'evt-ghost-nationals-2026',
     furyRegistrationUrl: 'https://register.furycoaching.com/registration?eventId=evt-ghost-nationals-2026',
   },
   {
     id: 'awards-show-2026',
     typeSlug: 'awards',
     name: 'Awards Show @ The Bombshelter',
-    shortTagline: 'Season-ending awards night. Costumes encouraged.',
+    shortTagline: 'Season-ending awards night. Fancy dress optional.',
     oneLiner: 'The 2026 SoCal SkyQuest season ends with a swanky (and silly) awards night at the Bombshelter. Free and open to all.',
     date: '2026-12-05',  // placeholder — confirm exact date (after Ghost Nationals Nov 28)
     dropzone: 'The Bombshelter',
@@ -433,6 +432,39 @@ export const SCSL_REGISTRATIONS: TeamRegistration[] = [
 
 // ── Team assignments (teaming tool state) ──────────────────────────────────────
 
+// ── Dueling DZs 2026 — individual registrations ───────────────────────────────
+// Each entry = one person. members[0] is themselves.
+export const DUELING_REGISTRATIONS: TeamRegistration[] = [
+  // ── Team 1: Exit Strategy ──
+  { id: 'dd-r1',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd1',  name: 'Marcus Devlin'  }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:00:00Z' },
+  { id: 'dd-r2',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd2',  name: 'Jess Torres'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:05:00Z' },
+  { id: 'dd-r3',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd3',  name: 'Sam Park'       }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:10:00Z' },
+  { id: 'dd-r4',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd4',  name: 'Lena Ortiz'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:15:00Z' },
+  { id: 'dd-r5',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd5',  name: 'Chip Harmon'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:20:00Z' },
+  { id: 'dd-r6',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd6',  name: 'Bailey Cross'   }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:25:00Z' },
+  // ── Team 2: Sky Bandits ──
+  { id: 'dd-r7',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd7',  name: 'Tony Wells'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:00:00Z' },
+  { id: 'dd-r8',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd8',  name: 'Priya Nair'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:05:00Z' },
+  { id: 'dd-r9',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd9',  name: 'Cal Fischer'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:10:00Z' },
+  { id: 'dd-r10', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd10', name: 'Wendy Lau'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:15:00Z' },
+  { id: 'dd-r11', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd11', name: 'Derek Park'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:20:00Z' },
+  { id: 'dd-r12', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd12', name: 'Sofia Reyes'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:25:00Z' },
+  // ── Team 3: Hang Time ──
+  { id: 'dd-r13', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd13', name: 'Raj Gupta'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:00:00Z' },
+  { id: 'dd-r14', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd14', name: 'Mei Zhang'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:05:00Z' },
+  { id: 'dd-r15', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd15', name: 'Tomas Webb'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:10:00Z' },
+  { id: 'dd-r16', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd16', name: 'Jordan Blake'   }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:15:00Z' },
+  { id: 'dd-r17', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd17', name: 'Alex Chen'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:20:00Z' },
+  { id: 'dd-r18', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd18', name: 'Dana Kim'       }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:25:00Z' },
+  // ── Team 4: No Altitude Attitude ──
+  { id: 'dd-r19', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd19', name: 'Christy Flores' }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:00:00Z' },
+  { id: 'dd-r20', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd20', name: 'Seth Jacobs'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:05:00Z' },
+  { id: 'dd-r21', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd21', name: 'Kayla Nash'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:10:00Z' },
+  { id: 'dd-r22', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd22', name: 'Thao Nguyen'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:15:00Z' },
+  { id: 'dd-r23', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd23', name: 'Marcus Vega'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:20:00Z' },
+  { id: 'dd-r24', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd24', name: 'Riley Torres'   }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:25:00Z' },
+]
+
 export const TEAM_ASSIGNMENTS: TeamAssignment[] = [
   // ── SCSL Perris Late Summer 2026 ──────────────────────────────────────────
   { id: 'scsl-ta-1', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r1','scsl-r2','scsl-r3','scsl-r4'], videoPersonId: 'scsl-r6', isConfirmed: false },
@@ -475,6 +507,11 @@ export const TEAM_ASSIGNMENTS: TeamAssignment[] = [
     confirmedAt: '2026-04-30T09:00:00Z',
     confirmationEmailSentAt: '2026-04-30T09:01:00Z',
   },
+  // ── Dueling DZs 2026 ─────────────────────────────────────────────────────
+  { id: 'dd-ta-1', eventId: 'dueling-dzs-2026', teamName: 'Exit Strategy',        memberIds: ['dd-r1','dd-r2','dd-r3','dd-r4','dd-r5','dd-r6'],    isConfirmed: true  },
+  { id: 'dd-ta-2', eventId: 'dueling-dzs-2026', teamName: 'Sky Bandits',           memberIds: ['dd-r7','dd-r8','dd-r9','dd-r10','dd-r11','dd-r12'],  isConfirmed: true  },
+  { id: 'dd-ta-3', eventId: 'dueling-dzs-2026', teamName: 'Hang Time',             memberIds: ['dd-r13','dd-r14','dd-r15','dd-r16','dd-r17','dd-r18'], isConfirmed: true  },
+  { id: 'dd-ta-4', eventId: 'dueling-dzs-2026', teamName: 'No Altitude Attitude',  memberIds: ['dd-r19','dd-r20','dd-r21','dd-r22','dd-r23','dd-r24'], isConfirmed: true  },
 ]
 
 // ── Season configuration ───────────────────────────────────────────────────────

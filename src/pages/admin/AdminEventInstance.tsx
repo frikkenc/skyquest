@@ -7,6 +7,8 @@ import {
 import StatusPill from '../../components/StatusPill'
 import EventBadge from '../../components/EventBadge'
 import type { Division, TeamRegistration, TeamAssignment } from '../../types'
+import type { FuryRegistrant } from '../../lib/furyClient'
+import { useFuryRegistrations } from '../../hooks/useFuryData'
 import styles from './AdminEventInstance.module.css'
 import teamStyles from './AdminTeaming.module.css'
 import PrintablesTab from './AdminPrintables'
@@ -31,6 +33,9 @@ export default function AdminEventInstance() {
   const allRegistrations = [...REGISTRATIONS, ...SCSL_REGISTRATIONS]
   const registrations = allRegistrations.filter(r => r.eventId === instanceId)
   const lftCount = registrations.filter(r => !r.teamName && r.status !== 'denied').length
+
+  // Use real Fury data when this event has a real Fury event ID (starts with 'evt-')
+  const realFuryEventId = event?.furyEventId?.startsWith('evt-') ? event.furyEventId : undefined
 
   if (!event || !eventType) {
     return <div style={{ padding: 48, color: 'var(--adm-mute)' }}>Event not found.</div>
@@ -134,7 +139,11 @@ export default function AdminEventInstance() {
         <ManualRegTab registrations={registrations} eventId={instanceId ?? ''} />
       )}
 
-      {tab === 'Registrations' && !isManualReg && (
+      {tab === 'Registrations' && !isManualReg && realFuryEventId && (
+        <FuryRegsTab furyEventId={realFuryEventId} />
+      )}
+
+      {tab === 'Registrations' && !isManualReg && !realFuryEventId && (
         <div>
           <div className={styles.toolbar}>
             <div className={styles.toolbarLeft}>
@@ -236,7 +245,7 @@ export default function AdminEventInstance() {
 
       {/* ── SCORES TAB ── */}
       {tab === 'Scores' && (
-        <ScoresTab eventTypeSlug={event.typeSlug} />
+        <ScoresTab eventTypeSlug={event.typeSlug} instanceId={event.id} />
       )}
 
       {/* ── WAITLIST TAB ── */}
@@ -334,6 +343,114 @@ export default function AdminEventInstance() {
         </div>
       )}
     </>
+  )
+}
+
+// ── FURY REGISTRATIONS TAB ───────────────────────────────────────────────────
+
+function furyDisplayName(r: FuryRegistrant): string {
+  const fd = r.formData
+  if (fd.preferredName) return fd.preferredName
+  const first = fd.firstName ?? r.client.firstName ?? ''
+  const last = fd.lastName ?? r.client.lastName ?? ''
+  return `${first} ${last}`.trim() || r.name
+}
+
+function furyDivLabel(r: FuryRegistrant): string {
+  const div = r.formData.whatIsYourPreferredDivision
+  if (!div) return '—'
+  return div.toUpperCase()
+}
+
+function FuryRegsTab({ furyEventId }: { furyEventId: string }) {
+  const { data, isLoading, isError, error, refetch } = useFuryRegistrations(furyEventId)
+  const regs = data?.registrations ?? []
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>
+        Loading registrations from Fury…
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div style={{ padding: 20, background: 'rgba(216,24,24,.06)', border: '1px solid rgba(216,24,24,.2)', borderRadius: 8, fontSize: 13, color: 'var(--sq-red)' }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Could not load Fury registrations</div>
+        <div style={{ color: 'var(--adm-mute)', fontSize: 12, marginBottom: 12 }}>
+          {error instanceof Error ? error.message : 'Network error'}
+        </div>
+        <button className={styles.adminBtn} onClick={() => refetch()}>↻ Retry</button>
+      </div>
+    )
+  }
+
+  const needsTeamUp = regs.filter(r => r.formData.needsTeamUp === 'yes')
+  const hasTeam = regs.filter(r => r.formData.needsTeamUp !== 'yes')
+
+  return (
+    <div>
+      <div className={styles.toolbar} style={{ marginBottom: 12 }}>
+        <span style={{ fontSize: 13, color: 'var(--adm-mute)' }}>
+          {regs.length} registrant{regs.length !== 1 ? 's' : ''} · {needsTeamUp.length} LFT · live from Fury
+        </span>
+        <button className={styles.adminBtn} onClick={() => refetch()} style={{ marginLeft: 'auto', fontSize: 11 }}>
+          ↻ Sync
+        </button>
+      </div>
+
+      <div className={styles.table}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              {['#', 'Name', 'Teammates / LFT Note', 'Div Pref', 'Needs Video', 'Fee', 'Registered'].map(h => (
+                <th key={h} style={thStyle}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {regs.map((reg, i) => {
+              const lft = reg.formData.needsTeamUp === 'yes'
+              const needsVideo = reg.formData.doYouNeedHelpFindingVideo === 'yes'
+              const fee = reg.units[0]?.nominalPrice
+              const regDate = reg.checkoutCompletedAt ?? reg.createdAt
+              return (
+                <tr key={reg.id} style={{ borderBottom: '1px solid rgba(255,255,255,.04)', background: lft ? 'rgba(255,171,64,.03)' : undefined }}>
+                  <td style={{ ...tdStyle, color: 'var(--adm-mute)', width: 32 }}>{i + 1}</td>
+                  <td style={{ ...tdStyle, fontWeight: 700 }}>
+                    {furyDisplayName(reg)}
+                    {lft && (
+                      <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: '#ffab40', background: 'rgba(255,171,64,.12)', border: '1px solid rgba(255,171,64,.3)', borderRadius: 99, padding: '1px 7px' }}>
+                        LFT
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 12, color: 'var(--adm-mute)', maxWidth: 260 }}>
+                    {reg.formData.teammates
+                      ? <span title={reg.formData.teammates}>{reg.formData.teammates.slice(0, 60)}{reg.formData.teammates.length > 60 ? '…' : ''}</span>
+                      : <span style={{ opacity: .4 }}>—</span>
+                    }
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 12 }}>
+                    {lft ? <span style={{ fontWeight: 700, color: 'var(--adm-ink)' }}>{furyDivLabel(reg)}</span> : <span style={{ color: 'var(--adm-mute)' }}>—</span>}
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 12, color: needsVideo ? 'var(--sq-yellow)' : 'var(--adm-mute)' }}>
+                    {needsVideo ? '📷 yes' : 'no'}
+                  </td>
+                  <td style={{ ...tdStyle, fontFamily: 'Bungee, sans-serif', fontStyle: 'italic', fontSize: 13 }}>
+                    {fee != null ? `$${fee}` : '—'}
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 11, color: 'var(--adm-mute)' }}>
+                    {regDate ? new Date(regDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 

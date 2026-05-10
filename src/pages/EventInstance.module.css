@@ -8,16 +8,27 @@
 .crumbs a:hover { text-decoration: underline; }
 
 .instanceHero {
-  padding: 48px 0;
+  padding: 36px 0;
   border-bottom: 1px solid var(--sq-border);
   margin-top: 8px;
 }
 
 .heroInner {
-  display: flex;
-  gap: 32px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
   align-items: center;
-  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .heroInner {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+  }
+  .heroInner > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
 }
 
 .title {
@@ -29,8 +40,15 @@
 
 .metaRow {
   display: flex;
-  gap: 24px;
+  gap: 16px 24px;
   flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .title { font-size: 26px; }
+  .metaRow { gap: 12px 20px; }
+  .metaVal { font-size: 13px; }
 }
 
 .metaItem { }
@@ -68,8 +86,13 @@
 }
 
 @media (max-width: 860px) {
-  .aboutGrid { grid-template-columns: 1fr; }
+  .aboutGrid { grid-template-columns: 1fr; gap: 20px; }
   .aboutSide { order: -1; }
+}
+
+@media (max-width: 600px) {
+  .oneLiner { font-size: 17px; }
+  .longDesc { font-size: 14px; }
 }
 
 .aboutMain {}

@@ -60,12 +60,17 @@
 
 @media (max-width: 700px) {
   .eventCard {
-    grid-template-columns: 64px 1fr;
-    gap: 16px;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 16px;
   }
+  .eventMeta h3 { font-size: 15px; }
   .eventActions {
     grid-column: 1 / -1;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
   }
+  .date { font-size: 14px; }
 }
+

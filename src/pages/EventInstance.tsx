@@ -158,7 +158,7 @@ export default function EventInstance() {
               <div className="card" style={{ marginTop: 16 }}>
                 <div className={styles.sideTitle}>Just Sign Up to Team Up</div>
                 <p style={{ color: '#cfcfcf', fontSize: 14, lineHeight: 1.6 }}>
-                  No pre-formed team required. Register solo, fill out a short questionnaire about your experience and preferences, and we'll place you on a balanced team before meet day.
+                  No pre-formed team required. Register solo and we'll be in touch to sort your team. Register sooner for better chances.
                 </p>
               </div>
             )}

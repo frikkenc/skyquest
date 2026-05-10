@@ -56,4 +56,6 @@
 
 @media (max-width: 700px) {
   .links { display: none; }
+  .logo { height: 40px; }
+  .cta { padding: 8px 14px; font-size: 12px; }
 }

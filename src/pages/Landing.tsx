@@ -79,8 +79,8 @@ export default function Landing() {
         <div className={styles.sectionLabel}>How It Works</div>
         <div className="grid grid-3">
           <div className="card">
-            <h3 className={styles.pillarTitle}>Just Sign Up to Team Up</h3>
-            <p className={styles.pillarBody}>No pre-formed team needed. Register solo, answer a short questionnaire, and we match you with a balanced team before meet day.</p>
+            <h3 className={styles.pillarTitle}>Bring Your Team or Sign Up Solo</h3>
+            <p className={styles.pillarBody}>Sign up solo — we build your team.</p>
           </div>
           <div className="card">
             <h3 className={styles.pillarTitle}>One Scoreboard All Season</h3>
@@ -88,13 +88,13 @@ export default function Landing() {
           </div>
           <div className="card">
             <h3 className={styles.pillarTitle}>Swanky Year-End Awards</h3>
-            <p className={styles.pillarBody}>Season closes at the Bombshelter. Divisional medals, most epic fail award, best costume. Free and open to all.</p>
+            <p className={styles.pillarBody}>Season closes at the Bombshelter. Divisional medals, most epic fail, live voting. Free and open to all. Fancy dress optional.</p>
           </div>
         </div>
 
         {/* Leaderboard preview */}
         <div className={styles.sectionLabel}>Top of the Board</div>
-        <div className="card" style={{ padding: 0 }}>
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <div style={{ padding: '10px 16px 0', color: 'var(--sq-gray)', fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             Through 2 of 6 scoring events · AAA
           </div>

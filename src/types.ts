@@ -184,6 +184,49 @@ export interface Season {
   events: SeasonEventConfig[]
 }
 
+// ── Leaderboard publishing ─────────────────────────────────────────────────────
+
+export interface PublishedTeamResult {
+  rank: number
+  teamId: string
+  teamName: string
+  members: { id: string; name: string }[]
+  division: Division
+  rawScore: number
+  jpp?: number | null
+  rankingPoints: number
+}
+
+export interface PublishedEventResult {
+  instanceId: string
+  eventName: string
+  date: string
+  teams: PublishedTeamResult[]
+}
+
+export interface IndividualStanding {
+  rank: number
+  jumperId: string
+  name: string
+  division: Division
+  eventScores: {
+    instanceId: string
+    eventName: string
+    points: number
+    teamName: string
+  }[]
+  droppedEventId?: string
+  totalPoints: number
+}
+
+export interface GalaAward {
+  id: string
+  category: string
+  winner: string
+  notes?: string
+  isPublished: boolean
+}
+
 // ── Email scheduling ───────────────────────────────────────────────────────────
 
 export type EmailScheduleStatus = 'draft' | 'test-sent' | 'approved' | 'scheduled' | 'sent' | 'failed'

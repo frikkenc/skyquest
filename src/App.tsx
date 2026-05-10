@@ -10,7 +10,11 @@ import AdminEventType from './pages/admin/AdminEventType'
 import AdminEventInstance from './pages/admin/AdminEventInstance'
 import AdminEmailTemplates from './pages/admin/AdminEmailTemplates'
 import AdminSeasons from './pages/admin/AdminSeasons'
+import AdminFuryIdentity from './pages/admin/AdminFuryIdentity'
+import AdminLogin from './pages/admin/AdminLogin'
 import PrintPage from './pages/PrintPage'
+import CheckInPage from './pages/CheckInPage'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } },
@@ -29,18 +33,24 @@ export default function App() {
           <Route path="/events/:typeSlug" element={<Schedule />} />
           <Route path="/events" element={<Schedule />} />
 
-          {/* Admin */}
-          <Route path="/admin" element={<AdminLayout />}>
+          {/* Admin login — unprotected */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+
+          {/* Admin — protected */}
+          <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="events/:typeSlug" element={<AdminEventType />} />
             <Route path="events/:typeSlug/:instanceId" element={<AdminEventInstance />} />
             <Route path="emails" element={<AdminEmailTemplates />} />
             <Route path="seasons" element={<AdminSeasons />} />
+            <Route path="config/identity" element={<AdminFuryIdentity />} />
             <Route path="*" element={<AdminPlaceholder />} />
           </Route>
 
           {/* Standalone print views — no admin chrome */}
           <Route path="/print/:instanceId/:type" element={<PrintPage />} />
+          {/* Day-of check-in — public, no auth */}
+          <Route path="/checkin/:instanceId" element={<CheckInPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
