@@ -40,7 +40,7 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: skyquest-fury
+          projectId: skyquest-7cfe0
           channelId: pr-${{ github.event.pull_request.number }}
 
       - name: Deploy to Firebase Hosting (live — main)
@@ -49,5 +49,5 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: skyquest-fury
+          projectId: skyquest-7cfe0
           channelId: live
