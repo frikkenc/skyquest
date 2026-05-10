@@ -1,0 +1,118 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--adm-bg);
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+
+.hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.title {
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--adm-ink);
+  letter-spacing: .06em;
+}
+
+.close {
+  background: none;
+  border: none;
+  color: var(--adm-mute);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+.close:hover { color: var(--adm-ink); }
+
+.body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--adm-mute);
+  margin-bottom: -6px;
+}
+
+.input {
+  background: rgba(255,255,255,.07);
+  border: 1px solid var(--adm-border);
+  color: var(--adm-ink);
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--sq-red);
+}
+
+.note {
+  font-size: 11px;
+  color: var(--adm-mute);
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--adm-border);
+  border-radius: 5px;
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid var(--adm-border);
+}
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 5px;
+  border: 1px solid var(--adm-border);
+  background: var(--adm-card-hi);
+  color: var(--adm-ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: border-color .1s;
+}
+
+.btn:hover { border-color: var(--sq-red); color: var(--adm-ink); }
+.primary { background: var(--sq-red); border-color: var(--sq-red); color: #fff; }
+.primary:hover { background: #a81010; }
+.btn:disabled { opacity: .5; cursor: default; }

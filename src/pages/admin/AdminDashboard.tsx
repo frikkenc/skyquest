@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  SEASON_KPIS,
-  PENDING_REFUNDS,
-  EVENT_INSTANCES,
-  EVENT_TYPES,
-} from '../../data/mockData'
+import { useQueryClient } from '@tanstack/react-query'
+import { SEASON_KPIS, PENDING_REFUNDS, EVENT_TYPES } from '../../data/mockData'
+import { useLiveEventList } from '../../hooks/useLiveEventList'
+import { useFuryEventStats } from '../../hooks/useFuryData'
+import { EditEventModal } from '../../components/EditEventModal'
+import type { EventInstance } from '../../types'
 import styles from './AdminDashboard.module.css'
 
 function formatCurrency(n: number) {
@@ -19,15 +19,27 @@ function daysUntil(iso: string) {
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [dismissed, setDismissed] = useState<string[]>([])
+  const [syncing, setSyncing] = useState(false)
+  const [lastSync, setLastSync] = useState<Date | null>(null)
+  const [editing, setEditing] = useState<EventInstance | null>(null)
 
-  const openEvents = EVENT_INSTANCES.filter(e => e.status === 'open' || e.status === 'upcoming')
+  async function syncAll() {
+    setSyncing(true)
+    await queryClient.invalidateQueries({ queryKey: ['fury'] })
+    setLastSync(new Date())
+    setSyncing(false)
+  }
+
+  const { events: allEvents } = useLiveEventList()
+  const openEvents = allEvents.filter(e => e.status === 'open' || e.status === 'upcoming')
   const nextEvent = openEvents[0]
   const nextEventType = nextEvent ? EVENT_TYPES.find(t => t.slug === nextEvent.typeSlug) : null
 
-  const totalLFT = EVENT_INSTANCES.reduce((sum, e) => sum + (e.lookingForTeamCount ?? 0), 0)
-  const totalNotFull = EVENT_INSTANCES.reduce((sum, e) => sum + (e.teamsNotFullCount ?? 0), 0)
-  const totalPendingBalance = EVENT_INSTANCES.reduce((sum, e) => sum + (e.pendingBalance ?? 0), 0)
+  const totalLFT = allEvents.reduce((sum, e) => sum + (e.lookingForTeamCount ?? 0), 0)
+  const totalNotFull = allEvents.reduce((sum, e) => sum + (e.teamsNotFullCount ?? 0), 0)
+  const totalPendingBalance = allEvents.reduce((sum, e) => sum + (e.pendingBalance ?? 0), 0)
 
   const refunds = PENDING_REFUNDS.filter(r => !dismissed.includes(r.id))
 
@@ -36,12 +48,22 @@ export default function AdminDashboard() {
       {/* Sync row */}
       <div className={styles.syncRow}>
         <span className={styles.syncDot} />
-        <span>Live sync active · Last refresh <strong>47 seconds ago</strong></span>
-        <button className={styles.syncBtn}>⟲ Refresh All</button>
-        <span className={styles.apiLabel}>fury_admin_session · fury_admin_badge_counts</span>
+        <span>
+          Fury registrations ·{' '}
+          {syncing
+            ? <strong>Syncing…</strong>
+            : lastSync
+              ? <>Last sync <strong>{lastSync.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</strong></>
+              : <span style={{ opacity: .6 }}>not yet synced</span>
+          }
+        </span>
+        <button className={styles.syncBtn} onClick={syncAll} disabled={syncing}>
+          {syncing ? '⟲ Syncing…' : '⟲ Sync All'}
+        </button>
+        <span className={styles.apiLabel}>fury_admin_event_registrations</span>
       </div>
 
-      {/* Season stat strip — small, not the hero */}
+      {/* Season stat strip */}
       <div className={styles.statStrip}>
         <div className={styles.statItem}>
           <span className={styles.statN}>{SEASON_KPIS.eventsRun}</span>
@@ -90,7 +112,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Active/upcoming events — the main content */}
+      {/* Active/upcoming events */}
       <div>
         <div className={styles.sectionHd}>
           <span className={styles.sectionLabel}>Open & Upcoming Events</span>
@@ -115,43 +137,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className={styles.neKpis}>
-              <div className={styles.neKpi}>
-                <div className={styles.neKpiN}>{nextEvent.registrationCount}</div>
-                <div className={styles.neKpiL}>Registered</div>
-                <div className={styles.neKpiSub}>{nextEvent.approvedCount} paid</div>
-              </div>
-              <div className={styles.neKpi}>
-                <div className={styles.neKpiN}>{formatCurrency(nextEvent.revenue ?? 0)}</div>
-                <div className={styles.neKpiL}>Revenue</div>
-              </div>
-              {(nextEvent.pendingBalance ?? 0) > 0 && (
-                <div className={styles.neKpi}>
-                  <div className={`${styles.neKpiN} ${styles.neKpiYellow}`}>{formatCurrency(nextEvent.pendingBalance ?? 0)}</div>
-                  <div className={styles.neKpiL}>Pending $</div>
-                </div>
-              )}
-              {(nextEvent.lookingForTeamCount ?? 0) > 0 && (
-                <div className={styles.neKpi}>
-                  <div className={`${styles.neKpiN} ${styles.neKpiWarn}`}>{nextEvent.lookingForTeamCount}</div>
-                  <div className={styles.neKpiL}>LFT</div>
-                  <div className={`${styles.neKpiSub} ${styles.neKpiSubWarn}`}>need teaming</div>
-                </div>
-              )}
-              {(nextEvent.teamsNotFullCount ?? 0) > 0 && (
-                <div className={styles.neKpi}>
-                  <div className={`${styles.neKpiN} ${styles.neKpiWarn}`}>{nextEvent.teamsNotFullCount}</div>
-                  <div className={styles.neKpiL}>Not Full</div>
-                  <div className={`${styles.neKpiSub} ${styles.neKpiSubWarn}`}>no plan</div>
-                </div>
-              )}
-              {(nextEvent.waitlistCount ?? 0) > 0 && (
-                <div className={styles.neKpi}>
-                  <div className={styles.neKpiN}>{nextEvent.waitlistCount}</div>
-                  <div className={styles.neKpiL}>Waitlist</div>
-                </div>
-              )}
-            </div>
+            <LiveEventKpis event={nextEvent} variant="hero" />
 
             <div className={styles.neActions}>
               <button
@@ -160,7 +146,12 @@ export default function AdminDashboard() {
               >
                 Manage Event ▸
               </button>
-              <button className={styles.adminBtn}>⟲ Sync</button>
+              <button className={styles.adminBtn} onClick={() => setEditing(nextEvent)}>
+                Edit
+              </button>
+              <button className={styles.adminBtn} onClick={syncAll} disabled={syncing}>
+                {syncing ? '⟲ Syncing…' : '⟲ Sync'}
+              </button>
             </div>
           </div>
         )}
@@ -184,37 +175,16 @@ export default function AdminDashboard() {
                     })} · {evt.dropzone} · {daysUntil(evt.date)} days away
                   </div>
                 </div>
-                <div className={styles.urKpis}>
-                  <div className={styles.urKpi}>
-                    <div className={styles.urKpiN}>{evt.registrationCount}</div>
-                    <div className={styles.urKpiL}>Reg'd</div>
-                  </div>
-                  <div className={styles.urKpi}>
-                    <div className={styles.urKpiN}>{formatCurrency(evt.revenue ?? 0)}</div>
-                    <div className={styles.urKpiL}>Revenue</div>
-                  </div>
-                  {(evt.pendingBalance ?? 0) > 0 && (
-                    <div className={styles.urKpi}>
-                      <div className={`${styles.urKpiN} ${styles.urKpiYellow}`}>{formatCurrency(evt.pendingBalance ?? 0)}</div>
-                      <div className={styles.urKpiL}>Pending $</div>
-                    </div>
-                  )}
-                  {(evt.lookingForTeamCount ?? 0) > 0 && (
-                    <div className={styles.urKpi}>
-                      <div className={`${styles.urKpiN} ${styles.urKpiWarn}`}>{evt.lookingForTeamCount}</div>
-                      <div className={styles.urKpiL}>LFT</div>
-                    </div>
-                  )}
-                  {(evt.teamsNotFullCount ?? 0) > 0 && (
-                    <div className={styles.urKpi}>
-                      <div className={`${styles.urKpiN} ${styles.urKpiWarn}`}>{evt.teamsNotFullCount}</div>
-                      <div className={styles.urKpiL}>Not Full</div>
-                    </div>
-                  )}
-                </div>
+                <LiveEventKpis event={evt} variant="row" />
                 <span className={evt.status === 'open' ? 'pill pill-open' : 'pill pill-soon'}>
                   {evt.status === 'open' ? 'Open' : 'Upcoming'}
                 </span>
+                <button
+                  className={styles.adminBtn}
+                  onClick={e => { e.stopPropagation(); setEditing(evt) }}
+                >
+                  Edit
+                </button>
               </div>
             )
           })}
@@ -224,7 +194,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* LFT alert — only show if there are people looking for teams */}
+      {/* LFT alert */}
       {totalLFT > 0 && (
         <div>
           <div className={styles.sectionHd}>
@@ -235,7 +205,7 @@ export default function AdminDashboard() {
             <span className={styles.apiTag}>fury_admin_event_registrations</span>
           </div>
           <div className={styles.queue}>
-            {EVENT_INSTANCES.filter(e => (e.lookingForTeamCount ?? 0) > 0).map(evt => {
+            {allEvents.filter(e => (e.lookingForTeamCount ?? 0) > 0).map(evt => {
               const type = EVENT_TYPES.find(t => t.slug === evt.typeSlug)
               return (
                 <div key={evt.id} className={styles.aqRow}>
@@ -267,6 +237,82 @@ export default function AdminDashboard() {
       )}
 
       <div style={{ height: 20 }} />
+
+      {editing && <EditEventModal event={editing} onClose={() => setEditing(null)} />}
     </>
+  )
+}
+
+// ── Live per-event KPI block ──────────────────────────────────────────────────
+
+function LiveEventKpis({ event, variant }: { event: EventInstance; variant: 'hero' | 'row' }) {
+  const furyId = event.furyEventId?.startsWith('evt-') ? event.furyEventId : undefined
+  const { data: stats } = useFuryEventStats(furyId)
+
+  const reg     = stats?.registrationCount ?? event.registrationCount
+  const approved = stats?.approvedCount    ?? event.approvedCount
+  const revenue  = stats?.revenue          ?? (event.revenue ?? 0)
+  const pending  = stats?.pendingBalance   ?? (event.pendingBalance ?? 0)
+  const lft      = event.lookingForTeamCount ?? 0
+  const notFull  = event.teamsNotFullCount   ?? 0
+
+  if (variant === 'hero') {
+    return (
+      <div className={styles.neKpis}>
+        <div className={styles.neKpi}>
+          <div className={styles.neKpiN}>{reg}</div>
+          <div className={styles.neKpiL}>Registered</div>
+          <div className={styles.neKpiSub}>{approved} approved</div>
+        </div>
+        <div className={styles.neKpi}>
+          <div className={styles.neKpiN}>{formatCurrency(revenue)}</div>
+          <div className={styles.neKpiL}>Revenue</div>
+        </div>
+        {pending > 0 && (
+          <div className={styles.neKpi}>
+            <div className={`${styles.neKpiN} ${styles.neKpiYellow}`}>{formatCurrency(pending)}</div>
+            <div className={styles.neKpiL}>Pending $</div>
+          </div>
+        )}
+        {lft > 0 && (
+          <div className={styles.neKpi}>
+            <div className={`${styles.neKpiN} ${styles.neKpiWarn}`}>{lft}</div>
+            <div className={styles.neKpiL}>LFT</div>
+            <div className={`${styles.neKpiSub} ${styles.neKpiSubWarn}`}>need teaming</div>
+          </div>
+        )}
+        {notFull > 0 && (
+          <div className={styles.neKpi}>
+            <div className={`${styles.neKpiN} ${styles.neKpiWarn}`}>{notFull}</div>
+            <div className={styles.neKpiL}>Not Full</div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.urKpis}>
+      <div className={styles.urKpi}>
+        <div className={styles.urKpiN}>{reg}</div>
+        <div className={styles.urKpiL}>Reg'd</div>
+      </div>
+      <div className={styles.urKpi}>
+        <div className={styles.urKpiN}>{formatCurrency(revenue)}</div>
+        <div className={styles.urKpiL}>Revenue</div>
+      </div>
+      {pending > 0 && (
+        <div className={styles.urKpi}>
+          <div className={`${styles.urKpiN} ${styles.urKpiYellow}`}>{formatCurrency(pending)}</div>
+          <div className={styles.urKpiL}>Pending $</div>
+        </div>
+      )}
+      {lft > 0 && (
+        <div className={styles.urKpi}>
+          <div className={`${styles.urKpiN} ${styles.urKpiWarn}`}>{lft}</div>
+          <div className={styles.urKpiL}>LFT</div>
+        </div>
+      )}
+    </div>
   )
 }
