@@ -12,7 +12,7 @@ import AdminEmailTemplates from './pages/admin/AdminEmailTemplates'
 import AdminSeasons from './pages/admin/AdminSeasons'
 import AdminFuryIdentity from './pages/admin/AdminFuryIdentity'
 import AdminLogin from './pages/admin/AdminLogin'
-import PrintPage from './pages/PrintPage'
+import PrintPage from './pages/PrintPage' 
 import CheckInPage from './pages/CheckInPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
