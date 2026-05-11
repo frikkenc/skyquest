@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
+import EventCTA from '../components/EventCTA'
 import { EVENT_INSTANCES, EVENT_TYPES } from '../data/mockData'
 import type { EventInstance } from '../types'
 import styles from './Schedule.module.css'
@@ -23,30 +24,6 @@ function getEventDescription(evt: EventInstance) {
   if (evt.oneLiner) return evt.oneLiner
   const type = EVENT_TYPES.find(t => t.slug === evt.typeSlug)
   return type?.description ?? ''
-}
-
-function EventCTA({ evt, onNotifyMe }: { evt: EventInstance; onNotifyMe: (name: string) => void }) {
-  if (evt.status === 'complete') {
-    return <Link to={`/events/${evt.typeSlug}/${evt.id}`} className="btn btn-ghost btn-sm">Results</Link>
-  }
-  if (evt.status === 'season-finale') {
-    return <span className="pill pill-awards" style={{ fontSize: 11, padding: '6px 12px' }}>Season Finale</span>
-  }
-  if (evt.status === 'open' && evt.furyRegistrationUrl) {
-    return (
-      <a href={evt.furyRegistrationUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">
-        {evt.registrationLabel ?? 'Sign Up'}
-      </a>
-    )
-  }
-  if (evt.status === 'open') {
-    return <Link to={`/events/${evt.typeSlug}/${evt.id}`} className="btn btn-ghost btn-sm">Learn More</Link>
-  }
-  return (
-    <button className="btn btn-ghost btn-sm" onClick={() => onNotifyMe(evt.name)}>
-      Notify Me
-    </button>
-  )
 }
 
 export default function Schedule() {

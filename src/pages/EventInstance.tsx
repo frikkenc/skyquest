@@ -6,6 +6,7 @@ import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
 import { EVENT_INSTANCES, EVENT_TYPES, SCSL_RESULTS } from '../data/mockData'
+import { getEventPhoto } from '../lib/eventPhotos'
 import type { Division } from '../types'
 import styles from './EventInstance.module.css'
 
@@ -41,6 +42,7 @@ export default function EventInstance() {
 
   const results = SCSL_RESULTS.filter(r => r.division === activeDivision)
   const rounds = results[0]?.roundScores.length ?? 8
+  const photo = getEventPhoto(event.typeSlug)
 
   return (
     <>
@@ -51,8 +53,30 @@ export default function EventInstance() {
         </div>
       </div>
 
-      {/* Hero */}
+      {/* Hero with banner photo backdrop */}
       <section className={styles.instanceHero}>
+        <picture className={styles.heroBg}>
+          <source
+            media="(min-width: 768px)"
+            type="image/webp"
+            srcSet={`/img/${photo.base}__banner-16x9.webp`}
+          />
+          <source
+            media="(min-width: 768px)"
+            srcSet={`/img/${photo.base}__banner-16x9.jpg`}
+          />
+          <source
+            type="image/webp"
+            srcSet={`/img/${photo.base}__banner-16x9-mobile.webp`}
+          />
+          <img
+            src={`/img/${photo.base}__banner-16x9-mobile.jpg`}
+            alt={photo.alt}
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
+        <div className={styles.heroOverlay} aria-hidden="true" />
         <div className={`wrap ${styles.heroInner}`}>
           <EventBadge slug={event.typeSlug} size={110} />
           <div style={{ flex: 1 }}>

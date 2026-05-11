@@ -139,6 +139,9 @@ export const EVENT_INSTANCES: EventInstance[] = [
     pendingBalance: 180,
     waitlistCount: 0,
     furyEventId: 'fury-poker-2026-01',
+    // Poker Run is registered via its Facebook event (independently priced — not in Fury Registration).
+    furyRegistrationUrl: 'https://www.facebook.com/events/4088089458172392/',
+    registrationLabel: 'Event Info',
     contactEmail: 'events@skydiveelsinore.com',
     lookingForTeamCount: 4,
     teamsNotFullCount: 2,
@@ -151,7 +154,8 @@ export const EVENT_INSTANCES: EventInstance[] = [
     oneLiner: 'Leave from Elsinore or Perris, land at the other, board the plane, and go back. Four rounds. No ground crew.',
     date: '2026-06-21',
     dropzone: 'Perris ↔ Elsinore',
-    status: 'open',
+    // Reg coming soon, price TBD — show Notify Me until it opens.
+    status: 'upcoming',
     divisions: ['Open'],
     registrationCount: 24,
     approvedCount: 24,

@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
+import NotifyMeModal from '../components/NotifyMeModal'
+import EventCTA from '../components/EventCTA'
 import { EVENT_INSTANCES, LEADERBOARD_AAA } from '../data/mockData'
 import styles from './Landing.module.css'
 
@@ -12,13 +15,37 @@ function formatDate(iso: string) {
 }
 
 export default function Landing() {
+  const [notifyEvent, setNotifyEvent] = useState<string | null>(null)
+
   return (
     <>
       <Nav />
 
-      {/* Season header — compact identity strip */}
-      <section className={styles.seasonHeader}>
-        <div className={`wrap ${styles.seasonHeaderInner}`}>
+      {/* Season hero — full-bleed photo backdrop with text overlay */}
+      <section className={styles.seasonHero}>
+        <picture className={styles.seasonHeroBg}>
+          <source
+            media="(min-width: 768px)"
+            type="image/webp"
+            srcSet="/img/06_hero_4way_clouds__hero-21x9.webp"
+          />
+          <source
+            media="(min-width: 768px)"
+            srcSet="/img/06_hero_4way_clouds__hero-21x9.jpg"
+          />
+          <source
+            type="image/webp"
+            srcSet="/img/06_hero_4way_clouds__hero-21x9-mobile.webp"
+          />
+          <img
+            src="/img/06_hero_4way_clouds__hero-21x9-mobile.jpg"
+            alt="4-way formation skydive in clouds over Skydive Perris"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
+        <div className={styles.seasonHeroOverlay} aria-hidden="true" />
+        <div className={`wrap ${styles.seasonHeroInner}`}>
           <img
             src="/logos/skyquest-master.png"
             alt="SoCal SkyQuest"
@@ -60,16 +87,9 @@ export default function Landing() {
               {evt.shortTagline && (
                 <div className={styles.tileTagline}>{evt.shortTagline}</div>
               )}
-              <div className={styles.tileFooter}>
+              <div className={styles.tileFooter} onClick={e => e.preventDefault()}>
                 <StatusPill status={evt.status} />
-                {evt.status === 'open' && evt.furyRegistrationUrl && (
-                  <span
-                    className="btn btn-primary btn-sm"
-                    onClick={e => { e.preventDefault(); window.open(evt.furyRegistrationUrl, '_blank') }}
-                  >
-                    {evt.registrationLabel ?? 'Sign Up'}
-                  </span>
-                )}
+                <EventCTA evt={evt} onNotifyMe={setNotifyEvent} />
               </div>
             </Link>
           ))}
@@ -128,6 +148,13 @@ export default function Landing() {
       </div>
 
       <Footer />
+
+      {notifyEvent && (
+        <NotifyMeModal
+          eventName={notifyEvent}
+          onClose={() => setNotifyEvent(null)}
+        />
+      )}
     </>
   )
 }

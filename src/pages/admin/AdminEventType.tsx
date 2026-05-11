@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { EVENT_TYPES, EVENT_INSTANCES } from '../../data/mockData'
 import StatusPill from '../../components/StatusPill'
+import AdminCrazy8Cards from './AdminCrazy8Cards'
 import styles from './AdminEventType.module.css'
 
-type SubTab = 'Overview' | 'Instances' | 'Divisions' | 'Scoring' | 'Settings'
-const SUBTABS: SubTab[] = ['Overview', 'Instances', 'Divisions', 'Scoring', 'Settings']
+type SubTab = 'Overview' | 'Instances' | 'Divisions' | 'Scoring' | 'Cards' | 'Settings'
+const BASE_SUBTABS: SubTab[] = ['Overview', 'Instances', 'Divisions', 'Scoring', 'Settings']
 
 const POINTS_TABLE = [
   { place: '1st', pts: 150 }, { place: '2nd', pts: 120 }, { place: '3rd', pts: 100 },
@@ -20,6 +21,10 @@ export default function AdminEventType() {
 
   const eventType = EVENT_TYPES.find(t => t.slug === typeSlug)
   const instances = EVENT_INSTANCES.filter(e => e.typeSlug === typeSlug)
+  // Crazy 8's gets an extra "Cards" tab between Scoring and Settings.
+  const SUBTABS: SubTab[] = typeSlug === 'crazy8s'
+    ? ['Overview', 'Instances', 'Divisions', 'Scoring', 'Cards', 'Settings']
+    : BASE_SUBTABS
 
   if (!eventType) {
     return <div style={{ padding: 48, color: 'var(--adm-mute)' }}>Event type not found.</div>
@@ -196,6 +201,10 @@ export default function AdminEventType() {
             <p style={{ marginTop: 8 }}><strong style={{ color: 'var(--adm-ink)' }}>Tie-break:</strong> Total raw score across all events. If still tied, head-to-head at most recent event.</p>
           </div>
         </div>
+      )}
+
+      {tab === 'Cards' && typeSlug === 'crazy8s' && (
+        <AdminCrazy8Cards />
       )}
 
       {tab === 'Settings' && (

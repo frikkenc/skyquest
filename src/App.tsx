@@ -11,6 +11,7 @@ import AdminEventInstance from './pages/admin/AdminEventInstance'
 import AdminEmailTemplates from './pages/admin/AdminEmailTemplates'
 import AdminSeasons from './pages/admin/AdminSeasons'
 import AdminFuryIdentity from './pages/admin/AdminFuryIdentity'
+import AdminCrazy8Cards from './pages/admin/AdminCrazy8Cards'
 import AdminLogin from './pages/admin/AdminLogin'
 import PrintPage from './pages/PrintPage' 
 import CheckInPage from './pages/CheckInPage'
@@ -39,6 +40,7 @@ export default function App() {
           {/* Admin — protected */}
           <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
+            <Route path="events/crazy8s/cards" element={<AdminCrazy8Cards />} />
             <Route path="events/:typeSlug" element={<AdminEventType />} />
             <Route path="events/:typeSlug/:instanceId" element={<AdminEventInstance />} />
             <Route path="emails" element={<AdminEmailTemplates />} />

@@ -1,0 +1,402 @@
+.container {
+  display: grid;
+  grid-template-columns: 280px 1fr 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.col {
+  background: var(--adm-card, rgba(255,255,255,0.02));
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.07));
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.colTitle {
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--adm-ink);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.formationList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+.formationBtn {
+  text-align: left;
+  background: transparent;
+  color: var(--adm-ink-2);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, color .15s, border-color .15s;
+}
+
+.formationBtn:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--adm-ink);
+}
+
+.formationBtn.on {
+  background: rgba(216,24,24,0.12);
+  border-color: rgba(216,24,24,0.4);
+  color: var(--sq-red);
+  font-weight: 700;
+}
+
+.preview {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 600px;
+}
+
+.preview svg {
+  max-width: 100%;
+  max-height: 700px;
+  height: auto;
+  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.25));
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.formGroup label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--adm-mute);
+  font-weight: 700;
+}
+
+.formGroup input,
+.formGroup select {
+  background: var(--adm-input-bg, rgba(255,255,255,0.04));
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.12));
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--adm-ink);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: var(--sq-red);
+}
+
+.btnRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.12));
+  border-radius: 6px;
+  color: var(--adm-ink);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.btn:hover { background: rgba(255,255,255,0.08); }
+
+.btnPrimary {
+  background: var(--sq-red);
+  color: white;
+  border-color: var(--sq-red);
+}
+.btnPrimary:hover { background: var(--sq-red-dk, #a81010); }
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.queueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.queueRow .name { font-weight: 700; color: var(--adm-ink); }
+.queueRow .meta { color: var(--adm-mute); font-size: 11px; }
+
+.queueRow button {
+  background: transparent;
+  border: none;
+  color: var(--adm-mute);
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 16px;
+}
+.queueRow button:hover { color: var(--sq-red); }
+
+.divider {
+  height: 1px;
+  background: var(--adm-border, rgba(255,255,255,0.07));
+  margin: 14px 0;
+}
+
+.empty {
+  color: var(--adm-mute);
+  font-size: 12px;
+  font-style: italic;
+  padding: 12px 0;
+}
+
+.colorChip {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Fix browser-native dropdown options: white-on-white when menu is open */
+.formGroup select option {
+  color: #000;
+  background: #fff;
+}
+
+/* Inner tabs for Generate / Market / Menu */
+.innerTabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--adm-border, rgba(255,255,255,0.07));
+  margin-bottom: 16px;
+}
+
+.innerTab {
+  background: transparent;
+  border: none;
+  color: var(--adm-mute);
+  padding: 8px 14px;
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.innerTab:hover { color: var(--adm-ink); }
+
+.innerTab.innerTabOn {
+  color: var(--sq-red);
+  border-bottom-color: var(--sq-red);
+}
+
+/* Market and Menu shared tables */
+.marketTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.marketTable th, .marketTable td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.marketTable th {
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--adm-mute);
+  text-align: right;
+  white-space: nowrap;
+  background: rgba(255,255,255,0.02);
+}
+.marketTable .formationName {
+  text-align: left;
+  font-weight: 600;
+  color: var(--adm-ink);
+  white-space: nowrap;
+}
+.marketTable .yearGroupHd {
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  color: var(--sq-red);
+}
+.marketTable input {
+  width: 56px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--adm-ink);
+  padding: 2px 4px;
+  text-align: right;
+  font-family: inherit;
+  font-size: 12px;
+  border-radius: 3px;
+}
+.marketTable input:hover { border-color: rgba(255,255,255,0.1); }
+.marketTable input:focus { outline: none; border-color: var(--sq-red); background: rgba(255,255,255,0.03); }
+
+.marketTable .totalCell {
+  font-weight: 700;
+  color: var(--adm-ink);
+  background: rgba(255,255,255,0.02);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.12));
+  color: var(--adm-ink);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.toolbar select option { color: #000; background: #fff; }
+
+.savePill {
+  font-size: 11px;
+  color: var(--adm-mute);
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+}
+.savePill.savingPill { color: var(--sq-red); }
+
+.menuRound {
+  background: var(--adm-card, rgba(255,255,255,0.02));
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.07));
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.roundTitle {
+  font-family: 'Bungee', sans-serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--sq-red);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.combosGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.combo {
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.combo h4 {
+  font-family: 'Bungee', sans-serif;
+  font-size: 11px;
+  color: var(--adm-mute);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.formationChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-height: 28px;
+}
+
+.formationChip {
+  background: rgba(216,24,24,0.12);
+  border: 1px solid rgba(216,24,24,0.3);
+  color: var(--sq-red);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.formationChip button {
+  background: none;
+  border: none;
+  color: var(--sq-red);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.comboBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.comboBottom select {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.12));
+  color: var(--adm-ink);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.comboBottom select option { color: #000; background: #fff; }
+.comboBottom .valueInput {
+  width: 60px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.12));
+  color: var(--adm-ink);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}

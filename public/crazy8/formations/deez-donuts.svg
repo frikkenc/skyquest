@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130" width="220" height="130">
+  <g fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- LEFT DONUT — 4 jumpers in a ring around (60,65) -->
+    <!-- Top jumper -->
+    <g transform="translate(60,30)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <!-- Right jumper -->
+    <g transform="translate(95,65) rotate(90)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <!-- Bottom jumper -->
+    <g transform="translate(60,100) rotate(180)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <!-- Left jumper -->
+    <g transform="translate(25,65) rotate(-90)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <!-- Grip dots for left ring -->
+    <circle cx="44" cy="48" r="3" fill="#fff"/>
+    <circle cx="76" cy="48" r="3" fill="#fff"/>
+    <circle cx="76" cy="82" r="3" fill="#fff"/>
+    <circle cx="44" cy="82" r="3" fill="#fff"/>
+
+    <!-- RIGHT DONUT — 4 jumpers in a ring around (160,65) -->
+    <g transform="translate(160,30)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <g transform="translate(195,65) rotate(90)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <g transform="translate(160,100) rotate(180)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <g transform="translate(125,65) rotate(-90)">
+      <circle cx="0" cy="0" r="8" fill="#fff"/>
+      <line x1="0" y1="8" x2="0" y2="20"/>
+      <line x1="-9" y1="12" x2="-18" y2="20"/>
+      <line x1="9" y1="12" x2="18" y2="20"/>
+    </g>
+    <!-- Grip dots for right ring -->
+    <circle cx="144" cy="48" r="3" fill="#fff"/>
+    <circle cx="176" cy="48" r="3" fill="#fff"/>
+    <circle cx="176" cy="82" r="3" fill="#fff"/>
+    <circle cx="144" cy="82" r="3" fill="#fff"/>
+  </g>
+  <text x="110" y="124" font-family="Arial, sans-serif" font-size="6" fill="#aaa" text-anchor="middle" letter-spacing="1">PLACEHOLDER · REPLACE WITH FINAL ART</text>
+</svg>
