@@ -4,5 +4,9 @@ service cloud.firestore {
     match /eventConfig/{docId} {
       allow read, write: if request.auth != null;
     }
+    // Frikken Crazy 8s — formation master list + per-year menu/market.
+    match /crazy8config/{docId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
