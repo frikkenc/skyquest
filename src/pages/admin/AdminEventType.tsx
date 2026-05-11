@@ -5,14 +5,8 @@ import StatusPill from '../../components/StatusPill'
 import AdminCrazy8Cards from './AdminCrazy8Cards'
 import styles from './AdminEventType.module.css'
 
-type SubTab = 'Overview' | 'Instances' | 'Divisions' | 'Scoring' | 'Cards' | 'Settings'
+type SubTab = 'Overview' | 'Instances' | 'Divisions' | 'Cards'
 
-const POINTS_TABLE = [
-  { place: '1st', pts: 150 }, { place: '2nd', pts: 120 }, { place: '3rd', pts: 100 },
-  { place: '4th', pts: 80 }, { place: '5th', pts: 65 }, { place: '6th', pts: 52 },
-  { place: '7th', pts: 42 }, { place: '8th', pts: 34 }, { place: '9th', pts: 28 },
-  { place: '10th+', pts: 20 },
-]
 
 export default function AdminEventType() {
   const { typeSlug } = useParams<{ typeSlug: string }>()
@@ -26,9 +20,7 @@ export default function AdminEventType() {
   const SUBTABS: SubTab[] = [
     'Overview', 'Instances',
     ...(hasDivisions ? ['Divisions' as SubTab] : []),
-    'Scoring',
     ...(typeSlug === 'crazy8s' ? ['Cards' as SubTab] : []),
-    'Settings',
   ]
 
   if (!eventType) {
@@ -180,62 +172,8 @@ export default function AdminEventType() {
         </div>
       )}
 
-      {tab === 'Scoring' && (
-        <div>
-          <div className={styles.sectionHd}><span className={styles.sectionLabel}>Points Table — Placement → Season Points</span></div>
-          <div className="card" style={{ padding: 0, display: 'inline-block', marginBottom: 24 }}>
-            <table className={styles.ptsTable}>
-              <thead>
-                <tr>
-                  <th>Place</th>
-                  {POINTS_TABLE.map(r => <th key={r.place}>{r.place}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ color: 'var(--adm-mute)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>Points</td>
-                  {POINTS_TABLE.map(r => <td key={r.place} style={{ color: 'var(--sq-red)', fontFamily: 'Bungee', fontStyle: 'italic' }}>{r.pts}</td>)}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div className={styles.sectionHd}><span className={styles.sectionLabel}>Scoring Rules</span></div>
-          <div className="card" style={{ padding: 20, color: 'var(--adm-ink-2)', fontSize: 13, lineHeight: 1.7 }}>
-            <p><strong style={{ color: 'var(--adm-ink)' }}>Format:</strong> 4-way formation skydiving, 8 rounds per division. Score = formations completed in working time.</p>
-            <p style={{ marginTop: 8 }}><strong style={{ color: 'var(--adm-ink)' }}>Season points:</strong> Placement in each event converts to season points per the table above. Best N results count (configured per season).</p>
-            <p style={{ marginTop: 8 }}><strong style={{ color: 'var(--adm-ink)' }}>Tie-break:</strong> Total raw score across all events. If still tied, head-to-head at most recent event.</p>
-          </div>
-        </div>
-      )}
-
       {tab === 'Cards' && typeSlug === 'crazy8s' && (
         <AdminCrazy8Cards />
-      )}
-
-      {tab === 'Settings' && (
-        <div className="card" style={{ padding: 24 }}>
-          <div className={styles.settingsGroup}>
-            <h4 className={styles.settingsGroupTitle}>Event Type</h4>
-            {[
-              { label: 'Display name', value: eventType.name, editable: true },
-              { label: 'Slug', value: typeSlug, editable: false },
-              { label: 'Default format', value: '4-way · 8 rounds', editable: true },
-              { label: 'Default dropzone', value: 'Elsinore / Perris', editable: true },
-            ].map(row => (
-              <div key={row.label} className={styles.settingsRow}>
-                <span className={styles.settingsLabel}>{row.label}</span>
-                {row.editable
-                  ? <input className={styles.settingsInput} defaultValue={row.value} />
-                  : <span style={{ color: 'var(--adm-mute)', fontFamily: 'Courier New', fontSize: 12 }}>{row.value}</span>
-                }
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-            <button className={styles.adminBtn}>Cancel</button>
-            <button className={`${styles.adminBtn} ${styles.primary}`}>Save Settings</button>
-          </div>
-        </div>
       )}
     </>
   )

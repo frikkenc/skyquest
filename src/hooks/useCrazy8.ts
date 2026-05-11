@@ -125,3 +125,41 @@ export async function seed2026(): Promise<void> {
     market: SEED_2026_MARKET,
   })
 }
+
+// ── Total cards in market, summed across all year docs ──
+// Returns { [slug]: total } where total = sum of earned + promo across every year_YYYY doc.
+import type { MarketEntry as _MarketEntry } from '../types/crazy8'
+export function useCrazy8MarketTotals(years: number[]): {
+  totals: { [slug: string]: number },
+  loading: boolean,
+} {
+  const [totals, setTotals] = useState<{ [slug: string]: number }>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    Promise.all(years.map(async y => {
+      try {
+        const snap = await getDoc(docRef(`year_${y}`))
+        return snap.exists() ? ((snap.data() as Crazy8YearDoc).market ?? {}) : {}
+      } catch {
+        return {} as { [slug: string]: _MarketEntry }
+      }
+    })).then(maps => {
+      if (!alive) return
+      const sum: { [slug: string]: number } = {}
+      maps.forEach(m => {
+        for (const [slug, entry] of Object.entries(m)) {
+          sum[slug] = (sum[slug] ?? 0) + (entry.earned || 0) + (entry.promo || 0)
+        }
+      })
+      setTotals(sum)
+      setLoading(false)
+    })
+    return () => { alive = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [years.join('|')])
+
+  return { totals, loading }
+}

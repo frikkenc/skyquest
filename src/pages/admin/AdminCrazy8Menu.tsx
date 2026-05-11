@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { auth } from '../../firebase'
-import { useCrazy8Master, useCrazy8Year } from '../../hooks/useCrazy8'
+import { useCrazy8Master, useCrazy8Year, useCrazy8MarketTotals } from '../../hooks/useCrazy8'
 import type { MenuCombo, MenuRound } from '../../types/crazy8'
 import styles from './AdminCrazy8Cards.module.css'
 
@@ -8,6 +8,8 @@ const CURRENT_YEAR = new Date().getFullYear()
 
 export default function AdminCrazy8Menu() {
   const { master } = useCrazy8Master()
+  const totalYears = useMemo(() => [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR], [])
+  const { totals } = useCrazy8MarketTotals(totalYears)
   const [year, setYear] = useState<number>(CURRENT_YEAR)
   const { yearDoc, loading, saving, saveMenu } = useCrazy8Year(year)
   const [draft, setDraft] = useState<MenuRound[]>([])
@@ -159,6 +161,9 @@ export default function AdminCrazy8Menu() {
                     : combo.formations.map((slug, fi) => (
                       <span key={`${slug}-${fi}`} className={styles.formationChip}>
                         {formationsBySlug[slug] ?? slug}
+                        <span style={{ opacity: 0.85, fontWeight: 400, marginLeft: 2, fontSize: 11 }}>
+                          ({formatTotal(totals[slug] ?? 0)})
+                        </span>
                         <button onClick={() => removeFormation(ri, ci, fi)} title="Remove">×</button>
                       </span>
                     ))
@@ -174,7 +179,7 @@ export default function AdminCrazy8Menu() {
                       {combo.formations.length >= 3 ? 'Max 3 formations' : '+ Add formation…'}
                     </option>
                     {master.formations.filter(f => !f.retired).map(f => (
-                      <option key={f.slug} value={f.slug}>{f.name}</option>
+                      <option key={f.slug} value={f.slug}>{f.name} ({formatTotal(totals[f.slug] ?? 0)})</option>
                     ))}
                   </select>
                   <input
@@ -202,6 +207,12 @@ export default function AdminCrazy8Menu() {
       ))}
     </div>
   )
+}
+
+function formatTotal(n: number): string {
+  // Trim trailing .0 for cleanly integer totals
+  const s = n.toFixed(1)
+  return s.endsWith('.0') ? s.slice(0, -2) : s
 }
 
 function seedRounds(): MenuRound[] {

@@ -5,6 +5,7 @@ export interface FormationDef {
   name: string         // display name (e.g. "OPPOSED DIAMOND")
   retired?: boolean    // out of current rotation
   notes?: string
+  svgContent?: string  // inline SVG markup, optional; falls back to /crazy8/formations/<slug>.svg
 }
 
 export interface FormationMaster {

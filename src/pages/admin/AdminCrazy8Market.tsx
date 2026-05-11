@@ -141,10 +141,10 @@ export default function AdminCrazy8Market() {
         <thead>
           <tr>
             <th rowSpan={2} style={{ textAlign: 'left' }}>Formation</th>
+            <th rowSpan={2}>Total<br/>in system</th>
             {years.map(y => (
               <th key={y} colSpan={2} className={styles.yearGroupHd}>{y}</th>
             ))}
-            <th rowSpan={2}>Total<br/>in system</th>
           </tr>
           <tr>
             {years.flatMap(y => [
@@ -159,6 +159,7 @@ export default function AdminCrazy8Market() {
             return (
               <tr key={f.slug}>
                 <td style={{ textAlign: 'left', fontWeight: 600, color: 'var(--adm-ink)' }}>{f.name}</td>
+                <td className={styles.totalCell as any}>{total.toFixed(1).replace(/\.0$/, '')}</td>
                 {years.flatMap(y => {
                   const entry = data[y]?.[f.slug] ?? { earned: 0, promo: 0 }
                   return [
@@ -182,7 +183,6 @@ export default function AdminCrazy8Market() {
                     </td>,
                   ]
                 })}
-                <td className={styles.totalCell as any}>{total.toFixed(1).replace(/\.0$/, '')}</td>
               </tr>
             )
           })}

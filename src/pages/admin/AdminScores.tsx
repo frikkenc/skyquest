@@ -9,6 +9,7 @@ const SCORE_DIVS: Division[] = ['AAA', 'AA', 'A', 'Rookie']
 
 type RoundStatus = 'ok' | 'weather' | 'choice'
 type JumpData = Record<string, number[]>  // assignmentId → per-member counts
+type DzData = Record<string, 'Perris' | 'Elsinore'>
 
 interface REntry { pts: number; busts: number }
 interface ScoredTeam {
@@ -67,6 +68,21 @@ function loadJumpData(instanceId: string): JumpData {
   catch { return {} }
 }
 
+function loadDzData(instanceId: string): DzData {
+  try { return JSON.parse(localStorage.getItem(`sq-dz-${instanceId}`) ?? '{}') }
+  catch { return {} }
+}
+
+function loadTiebreaks(instanceId: string): Record<string, number> {
+  try { return JSON.parse(localStorage.getItem(`sq-tb-${instanceId}`) ?? '{}') }
+  catch { return {} }
+}
+
+function loadRoundCount(instanceId: string, defaultVal: number): number {
+  try { return parseInt(localStorage.getItem(`sq-rounds-${instanceId}`) ?? '') || defaultVal }
+  catch { return defaultVal }
+}
+
 const RANKING_POINTS = [150, 120, 100, 80, 65, 55, 45, 35, 25, 15]
 function rankingPoints(rank: number) { return RANKING_POINTS[rank - 1] ?? 10 }
 
@@ -81,7 +97,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const isDueling = eventTypeSlug === 'dueling-dzs'
   const defaultRounds = isDueling ? 8 : DEFAULT_ROUNDS
 
-  const [roundCount, setRoundCount] = useState(defaultRounds)
+  const [roundCount, setRoundCount] = useState(() => isDueling ? loadRoundCount(instanceId, defaultRounds) : defaultRounds)
   const [statuses, setStatuses] = useState<RoundStatus[]>(Array(MAX_ROUNDS).fill('ok'))
   const [hasJumpoff, setHasJumpoff] = useState(false)
   const [teams, setTeams] = useState<ScoredTeam[]>(() =>
@@ -95,6 +111,8 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const [photoUploaded, setPhotoUploaded] = useState(false)
   const [photoProcessing, setPhotoProcessing] = useState(false)
   const [jumpData, setJumpData] = useState<JumpData>(() => isDueling ? loadJumpData(instanceId) : {})
+  const [dzData, setDzData] = useState<DzData>(() => isDueling ? loadDzData(instanceId) : {})
+  const [manualTiebreak, setManualTiebreak] = useState<Record<string, number>>(() => loadTiebreaks(instanceId))
   const [linkCopied, setLinkCopied] = useState(false)
   const [published, setPublished] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -180,6 +198,22 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
 
   function refreshJumps() {
     setJumpData(loadJumpData(instanceId))
+  }
+
+  function adjustTiebreak(teamId: string, delta: number) {
+    setManualTiebreak(prev => {
+      const next = { ...prev, [teamId]: (prev[teamId] ?? 0) + delta }
+      localStorage.setItem(`sq-tb-${instanceId}`, JSON.stringify(next))
+      return next
+    })
+  }
+
+  function setTeamDz(teamId: string, dz: 'Perris' | 'Elsinore') {
+    setDzData(prev => {
+      const next = { ...prev, [teamId]: dz }
+      localStorage.setItem(`sq-dz-${instanceId}`, JSON.stringify(next))
+      return next
+    })
   }
 
   function publishResults() {
@@ -300,7 +334,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
                 const tbRound = findTbRound(team, other)
                 tbNote = tbRound !== null
                   ? <span style={{ fontSize: 9, color: 'var(--sq-yellow)', marginLeft: 6 }}>← R{tbRound + 1} breaks tie</span>
-                  : <span style={{ fontSize: 9, color: '#ff7043', marginLeft: 6 }}>← identical · jump-off needed</span>
+                  : <span style={{ fontSize: 9, color: '#ff7043', marginLeft: 6 }}>← identical · use ▲▼ or jump-off</span>
               } else if (tiedWith.length > 1) {
                 tbNote = <span style={{ fontSize: 9, color: 'var(--sq-yellow)', marginLeft: 6 }}>{tiedWith.length + 1}-way tie</span>
               }
@@ -311,8 +345,24 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
                   borderLeft: isTied ? '2px solid rgba(255,171,64,.45)' : undefined,
                   background: isTied ? 'rgba(255,171,64,.03)' : undefined,
                 }}>
-                  <td className={`${styles.rankCell} ${rank === 1 ? styles.r1 : rank === 2 ? styles.r2 : rank === 3 ? styles.r3 : ''}`}>
-                    {rank}{isTied && <sup style={{ color: 'var(--sq-yellow)', fontSize: 7, lineHeight: 0 }}>=</sup>}
+                  <td className={`${styles.rankCell} ${rank === 1 ? styles.r1 : rank === 2 ? styles.r2 : rank === 3 ? styles.r3 : ''}`} style={{ verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                      <span>{rank}{isTied && <sup style={{ color: 'var(--sq-yellow)', fontSize: 7, lineHeight: 0 }}>=</sup>}</span>
+                      {isTied && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 }}>
+                          <button
+                            onClick={() => adjustTiebreak(team.teamId, -1)}
+                            title="Rank higher (break tie)"
+                            style={{ fontSize: 8, lineHeight: 1, padding: '1px 3px', background: 'rgba(255,171,64,.15)', border: '1px solid rgba(255,171,64,.3)', borderRadius: 2, color: '#ffab40', cursor: 'pointer' }}
+                          >▲</button>
+                          <button
+                            onClick={() => adjustTiebreak(team.teamId, 1)}
+                            title="Rank lower (break tie)"
+                            style={{ fontSize: 8, lineHeight: 1, padding: '1px 3px', background: 'rgba(255,171,64,.15)', border: '1px solid rgba(255,171,64,.3)', borderRadius: 2, color: '#ffab40', cursor: 'pointer' }}
+                          >▼</button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td style={{ paddingLeft: 12, fontSize: 13, fontWeight: 600, color: 'var(--adm-ink)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -322,6 +372,23 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
                     <div style={{ fontSize: 10, color: 'var(--adm-mute)', marginTop: 1 }}>
                       {team.members.map(m => m.name).join(', ')}
                     </div>
+                    {isDueling && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                        <select
+                          value={dzData[team.teamId] ?? ''}
+                          onChange={e => setTeamDz(team.teamId, e.target.value as 'Perris' | 'Elsinore')}
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: 10, background: 'var(--adm-bg)', color: dzData[team.teamId] ? 'var(--adm-ink)' : 'var(--adm-mute)', border: '1px solid var(--adm-border)', borderRadius: 3, padding: '1px 4px', cursor: 'pointer' }}
+                        >
+                          <option value="">— start DZ —</option>
+                          <option value="Perris">Perris</option>
+                          <option value="Elsinore">Elsinore</option>
+                        </select>
+                        {!(jumpData[team.teamId]?.length) && (
+                          <span style={{ fontSize: 10, color: '#ff7043', fontWeight: 600 }}>⚠ no jump #</span>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   {Array.from({ length: roundCount }, (_, i) => {
@@ -411,10 +478,10 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ fontSize: 11, color: 'var(--adm-mute)', letterSpacing: '.05em', textTransform: 'uppercase' }}>Rounds</span>
             <button className={styles.adminBtn} style={{ padding: '3px 9px', fontSize: 13, lineHeight: 1 }}
-              onClick={() => setRoundCount(c => Math.max(1, c - 1))}>−</button>
+              onClick={() => setRoundCount(c => { const n = Math.max(1, c - 1); if (isDueling) localStorage.setItem(`sq-rounds-${instanceId}`, String(n)); return n })}>−</button>
             <span style={{ fontFamily: 'Bungee', fontStyle: 'italic', minWidth: 22, textAlign: 'center', fontSize: 14 }}>{roundCount}</span>
             <button className={styles.adminBtn} style={{ padding: '3px 9px', fontSize: 13, lineHeight: 1 }}
-              onClick={() => setRoundCount(c => Math.min(MAX_ROUNDS - 1, c + 1))}>+</button>
+              onClick={() => setRoundCount(c => { const n = Math.min(MAX_ROUNDS - 1, c + 1); if (isDueling) localStorage.setItem(`sq-rounds-${instanceId}`, String(n)); return n })}>+</button>
           </div>
           <button className={`${styles.adminBtn} ${hasJumpoff ? styles.primary : ''}`}
             onClick={() => setHasJumpoff(j => !j)} style={{ fontSize: 11 }}>
@@ -518,10 +585,14 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
             return { ...t, total, jpp: calcJpp(total, jumps) }
           })
           .sort((a, b) => {
-            if (a.jpp != null && b.jpp != null) return b.jpp - a.jpp
+            if (a.jpp != null && b.jpp != null) {
+              if (b.jpp !== a.jpp) return b.jpp - a.jpp
+              return (manualTiebreak[a.teamId] ?? 0) - (manualTiebreak[b.teamId] ?? 0)
+            }
             if (a.jpp != null) return -1
             if (b.jpp != null) return 1
-            return b.total - a.total
+            if (b.total !== a.total) return b.total - a.total
+            return (manualTiebreak[a.teamId] ?? 0) - (manualTiebreak[b.teamId] ?? 0)
           })
         return (
           <div style={{ marginBottom: 28 }}>
@@ -542,7 +613,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         const dt = teams
           .filter(t => t.division === div)
           .map(t => ({ ...t, total: effectiveTotal(t) }))
-          .sort((a, b) => b.total - a.total)
+          .sort((a, b) => b.total !== a.total ? b.total - a.total : (manualTiebreak[a.teamId] ?? 0) - (manualTiebreak[b.teamId] ?? 0))
         if (!dt.length) return null
 
         return (

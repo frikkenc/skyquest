@@ -227,17 +227,21 @@
   border-bottom-color: var(--sq-red);
 }
 
-/* Market and Menu shared tables */
+/* Market table — tabular layout, monospace numerals so + and - line up */
 .marketTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  table-layout: fixed;
 }
 .marketTable th, .marketTable td {
-  padding: 6px 8px;
+  padding: 8px 10px;
   text-align: right;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
+.marketTable tbody tr:nth-child(odd) td { background: rgba(255,255,255,0.015); }
+.marketTable tbody tr:hover td { background: rgba(216,24,24,0.05); }
 .marketTable th {
   font-family: 'Bungee', sans-serif;
   font-size: 10px;
@@ -246,9 +250,13 @@
   color: var(--adm-mute);
   text-align: right;
   white-space: nowrap;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255,255,255,0.03);
+  padding: 6px 8px;
 }
-.marketTable .formationName {
+.marketTable thead th:first-child { text-align: left; width: 22%; }
+.marketTable thead th:nth-child(2) { width: 11%; }
+.marketTable thead .yearGroupHd { width: auto; }
+.marketTable tbody td:first-child {
   text-align: left;
   font-weight: 600;
   color: var(--adm-ink);
@@ -258,25 +266,31 @@
   text-align: center;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   color: var(--sq-red);
+  font-size: 11px;
+  letter-spacing: .08em;
 }
 .marketTable input {
-  width: 56px;
+  width: 100%;
+  max-width: 70px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--adm-ink);
-  padding: 2px 4px;
+  padding: 3px 6px;
   text-align: right;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
   border-radius: 3px;
 }
+.marketTable input::placeholder { color: rgba(255,255,255,0.18); }
 .marketTable input:hover { border-color: rgba(255,255,255,0.1); }
-.marketTable input:focus { outline: none; border-color: var(--sq-red); background: rgba(255,255,255,0.03); }
+.marketTable input:focus { outline: none; border-color: var(--sq-red); background: rgba(255,255,255,0.05); }
 
 .marketTable .totalCell {
   font-weight: 700;
-  color: var(--adm-ink);
-  background: rgba(255,255,255,0.02);
+  color: var(--sq-red);
+  background: rgba(216,24,24,0.06);
+  font-size: 14px;
 }
 
 .toolbar {
@@ -353,26 +367,30 @@
 }
 
 .formationChip {
-  background: rgba(216,24,24,0.12);
-  border: 1px solid rgba(216,24,24,0.3);
-  color: var(--sq-red);
-  padding: 4px 8px;
+  background: var(--sq-red);
+  border: 1px solid var(--sq-red-dk, #a81010);
+  color: #fff;
+  padding: 5px 10px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-variant-numeric: tabular-nums;
 }
 .formationChip button {
-  background: none;
+  background: rgba(255,255,255,0.18);
   border: none;
-  color: var(--sq-red);
+  color: #fff;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
-  padding: 0;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-weight: 700;
 }
+.formationChip button:hover { background: rgba(255,255,255,0.35); }
 
 .comboBottom {
   display: flex;

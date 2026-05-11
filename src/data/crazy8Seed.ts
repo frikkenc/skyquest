@@ -46,14 +46,13 @@ function toMarket(earned: number[], promo: number[]): { [slug: string]: MarketEn
 
 // 2024 — from "Remain 2024" row + 2024 FM promos (first 6 columns only in the sheet's partial FM row).
 const REMAIN_2024 = [2,0.5,0.5,2,1,3.5,0,8.5,1,0,1.5,2,0.5,0,0,1,0]
-const FM_2024     = [3,33,33,6,33,6,0,0,0,0,0,0,0,0,0,0,0]
-export const SEED_2024_MARKET = toMarket(REMAIN_2024, FM_2024)
+const ZEROES      = new Array(17).fill(0)
+export const SEED_2024_MARKET = toMarket(REMAIN_2024, ZEROES)
 
-// 2025 — from "Just 2025" row (net change) + delta FM promos since 2024 (final FM minus 2024 FM).
+// 2025 — earned = "Just 2025" delta row; promo = "FM" running balance (single column, no year split).
 const JUST_2025 = [-2,-2,-3,-3,-1,-2,0,-6.5,-1,-2,-1,-1,-4,2.5,-6,-4,-1]
 const FM_FINAL  = [0,1.5,30.5,-1,0,1.5,33,2,0,-2,6.5,1,-3.5,2.5,27,-3,5]
-const FM_2025   = FM_FINAL.map((v, i) => v - (FM_2024[i] ?? 0))
-export const SEED_2025_MARKET = toMarket(JUST_2025, FM_2025)
+export const SEED_2025_MARKET = toMarket(JUST_2025, FM_FINAL)
 
 // 2026 — starts blank, filled in as events score.
 export const SEED_2026_MARKET: { [slug: string]: MarketEntry } = {}
