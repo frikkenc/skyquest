@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Landing from './pages/Landing'
 import Schedule from './pages/Schedule'
@@ -16,6 +16,16 @@ import AdminLogin from './pages/admin/AdminLogin'
 import PrintPage from './pages/PrintPage' 
 import CheckInPage from './pages/CheckInPage'
 import ProtectedRoute from './components/ProtectedRoute'
+
+function KeyedAdminEventType() {
+  const { typeSlug } = useParams()
+  return <AdminEventType key={typeSlug} />
+}
+
+function KeyedAdminEventInstance() {
+  const { typeSlug, instanceId } = useParams()
+  return <AdminEventInstance key={`${typeSlug}-${instanceId}`} />
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000 } },
@@ -41,8 +51,8 @@ export default function App() {
           <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="events/crazy8s/cards" element={<AdminCrazy8Cards />} />
-            <Route path="events/:typeSlug" element={<AdminEventType />} />
-            <Route path="events/:typeSlug/:instanceId" element={<AdminEventInstance />} />
+            <Route path="events/:typeSlug" element={<KeyedAdminEventType />} />
+            <Route path="events/:typeSlug/:instanceId" element={<KeyedAdminEventInstance />} />
             <Route path="emails" element={<AdminEmailTemplates />} />
             <Route path="seasons" element={<AdminSeasons />} />
             <Route path="config/identity" element={<AdminFuryIdentity />} />
