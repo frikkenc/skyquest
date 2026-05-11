@@ -94,13 +94,13 @@ export const EVENT_TYPES: EventType[] = [
 ]
 
 export const EVENT_TYPE_SETTINGS: EventTypeSettings[] = [
-  { typeSlug: 'scsl',              defaultTeamSize: 4, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury'   },
-  { typeSlug: 'poker-run',         defaultTeamSize: 6, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'poker',   registrationMethod: 'manual' },
-  { typeSlug: 'dueling-dzs',       defaultTeamSize: 6, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury'   },
-  { typeSlug: 'crazy8s',           defaultTeamSize: 8, minTeamSize: 8, hasVideoSlot: true,  scoringType: 'crazy8s', registrationMethod: 'fury'   },
-  { typeSlug: 'ghost-nationals',   defaultTeamSize: 4, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury'   },
-  { typeSlug: 'fury-classic-8way', defaultTeamSize: 8, minTeamSize: 8, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury'   },
-  { typeSlug: 'awards',            defaultTeamSize: 1, minTeamSize: 1, hasVideoSlot: false, scoringType: 'none',    registrationMethod: 'manual' },
+  { typeSlug: 'scsl',              defaultTeamSize: 4, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury',   hasDivisions: true  },
+  { typeSlug: 'poker-run',         defaultTeamSize: 6, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'poker',   registrationMethod: 'manual', hasDivisions: false },
+  { typeSlug: 'dueling-dzs',       defaultTeamSize: 6, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury',   hasDivisions: false },
+  { typeSlug: 'crazy8s',           defaultTeamSize: 8, minTeamSize: 8, hasVideoSlot: true,  scoringType: 'crazy8s', registrationMethod: 'fury',   hasDivisions: false },
+  { typeSlug: 'ghost-nationals',   defaultTeamSize: 4, minTeamSize: 4, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury',   hasDivisions: true  },
+  { typeSlug: 'fury-classic-8way', defaultTeamSize: 8, minTeamSize: 8, hasVideoSlot: true,  scoringType: 'rounds',  registrationMethod: 'fury',   hasDivisions: false },
+  { typeSlug: 'awards',            defaultTeamSize: 1, minTeamSize: 1, hasVideoSlot: false, scoringType: 'none',    registrationMethod: 'manual', hasDivisions: false },
 ]
 
 export const EVENT_INSTANCES: EventInstance[] = [

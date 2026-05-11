@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { EVENT_TYPES, EVENT_INSTANCES } from '../../data/mockData'
+import { EVENT_TYPES, EVENT_INSTANCES, EVENT_TYPE_SETTINGS } from '../../data/mockData'
 import StatusPill from '../../components/StatusPill'
 import AdminCrazy8Cards from './AdminCrazy8Cards'
 import styles from './AdminEventType.module.css'
 
 type SubTab = 'Overview' | 'Instances' | 'Divisions' | 'Scoring' | 'Cards' | 'Settings'
-const BASE_SUBTABS: SubTab[] = ['Overview', 'Instances', 'Divisions', 'Scoring', 'Settings']
 
 const POINTS_TABLE = [
   { place: '1st', pts: 150 }, { place: '2nd', pts: 120 }, { place: '3rd', pts: 100 },
@@ -21,10 +20,16 @@ export default function AdminEventType() {
 
   const eventType = EVENT_TYPES.find(t => t.slug === typeSlug)
   const instances = EVENT_INSTANCES.filter(e => e.typeSlug === typeSlug)
-  // Crazy 8's gets an extra "Cards" tab between Scoring and Settings.
-  const SUBTABS: SubTab[] = typeSlug === 'crazy8s'
-    ? ['Overview', 'Instances', 'Divisions', 'Scoring', 'Cards', 'Settings']
-    : BASE_SUBTABS
+  const typeSettings = EVENT_TYPE_SETTINGS.find(s => s.typeSlug === typeSlug)
+  const hasDivisions = typeSettings?.hasDivisions ?? false
+
+  const SUBTABS: SubTab[] = [
+    'Overview', 'Instances',
+    ...(hasDivisions ? ['Divisions' as SubTab] : []),
+    'Scoring',
+    ...(typeSlug === 'crazy8s' ? ['Cards' as SubTab] : []),
+    'Settings',
+  ]
 
   if (!eventType) {
     return <div style={{ padding: 48, color: 'var(--adm-mute)' }}>Event type not found.</div>

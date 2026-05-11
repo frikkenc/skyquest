@@ -9,16 +9,15 @@ import EventBadge from '../../components/EventBadge'
 import type { Division, TeamRegistration, TeamAssignment } from '../../types'
 import type { FuryRegistrant } from '../../lib/furyClient'
 import { useFuryRegistrations } from '../../hooks/useFuryData'
+import { useEventDivisions } from '../../hooks/useEventDivisions'
 import styles from './AdminEventInstance.module.css'
 import teamStyles from './AdminTeaming.module.css'
 import PrintablesTab from './AdminPrintables'
 import ScoresTab from './AdminScores'
 
-type Tab = 'Registrations' | 'Teaming' | 'Scores' | 'Waitlist' | 'Payments' | 'Emails' | 'Printables'
-const TABS_FURY: Tab[]   = ['Registrations', 'Teaming', 'Scores', 'Emails', 'Printables']
-const TABS_MANUAL: Tab[] = ['Registrations', 'Teaming', 'Scores', 'Waitlist', 'Payments', 'Emails', 'Printables']
+type Tab = 'Registrations' | 'Teaming' | 'Scores' | 'Divisions' | 'Waitlist' | 'Payments' | 'Emails' | 'Printables'
 
-const DIVISIONS: Division[] = ['AAA', 'AA', 'A', 'Rookie']
+const AVAILABLE_DIVISIONS: Division[] = ['AAA', 'AA', 'A', 'Rookie', 'Open', '2-way', '8-way']
 
 export default function AdminEventInstance() {
   const { typeSlug, instanceId } = useParams<{ typeSlug: string; instanceId: string }>()
@@ -29,7 +28,17 @@ export default function AdminEventInstance() {
   const eventType = EVENT_TYPES.find(t => t.slug === typeSlug)
   const eventSettings = EVENT_TYPE_SETTINGS.find(s => s.typeSlug === typeSlug)
   const isManualReg = eventSettings?.registrationMethod === 'manual'
-  const tabs = TABS_FURY
+  const hasDivisions = eventSettings?.hasDivisions ?? false
+
+  const defaultDivisions: Division[] = event?.divisions ?? ['AAA', 'AA', 'A', 'Rookie']
+  const { divisions, saveDivisions, saving: savingDivisions } = useEventDivisions(instanceId ?? '', defaultDivisions)
+
+  const tabs: Tab[] = [
+    'Registrations', 'Teaming', 'Scores',
+    ...(hasDivisions ? ['Divisions' as Tab] : []),
+    ...(isManualReg ? ['Waitlist' as Tab, 'Payments' as Tab] : []),
+    'Emails', 'Printables',
+  ]
   const allRegistrations = [...REGISTRATIONS, ...SCSL_REGISTRATIONS]
   const registrations = allRegistrations.filter(r => r.eventId === instanceId)
   const lftCount = registrations.filter(r => !r.teamName && r.status !== 'denied').length
@@ -149,7 +158,7 @@ export default function AdminEventInstance() {
             <div className={styles.toolbarLeft}>
               <select className={styles.inlineSelect}>
                 <option>All Divisions</option>
-                {DIVISIONS.map(d => <option key={d}>{d}</option>)}
+                {divisions.map((d: Division) => <option key={d}>{d}</option>)}
               </select>
               <select className={styles.inlineSelect}>
                 <option>All Statuses</option>
@@ -246,6 +255,15 @@ export default function AdminEventInstance() {
       {/* ── SCORES TAB ── */}
       {tab === 'Scores' && (
         <ScoresTab eventTypeSlug={event.typeSlug} instanceId={event.id} />
+      )}
+
+      {/* ── DIVISIONS TAB ── */}
+      {tab === 'Divisions' && (
+        <DivisionsTab
+          divisions={divisions}
+          onSave={saveDivisions}
+          saving={savingDivisions}
+        />
       )}
 
       {/* ── WAITLIST TAB ── */}
@@ -1033,4 +1051,76 @@ const tdStyle: React.CSSProperties = {
   fontSize: 13,
   color: 'var(--adm-ink)',
   verticalAlign: 'middle',
+}
+
+// ── Divisions Tab ─────────────────────────────────────────────────────────────
+
+function DivisionsTab({
+  divisions,
+  onSave,
+  saving,
+}: {
+  divisions: Division[]
+  onSave: (divs: Division[]) => Promise<void>
+  saving: boolean
+}) {
+  const [selected, setSelected] = useState<Set<Division>>(new Set(divisions))
+
+  function toggle(div: Division) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(div) ? next.delete(div) : next.add(div)
+      return next
+    })
+  }
+
+  const orderedActive = AVAILABLE_DIVISIONS.filter(d => selected.has(d))
+
+  return (
+    <div style={{ maxWidth: 480 }}>
+      <div style={{ marginBottom: 16, color: 'var(--adm-mute)', fontSize: 12 }}>
+        Select which divisions are offered at this event instance.
+      </div>
+      <div style={{ background: 'var(--adm-card)', border: '1px solid var(--adm-border)', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+        {AVAILABLE_DIVISIONS.map(div => (
+          <label
+            key={div}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', borderBottom: '1px solid var(--adm-border)',
+              cursor: 'pointer', fontSize: 14,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={selected.has(div)}
+              onChange={() => toggle(div)}
+              style={{ accentColor: 'var(--sq-red)', width: 16, height: 16 }}
+            />
+            <span style={{ fontFamily: 'Bungee', fontStyle: 'italic', color: selected.has(div) ? 'var(--sq-red)' : 'var(--adm-mute)', fontSize: 13 }}>
+              {div}
+            </span>
+          </label>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          style={{
+            padding: '8px 18px', background: 'var(--sq-red)', border: 'none', borderRadius: 5,
+            color: '#fff', fontFamily: 'Bungee', fontStyle: 'italic', fontSize: 12,
+            letterSpacing: '.06em', cursor: saving ? 'default' : 'pointer', opacity: saving ? .6 : 1,
+          }}
+          disabled={saving}
+          onClick={() => onSave(orderedActive)}
+        >
+          {saving ? 'Saving…' : 'Save Divisions'}
+        </button>
+        {orderedActive.length > 0 && (
+          <span style={{ fontSize: 12, color: 'var(--adm-mute)' }}>
+            Active: {orderedActive.join(' · ')}
+          </span>
+        )}
+      </div>
+    </div>
+  )
 }

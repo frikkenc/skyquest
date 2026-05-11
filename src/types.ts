@@ -49,6 +49,7 @@ export interface EventTypeSettings {
   hasVideoSlot: boolean
   scoringType: ScoringType
   registrationMethod: RegistrationMethod  // fury = via Fury Reg; manual = names entered by hand
+  hasDivisions: boolean
 }
 
 export interface EventInstance {
