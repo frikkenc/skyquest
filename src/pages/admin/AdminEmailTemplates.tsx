@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import styles from './AdminEmailTemplates.module.css'
-import { SCHEDULED_EMAILS } from '../../data/mockData'
 import type { ScheduledEmail } from '../../types'
 
 type Scope = 'All' | 'League' | 'SCSL' | 'Poker' | 'Crazy 8' | 'Awards'
@@ -178,7 +177,7 @@ export default function AdminEmailTemplates() {
   const [editedTemplates, setEditedTemplates] = useState<Record<string, Partial<Template>>>({})
   const [saved, setSaved] = useState(true)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
-  const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>(SCHEDULED_EMAILS)
+  const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>([])
   const [showSchedulePanel, setShowSchedulePanel] = useState(false)
   const [scheduleFor, setScheduleFor] = useState('')
   const [testSentFor, setTestSentFor] = useState<string | null>(null)

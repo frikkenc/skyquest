@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
-import { LEADERBOARD_AAA, LEADERBOARD_AA } from '../data/mockData'
 import type {
   LeaderboardEntry, Division, IndividualStanding, GalaAward,
   PublishedEventResult,
@@ -114,11 +113,9 @@ export default function Leaderboard() {
   const hasPublished = published.length > 0
   const awards = loadAwards().filter(a => a.isPublished)
 
-  // Team data: prefer published results, fall back to mock
+  // Team data: from published results only
   function teamEntries(div: Division): LeaderboardEntry[] {
     if (hasPublished) return computeTeamStandings(published, div)
-    if (div === 'AAA') return LEADERBOARD_AAA
-    if (div === 'AA') return LEADERBOARD_AA
     return []
   }
 

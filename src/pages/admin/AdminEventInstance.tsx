@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  EVENT_INSTANCES, EVENT_TYPES, EVENT_TYPE_SETTINGS, REGISTRATIONS, SCSL_REGISTRATIONS,
-  TEAM_ASSIGNMENTS,
+  EVENT_INSTANCES, EVENT_TYPES, EVENT_TYPE_SETTINGS,
 } from '../../data/mockData'
 import StatusPill from '../../components/StatusPill'
 import EventBadge from '../../components/EventBadge'
@@ -39,8 +38,7 @@ export default function AdminEventInstance() {
     ...(isManualReg ? ['Waitlist' as Tab, 'Payments' as Tab] : []),
     'Emails', 'Printables',
   ]
-  const allRegistrations = [...REGISTRATIONS, ...SCSL_REGISTRATIONS]
-  const registrations = allRegistrations.filter(r => r.eventId === instanceId)
+  const registrations: TeamRegistration[] = []
   const lftCount = registrations.filter(r => !r.teamName && r.status !== 'denied').length
 
   // Use real Fury data when this event has a real Fury event ID (starts with 'evt-')
@@ -249,7 +247,7 @@ export default function AdminEventInstance() {
 
       {/* ── TEAMING TAB ── */}
       {tab === 'Teaming' && (
-        <TeamingTab registrations={registrations} initialAssignments={TEAM_ASSIGNMENTS.filter(a => a.eventId === instanceId)} teamSize={eventSettings?.defaultTeamSize ?? 4} />
+        <TeamingTab registrations={registrations} initialAssignments={[]} teamSize={eventSettings?.defaultTeamSize ?? 4} />
       )}
 
       {/* ── SCORES TAB ── */}
@@ -328,7 +326,7 @@ export default function AdminEventInstance() {
       {tab === 'Printables' && (
         <PrintablesTab
           event={event}
-          assignments={TEAM_ASSIGNMENTS.filter(a => a.eventId === instanceId)}
+          assignments={[]}
           registrations={registrations}
         />
       )}

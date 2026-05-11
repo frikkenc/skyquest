@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { SEASON_KPIS, PENDING_REFUNDS, EVENT_TYPES } from '../../data/mockData'
+import { EVENT_TYPES } from '../../data/mockData'
+import type { SeasonKPIs, PendingRefund } from '../../types'
+
+const SEASON_KPIS: SeasonKPIs = { totalRevenue: 0, registrations: 0, uniqueJumpers: 0, eventsRun: 0, eventsTotal: 0, pendingBalance: 0 }
+const PENDING_REFUNDS: PendingRefund[] = []
 import { useLiveEventList } from '../../hooks/useLiveEventList'
 import { useFuryEventStats } from '../../hooks/useFuryData'
 import { EditEventModal } from '../../components/EditEventModal'
@@ -131,9 +135,20 @@ export default function AdminDashboard() {
               <div className={styles.neTitle}>{nextEvent.name}</div>
               <div className={styles.neMeta}>
                 {nextEvent.dropzone}
-                <span className={nextEvent.status === 'open' ? 'pill pill-open' : 'pill pill-soon'} style={{ marginLeft: 8 }}>
-                  {nextEvent.status === 'open' ? 'Reg Open' : 'Reg Not Open Yet'}
-                </span>
+                {(() => {
+                  const hasFury = nextEvent.furyEventId?.startsWith('evt-')
+                  const isOpen = nextEvent.status === 'open'
+                  return (
+                    <span
+                      className={isOpen ? 'pill pill-open' : 'pill pill-soon'}
+                      style={{ marginLeft: 8 }}
+                    >
+                      {hasFury
+                        ? (isOpen ? '⚡ Reg Open' : '⚡ Fury Linked')
+                        : (isOpen ? 'Reg Open' : 'Reg Not Open Yet')}
+                    </span>
+                  )
+                })()}
               </div>
             </div>
 
@@ -176,9 +191,17 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <LiveEventKpis event={evt} variant="row" />
-                <span className={evt.status === 'open' ? 'pill pill-open' : 'pill pill-soon'}>
-                  {evt.status === 'open' ? 'Open' : 'Upcoming'}
-                </span>
+                {(() => {
+                  const hasFury = evt.furyEventId?.startsWith('evt-')
+                  const isOpen = evt.status === 'open'
+                  return (
+                    <span className={isOpen ? 'pill pill-open' : 'pill pill-soon'}>
+                      {hasFury
+                        ? (isOpen ? '⚡ Reg Open' : '⚡ Fury Linked')
+                        : (isOpen ? 'Open' : 'Upcoming')}
+                    </span>
+                  )
+                })()}
                 <button
                   className={styles.adminBtn}
                   onClick={e => { e.stopPropagation(); setEditing(evt) }}

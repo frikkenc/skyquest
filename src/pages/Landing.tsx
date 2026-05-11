@@ -6,7 +6,8 @@ import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
 import EventCTA from '../components/EventCTA'
-import { EVENT_INSTANCES, LEADERBOARD_AAA } from '../data/mockData'
+import { EVENT_INSTANCES } from '../data/mockData'
+import type { LeaderboardEntry } from '../types'
 import styles from './Landing.module.css'
 
 function formatDate(iso: string) {
@@ -123,7 +124,7 @@ export default function Landing() {
               <tr><th>#</th><th>Team</th><th>Events</th><th>Pts</th></tr>
             </thead>
             <tbody>
-              {LEADERBOARD_AAA.slice(0, 5).map(entry => (
+              {([] as LeaderboardEntry[]).slice(0, 5).map(entry => (
                 <tr key={entry.teamId}>
                   <td className={`rank ${entry.rank <= 3 ? `rank-${entry.rank}` : ''}`}>{entry.rank}</td>
                   <td>{entry.teamName}</td>

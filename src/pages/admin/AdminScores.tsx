@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { SCSL_RESULTS, TEAM_ASSIGNMENTS, DUELING_REGISTRATIONS, REGISTRATIONS, SCSL_REGISTRATIONS, EVENT_INSTANCES } from '../../data/mockData'
+import { EVENT_INSTANCES } from '../../data/mockData'
 import type { Division, TeamResult, TeamRegistration, PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
 
@@ -48,10 +48,10 @@ function initTeams(results: TeamResult[]): ScoredTeam[] {
   }))
 }
 
-function initDuelingTeams(instanceId: string): ScoredTeam[] {
-  const allRegs: TeamRegistration[] = [...REGISTRATIONS, ...SCSL_REGISTRATIONS, ...DUELING_REGISTRATIONS]
+function initDuelingTeams(_instanceId: string): ScoredTeam[] {
+  const allRegs: TeamRegistration[] = []
   const regById = Object.fromEntries(allRegs.map(r => [r.id, r])) as Record<string, TeamRegistration>
-  const assignments = TEAM_ASSIGNMENTS.filter(a => a.eventId === instanceId)
+  const assignments: { id: string; teamName?: string; memberIds: string[] }[] = []
   return assignments.map((a, i) => ({
     teamId: a.id,
     teamName: a.teamName || `Team ${i + 1}`,
@@ -101,7 +101,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const [statuses, setStatuses] = useState<RoundStatus[]>(Array(MAX_ROUNDS).fill('ok'))
   const [hasJumpoff, setHasJumpoff] = useState(false)
   const [teams, setTeams] = useState<ScoredTeam[]>(() =>
-    isDueling ? initDuelingTeams(instanceId) : initTeams(SCSL_RESULTS)
+    isDueling ? initDuelingTeams(instanceId) : initTeams([])
   )
   const [editCell, setEditCell] = useState<{ tid: string; ri: number } | null>(null)
   const [editVal, setEditVal] = useState('')
@@ -468,7 +468,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const resetTeams = () => { setTeams(isDueling ? initDuelingTeams(instanceId) : initTeams(SCSL_RESULTS)); setSaved(false) }
+  const resetTeams = () => { setTeams(isDueling ? initDuelingTeams(instanceId) : initTeams([])); setSaved(false) }
 
   return (
     <div>

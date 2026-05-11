@@ -2,15 +2,6 @@ import type {
   EventType,
   EventTypeSettings,
   EventInstance,
-  LeaderboardEntry,
-  TeamResult,
-  TeamRegistration,
-  ApprovalQueueItem,
-  PendingRefund,
-  SeasonKPIs,
-  Season,
-  TeamAssignment,
-  ScheduledEmail,
 } from '../types'
 
 export const EVENT_TYPES: EventType[] = [
@@ -114,9 +105,9 @@ export const EVENT_INSTANCES: EventInstance[] = [
     dropzone: 'Elsinore',
     status: 'complete',
     divisions: ['AAA', 'AA', 'A', 'Rookie'],
-    registrationCount: 14,
-    approvedCount: 14,
-    revenue: 1680,
+    registrationCount: 0,
+    approvedCount: 0,
+    revenue: 0,
     pendingBalance: 0,
     furyEventId: 'fury-scsl-2026-01',
     furyRegistrationUrl: 'https://register.furycoaching.com/registration?eventId=evt-scsl-4way-elsinore-spring-2026',
@@ -133,18 +124,18 @@ export const EVENT_INSTANCES: EventInstance[] = [
     dropzone: 'Elsinore',
     status: 'open',
     divisions: ['Open'],
-    registrationCount: 8,
-    approvedCount: 6,
-    revenue: 1320,
-    pendingBalance: 180,
+    registrationCount: 0,
+    approvedCount: 0,
+    revenue: 0,
+    pendingBalance: 0,
     waitlistCount: 0,
     furyEventId: 'fury-poker-2026-01',
     // Poker Run is registered via its Facebook event (independently priced — not in Fury Registration).
     furyRegistrationUrl: 'https://www.facebook.com/events/4088089458172392/',
     registrationLabel: 'Event Info',
     contactEmail: 'events@skydiveelsinore.com',
-    lookingForTeamCount: 4,
-    teamsNotFullCount: 2,
+    lookingForTeamCount: 0,
+    teamsNotFullCount: 0,
   },
   {
     id: 'dueling-dzs-2026',
@@ -157,9 +148,13 @@ export const EVENT_INSTANCES: EventInstance[] = [
     // Reg coming soon, price TBD — show Notify Me until it opens.
     status: 'upcoming',
     divisions: ['Open'],
-    registrationCount: 24,
-    approvedCount: 24,
+    registrationCount: 0,
+    approvedCount: 0,
+    revenue: 0,
     pendingBalance: 0,
+    waitlistCount: 0,
+    lookingForTeamCount: 0,
+    teamsNotFullCount: 0,
   },
   {
     id: 'scsl-perris-late-summer-2026',
@@ -171,12 +166,12 @@ export const EVENT_INSTANCES: EventInstance[] = [
     dropzone: 'Perris',
     status: 'open',
     divisions: ['AAA', 'AA', 'A', 'Rookie'],
-    registrationCount: 18,
-    approvedCount: 11,
-    revenue: 1320,
-    pendingBalance: 240,
-    lookingForTeamCount: 5,
-    teamsNotFullCount: 3,
+    registrationCount: 0,
+    approvedCount: 0,
+    revenue: 0,
+    pendingBalance: 0,
+    lookingForTeamCount: 0,
+    teamsNotFullCount: 0,
     furyEventId: 'evt-scsl-4way-perris-2026',
     furyRegistrationUrl: 'https://register.furycoaching.com/registration?eventId=evt-scsl-4way-perris-2026',
   },
@@ -226,408 +221,3 @@ export const EVENT_INSTANCES: EventInstance[] = [
   },
 ]
 
-export const LEADERBOARD_AAA: LeaderboardEntry[] = [
-  { rank: 1, teamId: 't1', teamName: 'Cheated Donuts', members: [{ id: 'j1', name: 'Christina R.' }, { id: 'j2', name: 'Seth J.' }, { id: 'j3', name: 'Kayla N.' }, { id: 'j4', name: 'Thao N.' }], division: 'AAA', totalPoints: 428, eventsAttended: ['scsl-elsinore-spring-2026', 'poker-run-elsinore-2026'], bestFinishRank: 1, bestFinishEvent: 'SCSL Elsinore' },
-  { rank: 2, teamId: 't2', teamName: 'Probably Fine', members: [{ id: 'j5', name: 'Grace K.' }, { id: 'j6', name: 'David S.' }, { id: 'j7', name: 'Alex S.' }, { id: 'j8', name: 'Danny K.' }], division: 'AAA', totalPoints: 390, eventsAttended: ['scsl-elsinore-spring-2026', 'poker-run-elsinore-2026'], bestFinishRank: 1, bestFinishEvent: 'Poker Run' },
-  { rank: 3, teamId: 't3', teamName: 'Perris Bits', members: [{ id: 'j9', name: 'Jeff H.' }, { id: 'j10', name: 'Anderson B.' }, { id: 'j11', name: 'Khan G.' }, { id: 'j12', name: 'Sam Y.' }], division: 'AAA', totalPoints: 372, eventsAttended: ['scsl-elsinore-spring-2026'], bestFinishRank: 2, bestFinishEvent: 'SCSL Elsinore' },
-  { rank: 4, teamId: 't4', teamName: 'Camel Case', members: [{ id: 'j13', name: 'Alex S.' }, { id: 'j14', name: 'Rob R.' }, { id: 'j15', name: 'Jeff H.' }, { id: 'j16', name: 'Rosemary B.' }], division: 'AAA', totalPoints: 340, eventsAttended: ['scsl-elsinore-spring-2026'], bestFinishRank: 3, bestFinishEvent: 'SCSL Elsinore' },
-  { rank: 5, teamId: 't5', teamName: 'Balagan', members: [{ id: 'j17', name: 'Dror A.' }, { id: 'j18', name: 'Agustin S.' }, { id: 'j19', name: 'Jay R.' }, { id: 'j20', name: 'Nathan C.' }], division: 'AAA', totalPoints: 312, eventsAttended: ['scsl-elsinore-spring-2026'], bestFinishRank: 4, bestFinishEvent: 'SCSL Elsinore' },
-  { rank: 6, teamId: 't6', teamName: 'Night Crew', members: [{ id: 'j21', name: 'Heather A.' }, { id: 'j22', name: 'Khan G.' }, { id: 'j23', name: 'Yvonne O.' }, { id: 'j24', name: 'Sam Ab.' }], division: 'AAA', totalPoints: 280, eventsAttended: ['poker-run-elsinore-2026'], bestFinishRank: 2, bestFinishEvent: 'Poker Run' },
-]
-
-export const LEADERBOARD_AA: LeaderboardEntry[] = [
-  { rank: 1, teamId: 't7', teamName: 'Static Line', members: [{ id: 'j25', name: 'Cathy C.' }, { id: 'j26', name: 'Tara Y.' }, { id: 'j27', name: 'Lisa W.' }, { id: 'j28', name: 'Alicia P.' }], division: 'AA', totalPoints: 360, eventsAttended: ['scsl-elsinore-spring-2026'], bestFinishRank: 1, bestFinishEvent: 'SCSL Elsinore' },
-  { rank: 2, teamId: 't8', teamName: 'Generation Gap', members: [{ id: 'j29', name: 'Tessa G.' }, { id: 'j30', name: 'Janelle S.' }, { id: 'j31', name: 'Carol S.' }, { id: 'j32', name: 'Ron S.' }], division: 'AA', totalPoints: 290, eventsAttended: ['scsl-elsinore-spring-2026'], bestFinishRank: 2, bestFinishEvent: 'SCSL Elsinore' },
-  { rank: 3, teamId: 't9', teamName: 'Sun Kissed Spinners', members: [{ id: 'j33', name: 'Cody M.' }, { id: 'j34', name: 'Christopher M.' }, { id: 'j35', name: 'Chuck R.' }, { id: 'j36', name: 'Mike T.' }], division: 'AA', totalPoints: 240, eventsAttended: ['scsl-elsinore-spring-2026'], bestFinishRank: 3, bestFinishEvent: 'SCSL Elsinore' },
-]
-
-export const SCSL_RESULTS: TeamResult[] = [
-  // ── AAA ──
-  { rank: 1, teamId: 'aaa-t1', teamName: 'Red Smoke', division: 'AAA',
-    members: [{ id: 'aj1', name: 'Tony P.' }, { id: 'aj2', name: 'Sara M.' }, { id: 'aj3', name: 'Derek W.' }, { id: 'aj4', name: 'Lisa T.' }],
-    roundScores: [11, 12, 11, 12, 10, 11, 12, 11], roundBusts: [0,0,0,0,0,0,0,0], total: 90 },
-  { rank: 2, teamId: 'aaa-t2', teamName: 'Vertical Limit', division: 'AAA',
-    members: [{ id: 'aj5', name: 'Marco B.' }, { id: 'aj6', name: 'Priya S.' }, { id: 'aj7', name: 'Cal R.' }, { id: 'aj8', name: 'Wendy H.' }],
-    roundScores: [10, 11, 10, 11, 10, 10, 11, 10], roundBusts: [0,1,0,0,0,0,0,0], total: 83 },
-
-  // ── AA ──
-  { rank: 1, teamId: 't1', teamName: 'Cheated Donuts', division: 'AA',
-    members: [{ id: 'j1', name: 'Christina R.' }, { id: 'j2', name: 'Seth J.' }, { id: 'j3', name: 'Kayla N.' }, { id: 'j4', name: 'Thao N.' }],
-    roundScores: [9, 8, 10, 9, 9, 10, 8, 9], roundBusts: [0,0,0,0,0,0,1,0], total: 72 },
-  { rank: 2, teamId: 't2', teamName: 'Probably Fine', division: 'AA',
-    members: [{ id: 'j5', name: 'Grace K.' }, { id: 'j6', name: 'David S.' }, { id: 'j7', name: 'Alex S.' }, { id: 'j8', name: 'Danny K.' }],
-    roundScores: [8, 9, 8, 10, 8, 9, 9, 7], total: 68 },
-  { rank: 3, teamId: 't3', teamName: 'Perris Bits', division: 'AA',
-    members: [{ id: 'j9', name: 'Jeff H.' }, { id: 'j10', name: 'Anderson B.' }, { id: 'j11', name: 'Khan G.' }, { id: 'j12', name: 'Sam Y.' }],
-    roundScores: [7, 8, 8, 8, 9, 8, 8, 8], total: 64 },
-  { rank: 3, teamId: 'aa-t6', teamName: 'Air Time', division: 'AA',
-    members: [{ id: 'aj9', name: 'Rox V.' }, { id: 'aj10', name: 'Finn O.' }, { id: 'aj11', name: 'Bex L.' }, { id: 'aj12', name: 'Soren K.' }],
-    roundScores: [8, 8, 8, 6, 9, 8, 8, 9], roundBusts: [0,0,0,2,0,0,0,0], total: 64 },
-  { rank: 5, teamId: 't4', teamName: 'Camel Case', division: 'AA',
-    members: [{ id: 'j13', name: 'Alex S.' }, { id: 'j14', name: 'Rob R.' }, { id: 'j15', name: 'Jeff H.' }, { id: 'j16', name: 'Rosemary B.' }],
-    roundScores: [7, 7, 8, 7, 8, 8, 7, 8], total: 60 },
-  { rank: 6, teamId: 't5', teamName: 'Balagan', division: 'AA',
-    members: [{ id: 'j17', name: 'Dror A.' }, { id: 'j18', name: 'Agustin S.' }, { id: 'j19', name: 'Jay R.' }, { id: 'j20', name: 'Nathan C.' }],
-    roundScores: [6, 7, 7, 8, 7, 7, 6, 8], roundBusts: [0,0,0,0,2,0,0,0], total: 56 },
-
-  // ── A ──
-  { rank: 1, teamId: 'a-t1', teamName: 'Blue Sky', division: 'A',
-    members: [{ id: 'bj1', name: 'Mei L.' }, { id: 'bj2', name: 'Tomas K.' }, { id: 'bj3', name: 'Priya N.' }, { id: 'bj4', name: 'Tyler B.' }],
-    roundScores: [5, 6, 6, 5, 6, 6, 5, 6], total: 45 },
-  { rank: 2, teamId: 'a-t2', teamName: 'Static Line', division: 'A',
-    members: [{ id: 'bj5', name: 'Cam O.' }, { id: 'bj6', name: 'Jess F.' }, { id: 'bj7', name: 'Kim A.' }, { id: 'bj8', name: 'Brett S.' }],
-    roundScores: [5, 5, 5, 5, 5, 5, 5, 5], total: 40 },
-
-  // ── Rookie ──
-  { rank: 1, teamId: 'r-t1', teamName: 'Just Started', division: 'Rookie',
-    members: [{ id: 'rj1', name: 'Devon W.' }, { id: 'rj2', name: 'Benny R.' }, { id: 'rj3', name: 'Sofia M.' }, { id: 'rj4', name: 'Raj P.' }],
-    roundScores: [3, 4, 3, 3, 4, 3, 3, 4], total: 27 },
-]
-
-export const APPROVAL_QUEUE: ApprovalQueueItem[] = [
-  { id: 'aq-1', eventId: 'poker-run-elsinore-2026', eventName: 'Poker Run', eventTypeSlug: 'poker-run', teamName: 'The Usual Suspects', members: ['Jordan Lee', 'Sam Park', 'Avery Hall', 'Casey Liu'], division: 'AA', submittedAt: '2026-05-08T09:46:00Z' },
-  { id: 'aq-2', eventId: 'poker-run-elsinore-2026', eventName: 'Poker Run', eventTypeSlug: 'poker-run', teamName: 'Probably Fine', members: ['Morgan Kane', 'River Shaw', 'Quinn Wright', 'Drew Ellis'], division: 'A', submittedAt: '2026-05-08T09:29:00Z' },
-]
-
-export const PENDING_REFUNDS: PendingRefund[] = [
-  { id: 'ref-1', teamName: 'Night Crew', eventName: 'SCSL @ Elsinore Spring', amount: 120, reason: 'Cancelled' },
-  { id: 'ref-2', teamName: 'Static Line', eventName: 'Poker Run', amount: 60, reason: 'Partial refund requested' },
-]
-
-export const SEASON_KPIS: SeasonKPIs = {
-  totalRevenue: 8460,
-  registrations: 94,
-  uniqueJumpers: 211,
-  eventsRun: 2,
-  eventsTotal: 6,
-  pendingBalance: 380,
-}
-
-// ── Registrations with rich teammate notes ─────────────────────────────────────
-
-export const REGISTRATIONS: TeamRegistration[] = [
-  {
-    id: 'reg-1', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: 'The Usual Suspects',
-    members: [
-      { id: 'j1', name: 'Jordan Lee' },
-      { id: 'j2', name: 'Sam Park' },
-      { id: 'j3', name: 'Avery Hall' },
-      { id: 'j4', name: 'Casey Liu' },
-      { id: 'j5', name: 'Dana Chen', isSoft: true },
-      { id: 'j6', name: 'Riley Scott', isVideo: true },
-    ],
-    teammateNote: 'Me, Sam, Avery, Casey, and hopefully Dana Chen. Riley is our camera flyer.',
-    status: 'approved', paymentStatus: 'paid', balance: 0, submittedAt: '2026-05-01T10:00:00Z',
-  },
-  {
-    id: 'reg-2', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: 'Balagan',
-    members: [
-      { id: 'j13', name: 'Dror A.' },
-      { id: 'j14', name: 'Agustin S.' },
-      { id: 'j15', name: 'Jay R.' },
-      { id: 'j16', name: 'Nathan C.' },
-      { id: 'j17', name: 'Marcus V.', isAlternate: true },
-    ],
-    teammateNote: 'Dror, Agustin, Jay, Nathan — same crew as SCSL. Marcus might jump if someone bails.',
-    status: 'approved', paymentStatus: 'partial', balance: 60, submittedAt: '2026-05-02T09:00:00Z',
-  },
-  {
-    id: 'reg-3', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: '',
-    members: [{ id: 'j20', name: 'Alex Torres' }],
-    teammateNote: 'Looking for a team! I have ~500 jumps, comfortable in open formation. Happy to fill a spot or jump with anyone.',
-    status: 'pending', paymentStatus: 'unpaid', balance: 120, submittedAt: '2026-05-07T14:30:00Z',
-  },
-  {
-    id: 'reg-4', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: '',
-    members: [{ id: 'j21', name: 'Kim Nguyen' }, { id: 'j22', name: 'Chris P.', isSoft: true }],
-    teammateNote: 'Me and maybe Chris P. — still need 4 more. Anyone want to jump with us? We\'re intermediate level, lots of fun.',
-    status: 'pending', paymentStatus: 'unpaid', balance: 120, submittedAt: '2026-05-07T16:00:00Z',
-  },
-  {
-    id: 'reg-5', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: '',
-    members: [{ id: 'j23', name: 'Benny R.' }, { id: 'j24', name: 'Sofia M.' }, { id: 'j25', name: 'Tomas K.' }],
-    teammateNote: 'Benny, Sofia, Tomas — we have 3, need 3 more. Hoping to find jumpers on site but would love to know before.',
-    status: 'pending', paymentStatus: 'unpaid', balance: 120, submittedAt: '2026-05-08T09:00:00Z',
-  },
-  {
-    id: 'reg-6', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: '',
-    members: [{ id: 'j26', name: 'Mei L.' }],
-    teammateNote: 'LFT - Looking for team. Any level fine, just want to have fun!',
-    status: 'pending', paymentStatus: 'unpaid', balance: 120, submittedAt: '2026-05-08T10:00:00Z',
-  },
-  {
-    id: 'reg-7', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: 'Night Crew',
-    members: [
-      { id: 'j27', name: 'Heather A.' },
-      { id: 'j28', name: 'Yvonne O.' },
-      { id: 'j29', name: 'Sam Ab.' },
-      { id: 'j30', name: 'Khan G.' },
-      { id: 'j31', name: 'Devon W.' },
-      { id: 'j32', name: 'Priya S.', isAlternate: true },
-      { id: 'j33', name: 'CJ T.', isVideo: true },
-    ],
-    teammateNote: 'Night Crew is back! Heather, Yvonne, Sam, Khan, Devon. Priya is alt. CJ doing video.',
-    status: 'approved', paymentStatus: 'paid', balance: 0, submittedAt: '2026-04-28T08:00:00Z',
-  },
-  {
-    id: 'reg-8', eventId: 'poker-run-elsinore-2026', division: 'Open',
-    teamName: '',
-    members: [{ id: 'j34', name: 'Raj P.' }, { id: 'j35', name: 'Tara V.' }],
-    teammateNote: 'Raj and Tara here. Our team from last year fell apart. Need 4 more solid jumpers, 4-way experience preferred.',
-    status: 'pending', paymentStatus: 'unpaid', balance: 120, submittedAt: '2026-05-08T11:00:00Z',
-  },
-]
-
-// ── SCSL Perris Late Summer — individual registrations ────────────────────────
-// Each entry = one person. members[0] is themselves.
-
-export const SCSL_REGISTRATIONS: TeamRegistration[] = [
-  // ── AAA ──
-  { id: 'scsl-r1',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', offeringType: 'captain', members: [{ id: 'sd1',  name: 'Christina R.' }], teammateNote: 'Going with Seth, Kayla, and Thao — same as spring. Marcus as alt if needed. Riley doing video.', status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-01T09:00:00Z' },
-  { id: 'scsl-r2',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd2',  name: 'Seth J.' }],       teammateNote: "Christina's crew — same team as spring SCSL.",                                                                status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-01T09:05:00Z' },
-  { id: 'scsl-r3',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd3',  name: 'Kayla N.' }],      teammateNote: "With Christina, Seth, and Thao.",                                                                              status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-01T09:10:00Z' },
-  { id: 'scsl-r4',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd4',  name: 'Thao N.' }],       teammateNote: "Going with Christina's group.",                                                                                status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-01T09:15:00Z' },
-  { id: 'scsl-r5',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd5',  name: 'Marcus V.' }],     teammateNote: "Alt for Cheated Donuts if someone bails. Also open to a second team if there's a spot.",                       status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-02T11:00:00Z' },
-  { id: 'scsl-r6',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', offeringType: 'video', members: [{ id: 'sd6',  name: 'Riley T.' }],      teammateNote: "Doing video for whoever needs it in AAA. Happy to cover 2 teams.",                                             status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-02T12:00:00Z', },
-  { id: 'scsl-r7',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd7',  name: 'Dror A.' }],       teammateNote: "Balagan — me, Agustin, Jay, Nathan. Same crew as always.",                                                     status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-03T10:00:00Z' },
-  { id: 'scsl-r8',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd8',  name: 'Agustin S.' }],    teammateNote: "Balagan — Dror, Jay, Nathan and me.",                                                                          status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-03T10:05:00Z' },
-  { id: 'scsl-r9',  eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd9',  name: 'Jay R.' }],        teammateNote: "Balagan.",                                                                                                     status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-03T10:10:00Z' },
-  { id: 'scsl-r10', eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd10', name: 'Nathan C.' }],     teammateNote: "Going with Balagan.",                                                                                          status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-03T10:15:00Z' },
-  { id: 'scsl-r11', eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd11', name: 'Heather A.' }],    teammateNote: "Me and Yvonne need 2 more — AAA level, experienced. Prefer women or mixed.",                                    status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-10T14:00:00Z' },
-  { id: 'scsl-r12', eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd12', name: 'Yvonne O.' }],     teammateNote: "Jumping with Heather, looking for 2 more AAA jumpers.",                                                        status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-10T14:05:00Z' },
-  { id: 'scsl-r13', eventId: 'scsl-perris-late-summer-2026', division: 'AAA', teamName: '', members: [{ id: 'sd13', name: 'Khan G.' }],       teammateNote: "Solo — open to any AAA team. 1000+ jumps, coached 4-way, any slot.",                                           status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-12T08:00:00Z' },
-
-  // ── AA ──
-  { id: 'scsl-r14', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', offeringType: 'captain', members: [{ id: 'sd14', name: 'Cathy C.' }],      teammateNote: "Static Line — me, Tara, Lisa, Alicia. Same as every year!",                                                   status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-05T11:00:00Z' },
-  { id: 'scsl-r15', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd15', name: 'Tara Y.' }],       teammateNote: "Static Line with Cathy.",                                                                                     status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-05T11:05:00Z' },
-  { id: 'scsl-r16', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd16', name: 'Lisa W.' }],       teammateNote: "Static Line.",                                                                                                status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-05T11:10:00Z' },
-  { id: 'scsl-r17', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd17', name: 'Alicia P.' }],     teammateNote: "Static Line — been jumping with these ladies for 3 years.",                                                   status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-05T11:15:00Z' },
-  { id: 'scsl-r18', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd18', name: 'Tessa G.' }],      teammateNote: "Me, Janelle, and hopefully Carol (she's 50/50 on coming). Need 1 more — we were Generation Gap in spring.",  status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-14T16:00:00Z' },
-  { id: 'scsl-r19', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd19', name: 'Janelle S.' }],    teammateNote: "Going with Tessa. Carol might join. Need at least 1 more confirmed.",                                         status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-14T16:05:00Z' },
-  { id: 'scsl-r20', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd20', name: 'Carol S.' }],      teammateNote: "Probably going with Tessa and Janelle if I can make it.",                                                     status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-15T08:00:00Z' },
-  { id: 'scsl-r21', eventId: 'scsl-perris-late-summer-2026', division: 'AA',  teamName: '', members: [{ id: 'sd21', name: 'Ron S.' }],        teammateNote: "LFT — AA division. Was in Generation Gap in spring. Happy to slot in anywhere.",                             status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-15T09:00:00Z' },
-
-  // ── A ──
-  { id: 'scsl-r22', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', offeringType: 'captain', members: [{ id: 'sd22', name: 'Alex T.' }],       teammateNote: "Me, Jordan, Sam, Devon — first SCSL as a team. Been training at the tunnel.",                                 status: 'approved', paymentStatus: 'partial', balance: 60,  submittedAt: '2026-06-08T10:00:00Z' },
-  { id: 'scsl-r23', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd23', name: 'Jordan M.' }],     teammateNote: "With Alex's group.",                                                                                          status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-08T10:05:00Z' },
-  { id: 'scsl-r24', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd24', name: 'Sam K.' }],        teammateNote: "Jumping with Alex, Jordan, Devon.",                                                                           status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-08T10:10:00Z' },
-  { id: 'scsl-r25', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd25', name: 'Devon W.' }],      teammateNote: "Alex's crew.",                                                                                                status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-08T10:15:00Z' },
-  { id: 'scsl-r26', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd26', name: 'Benny R.' }],      teammateNote: "Me and Sofia are looking — did Rookie last year, moving up to A. Need 2 more.",                              status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-16T11:00:00Z' },
-  { id: 'scsl-r27', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd27', name: 'Sofia M.' }],      teammateNote: "With Benny, need 2 more for A division.",                                                                     status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-16T11:05:00Z' },
-  { id: 'scsl-r28', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd28', name: 'Raj P.' }],        teammateNote: "Me, Mei, Tomas — have 3, need 1 more for A. Chill team, here to fly well and have fun.",                    status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-17T09:00:00Z' },
-  { id: 'scsl-r29', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd29', name: 'Mei L.' }],        teammateNote: "With Raj and Tomas, need 1 more.",                                                                            status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-17T09:05:00Z' },
-  { id: 'scsl-r30', eventId: 'scsl-perris-late-summer-2026', division: 'A',   teamName: '', members: [{ id: 'sd30', name: 'Tomas K.' }],      teammateNote: "Going with Raj and Mei — need 1 more.",                                                                       status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-17T09:10:00Z' },
-
-  // ── Rookie ──
-  { id: 'scsl-r31', eventId: 'scsl-perris-late-summer-2026', division: 'Rookie', teamName: '', offeringType: 'captain', members: [{ id: 'sd31', name: 'Tyler B.' }],   teammateNote: "Ground Rush — Tyler, Priya, Cam, Jess. First comp ever!",                                                     status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-09T14:00:00Z' },
-  { id: 'scsl-r32', eventId: 'scsl-perris-late-summer-2026', division: 'Rookie', teamName: '', members: [{ id: 'sd32', name: 'Priya S.' }],   teammateNote: "With Tyler, Cam, and Jess.",                                                                                  status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-09T14:05:00Z' },
-  { id: 'scsl-r33', eventId: 'scsl-perris-late-summer-2026', division: 'Rookie', teamName: '', members: [{ id: 'sd33', name: 'Cam O.' }],     teammateNote: "Ground Rush!",                                                                                                status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-09T14:10:00Z' },
-  { id: 'scsl-r34', eventId: 'scsl-perris-late-summer-2026', division: 'Rookie', teamName: '', members: [{ id: 'sd34', name: 'Jess F.' }],    teammateNote: "Jumping with Tyler's group for my first ever competition!",                                                   status: 'approved', paymentStatus: 'paid',    balance: 0,   submittedAt: '2026-06-09T14:15:00Z' },
-  { id: 'scsl-r35', eventId: 'scsl-perris-late-summer-2026', division: 'Rookie', teamName: '', members: [{ id: 'sd35', name: 'Kim N.' }],     teammateNote: "First time, Rookie division. LFT! About 150 jumps.",                                                          status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-18T12:00:00Z' },
-  { id: 'scsl-r36', eventId: 'scsl-perris-late-summer-2026', division: 'Rookie', teamName: '', members: [{ id: 'sd36', name: 'Brett W.' }],   teammateNote: "New to competing — 200 jumps, Perris local. Anyone need a 4th?",                                             status: 'pending',  paymentStatus: 'unpaid',  balance: 120, submittedAt: '2026-06-19T10:00:00Z' },
-]
-
-// ── Team assignments (teaming tool state) ──────────────────────────────────────
-
-// ── Dueling DZs 2026 — individual registrations ───────────────────────────────
-// Each entry = one person. members[0] is themselves.
-export const DUELING_REGISTRATIONS: TeamRegistration[] = [
-  // ── Team 1: Exit Strategy ──
-  { id: 'dd-r1',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd1',  name: 'Marcus Devlin'  }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:00:00Z' },
-  { id: 'dd-r2',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd2',  name: 'Jess Torres'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:05:00Z' },
-  { id: 'dd-r3',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd3',  name: 'Sam Park'       }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:10:00Z' },
-  { id: 'dd-r4',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd4',  name: 'Lena Ortiz'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:15:00Z' },
-  { id: 'dd-r5',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd5',  name: 'Chip Harmon'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:20:00Z' },
-  { id: 'dd-r6',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Exit Strategy', members: [{ id: 'dd6',  name: 'Bailey Cross'   }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-01T09:25:00Z' },
-  // ── Team 2: Sky Bandits ──
-  { id: 'dd-r7',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd7',  name: 'Tony Wells'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:00:00Z' },
-  { id: 'dd-r8',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd8',  name: 'Priya Nair'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:05:00Z' },
-  { id: 'dd-r9',  eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd9',  name: 'Cal Fischer'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:10:00Z' },
-  { id: 'dd-r10', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd10', name: 'Wendy Lau'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:15:00Z' },
-  { id: 'dd-r11', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd11', name: 'Derek Park'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:20:00Z' },
-  { id: 'dd-r12', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Sky Bandits', members: [{ id: 'dd12', name: 'Sofia Reyes'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-02T10:25:00Z' },
-  // ── Team 3: Hang Time ──
-  { id: 'dd-r13', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd13', name: 'Raj Gupta'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:00:00Z' },
-  { id: 'dd-r14', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd14', name: 'Mei Zhang'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:05:00Z' },
-  { id: 'dd-r15', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd15', name: 'Tomas Webb'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:10:00Z' },
-  { id: 'dd-r16', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd16', name: 'Jordan Blake'   }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:15:00Z' },
-  { id: 'dd-r17', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd17', name: 'Alex Chen'      }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:20:00Z' },
-  { id: 'dd-r18', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'Hang Time', members: [{ id: 'dd18', name: 'Dana Kim'       }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-03T11:25:00Z' },
-  // ── Team 4: No Altitude Attitude ──
-  { id: 'dd-r19', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd19', name: 'Christy Flores' }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:00:00Z' },
-  { id: 'dd-r20', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd20', name: 'Seth Jacobs'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:05:00Z' },
-  { id: 'dd-r21', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd21', name: 'Kayla Nash'     }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:10:00Z' },
-  { id: 'dd-r22', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd22', name: 'Thao Nguyen'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:15:00Z' },
-  { id: 'dd-r23', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd23', name: 'Marcus Vega'    }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:20:00Z' },
-  { id: 'dd-r24', eventId: 'dueling-dzs-2026', division: 'Open', teamName: 'No Altitude Attitude', members: [{ id: 'dd24', name: 'Riley Torres'   }], status: 'approved', paymentStatus: 'paid',    balance: 0, submittedAt: '2026-05-04T09:25:00Z' },
-]
-
-export const TEAM_ASSIGNMENTS: TeamAssignment[] = [
-  // ── SCSL Perris Late Summer 2026 ──────────────────────────────────────────
-  { id: 'scsl-ta-1', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r1','scsl-r2','scsl-r3','scsl-r4'], videoPersonId: 'scsl-r6', isConfirmed: false },
-  { id: 'scsl-ta-2', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r5','scsl-r6','scsl-r7','scsl-r8'], isConfirmed: false },
-  { id: 'scsl-ta-3', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r9','scsl-r10','scsl-r11','scsl-r12'], isConfirmed: false },
-  { id: 'scsl-ta-4', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r13','scsl-r14','scsl-r15','scsl-r16'], isConfirmed: false },
-  { id: 'scsl-ta-5', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r17','scsl-r18','scsl-r19','scsl-r20'], isConfirmed: false },
-  { id: 'scsl-ta-6', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r21','scsl-r22','scsl-r23','scsl-r24'], isConfirmed: false },
-  { id: 'scsl-ta-7', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r25','scsl-r26','scsl-r27','scsl-r28'], isConfirmed: false },
-  { id: 'scsl-ta-8', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r29','scsl-r30','scsl-r31','scsl-r32'], isConfirmed: false },
-  { id: 'scsl-ta-9', eventId: 'scsl-perris-late-summer-2026', memberIds: ['scsl-r33','scsl-r34','scsl-r35','scsl-r36'], isConfirmed: false },
-  // ── Poker Run ──────────────────────────────────────────────────────────────
-  {
-    id: 'ta-1',
-    eventId: 'poker-run-elsinore-2026',
-    division: 'Open',
-    teamName: 'The Usual Suspects',
-    memberIds: ['reg-1'],
-    videoPersonId: 'reg-1',
-    isConfirmed: true,
-    confirmedAt: '2026-05-03T12:00:00Z',
-    confirmationEmailSentAt: '2026-05-03T12:01:00Z',
-  },
-  {
-    id: 'ta-2',
-    eventId: 'poker-run-elsinore-2026',
-    division: 'Open',
-    teamName: 'Balagan',
-    memberIds: ['reg-2'],
-    isConfirmed: true,
-    confirmedAt: '2026-05-04T10:00:00Z',
-  },
-  {
-    id: 'ta-3',
-    eventId: 'poker-run-elsinore-2026',
-    division: 'Open',
-    teamName: 'Night Crew',
-    memberIds: ['reg-7'],
-    isConfirmed: true,
-    confirmedAt: '2026-04-30T09:00:00Z',
-    confirmationEmailSentAt: '2026-04-30T09:01:00Z',
-  },
-  // ── Dueling DZs 2026 ─────────────────────────────────────────────────────
-  { id: 'dd-ta-1', eventId: 'dueling-dzs-2026', teamName: 'Exit Strategy',        memberIds: ['dd-r1','dd-r2','dd-r3','dd-r4','dd-r5','dd-r6'],    isConfirmed: true  },
-  { id: 'dd-ta-2', eventId: 'dueling-dzs-2026', teamName: 'Sky Bandits',           memberIds: ['dd-r7','dd-r8','dd-r9','dd-r10','dd-r11','dd-r12'],  isConfirmed: true  },
-  { id: 'dd-ta-3', eventId: 'dueling-dzs-2026', teamName: 'Hang Time',             memberIds: ['dd-r13','dd-r14','dd-r15','dd-r16','dd-r17','dd-r18'], isConfirmed: true  },
-  { id: 'dd-ta-4', eventId: 'dueling-dzs-2026', teamName: 'No Altitude Attitude',  memberIds: ['dd-r19','dd-r20','dd-r21','dd-r22','dd-r23','dd-r24'], isConfirmed: true  },
-]
-
-// ── Season configuration ───────────────────────────────────────────────────────
-
-export const SEASONS: Season[] = [
-  {
-    id: 'season-2026',
-    name: '2026 SkyQuest Season',
-    year: 2026,
-    isActive: true,
-    events: [
-      {
-        eventTypeSlug: 'scsl',
-        instanceId: 'scsl-elsinore-spring-2026',
-        tentativeDate: '2026-03-15',
-        dropzone: 'Elsinore',
-        furyEventId: 'fury-scsl-2026-01',
-        furyRegistrationUrl: 'https://register.furycoaching.com/registration?eventId=evt-scsl-4way-elsinore-spring-2026',
-        registrationOpenDate: '2026-01-15',
-        registrationCloseDate: '2026-03-08',
-      },
-      {
-        eventTypeSlug: 'poker-run',
-        instanceId: 'poker-run-elsinore-2026',
-        tentativeDate: '2026-05-10',
-        dropzone: 'Elsinore',
-        furyEventId: 'fury-poker-2026-01',
-        furyRegistrationUrl: 'https://www.facebook.com/events/4088089458172392/',
-        registrationOpenDate: '2026-03-01',
-        registrationCloseDate: '2026-05-03',
-      },
-      {
-        eventTypeSlug: 'dueling-dzs',
-        instanceId: 'dueling-dzs-2026',
-        tentativeDate: '2026-06-21',
-        dropzone: 'Perris ↔ Elsinore',
-        registrationOpenDate: '2026-04-15',
-        registrationCloseDate: '2026-06-14',
-      },
-      {
-        eventTypeSlug: 'scsl',
-        instanceId: 'scsl-perris-late-summer-2026',
-        tentativeDate: '2026-08-15',
-        dropzone: 'Perris',
-      },
-      {
-        eventTypeSlug: 'crazy8s',
-        instanceId: 'crazy8s-perris-2026',
-        tentativeDate: '2026-08-16',
-        dropzone: 'Perris',
-      },
-      {
-        eventTypeSlug: 'ghost-nationals',
-        instanceId: 'ghost-nationals-perris-2026',
-        tentativeDate: '2026-11-28',
-        dropzone: 'Perris',
-      },
-      {
-        eventTypeSlug: 'awards',
-        instanceId: 'awards-show-2026',
-        tentativeDate: '2026-11-15',
-        dropzone: 'The Bombshelter',
-      },
-    ],
-  },
-  {
-    id: 'season-2025',
-    name: '2025 SkyQuest Season',
-    year: 2025,
-    isActive: false,
-    events: [],
-  },
-]
-
-// ── Scheduled emails ───────────────────────────────────────────────────────────
-
-export const SCHEDULED_EMAILS: ScheduledEmail[] = [
-  {
-    id: 'se-1',
-    templateId: 'tmpl-poker-reminder',
-    templateName: 'Poker Run — Registration Reminder',
-    subject: 'Last chance to register for Poker Run @ Elsinore!',
-    scope: 'Poker Run',
-    eventId: 'poker-run-elsinore-2026',
-    scheduledFor: '2026-05-03T10:00:00Z',
-    status: 'sent',
-    testSentAt: '2026-05-02T18:00:00Z',
-    approvedAt: '2026-05-02T19:30:00Z',
-    sentAt: '2026-05-03T10:00:00Z',
-    recipientCount: 47,
-  },
-  {
-    id: 'se-2',
-    templateId: 'tmpl-dueling-open',
-    templateName: 'Dueling DZs — Registration Now Open',
-    subject: 'Registration is open for Dueling DZs 2026!',
-    scope: 'Dueling DZs',
-    eventId: 'dueling-dzs-2026',
-    scheduledFor: '2026-04-15T09:00:00Z',
-    status: 'test-sent',
-    testSentAt: '2026-05-09T08:00:00Z',
-    recipientCount: 211,
-  },
-  {
-    id: 'se-3',
-    templateId: 'tmpl-scsl-summer',
-    templateName: 'SCSL Late Summer — Save the Date',
-    subject: 'Save the date: SCSL @ Perris August 16!',
-    scope: 'SCSL',
-    eventId: 'scsl-perris-late-summer-2026',
-    scheduledFor: '2026-05-20T10:00:00Z',
-    status: 'draft',
-    recipientCount: 211,
-  },
-]

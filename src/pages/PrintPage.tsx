@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { EVENT_INSTANCES, REGISTRATIONS, SCSL_REGISTRATIONS, TEAM_ASSIGNMENTS } from '../data/mockData'
+import { EVENT_INSTANCES } from '../data/mockData'
+import type { TeamRegistration, TeamAssignment } from '../types'
 import {
   buildRegMap,
   manifestSlipsHtml, checkInListHtml, paymentStatusHtml, teamsManifestHtml,
@@ -13,9 +14,8 @@ export default function PrintPage() {
     const event = EVENT_INSTANCES.find(e => e.id === instanceId)
     if (!event) return
 
-    const allRegs = [...REGISTRATIONS, ...SCSL_REGISTRATIONS]
-    const registrations = allRegs.filter(r => r.eventId === instanceId)
-    const teams = TEAM_ASSIGNMENTS.filter(a => a.eventId === instanceId)
+    const registrations: TeamRegistration[] = []
+    const teams: TeamAssignment[] = []
     const regById = buildRegMap(registrations)
 
     let html = ''

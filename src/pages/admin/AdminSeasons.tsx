@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SEASONS, EVENT_TYPES, EVENT_TYPE_SETTINGS } from '../../data/mockData'
+import { EVENT_TYPES, EVENT_TYPE_SETTINGS } from '../../data/mockData'
 import type { Season, SeasonEventConfig } from '../../types'
 import styles from './AdminSeasons.module.css'
 
@@ -9,7 +9,7 @@ function fmtDate(iso: string | undefined) {
 }
 
 export default function AdminSeasons() {
-  const [seasons, setSeasons] = useState<Season[]>(SEASONS)
+  const [seasons, setSeasons] = useState<Season[]>([])
   const activeSeason = seasons.find(s => s.isActive) ?? seasons[0]
   const [selectedId, setSelectedId] = useState(activeSeason?.id ?? '')
   const [editingEventIdx, setEditingEventIdx] = useState<number | null>(null)

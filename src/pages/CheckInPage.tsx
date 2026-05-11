@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import {
-  EVENT_INSTANCES, TEAM_ASSIGNMENTS, DUELING_REGISTRATIONS, REGISTRATIONS, SCSL_REGISTRATIONS,
-} from '../data/mockData'
+import { EVENT_INSTANCES } from '../data/mockData'
 import type { TeamAssignment, TeamRegistration } from '../types'
 
 type JumpData = Record<string, number[]>  // assignmentId → per-member jump counts
@@ -14,9 +12,9 @@ function saveJumps(id: string, data: JumpData) { localStorage.setItem(lsKey(id),
 export default function CheckInPage() {
   const { instanceId = '' } = useParams<{ instanceId: string }>()
   const event = EVENT_INSTANCES.find(e => e.id === instanceId)
-  const allRegs: TeamRegistration[] = [...REGISTRATIONS, ...SCSL_REGISTRATIONS, ...DUELING_REGISTRATIONS]
+  const allRegs: TeamRegistration[] = []
   const regById = Object.fromEntries(allRegs.map(r => [r.id, r])) as Record<string, TeamRegistration>
-  const teams = TEAM_ASSIGNMENTS.filter(a => a.eventId === instanceId)
+  const teams: TeamAssignment[] = []
 
   const [view, setView] = useState<'list' | 'entry' | 'done'>('list')
   const [selected, setSelected] = useState<TeamAssignment | null>(null)

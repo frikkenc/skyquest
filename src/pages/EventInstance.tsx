@@ -5,9 +5,9 @@ import Footer from '../components/Footer'
 import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
-import { EVENT_INSTANCES, EVENT_TYPES, SCSL_RESULTS } from '../data/mockData'
+import { EVENT_INSTANCES, EVENT_TYPES } from '../data/mockData'
 import { getEventPhoto } from '../lib/eventPhotos'
-import type { Division } from '../types'
+import type { Division, TeamResult } from '../types'
 import styles from './EventInstance.module.css'
 
 function formatDate(iso: string) {
@@ -40,7 +40,7 @@ export default function EventInstance() {
   const isUpcoming = event.status === 'upcoming'
   const isFinale = event.status === 'season-finale'
 
-  const results = SCSL_RESULTS.filter(r => r.division === activeDivision)
+  const results: TeamResult[] = []
   const rounds = results[0]?.roundScores.length ?? 8
   const photo = getEventPhoto(event.typeSlug)
 
