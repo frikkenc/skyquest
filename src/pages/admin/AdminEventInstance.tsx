@@ -13,6 +13,7 @@ import styles from './AdminEventInstance.module.css'
 import teamStyles from './AdminTeaming.module.css'
 import PrintablesTab from './AdminPrintables'
 import ScoresTab from './AdminScores'
+import Anthropic from '@anthropic-ai/sdk'
 
 type Tab = 'Registrations' | 'Teaming' | 'Scores' | 'Divisions' | 'Waitlist' | 'Payments' | 'Emails' | 'Printables'
 
@@ -246,7 +247,10 @@ export default function AdminEventInstance() {
       )}
 
       {/* ── TEAMING TAB ── */}
-      {tab === 'Teaming' && (
+      {tab === 'Teaming' && realFuryEventId && (
+        <FuryTeamingTab furyEventId={realFuryEventId} teamSize={eventSettings?.defaultTeamSize ?? 4} />
+      )}
+      {tab === 'Teaming' && !realFuryEventId && (
         <TeamingTab registrations={registrations} initialAssignments={[]} teamSize={eventSettings?.defaultTeamSize ?? 4} />
       )}
 
@@ -578,6 +582,7 @@ interface TeamGroup {
   pendingSlots: string[]   // names of people expected but not yet registered
   videoName: string        // '' = unset
   videoTbd: boolean
+  isAiSuggested?: boolean  // true = created by the AI Suggest button
 }
 
 function makeGroupId() {
@@ -586,6 +591,39 @@ function makeGroupId() {
 
 function firstName(fullName: string) {
   return fullName.split(' ')[0]
+}
+
+function furyRegistrantToTeamReg(r: FuryRegistrant): TeamRegistration {
+  const name = furyDisplayName(r)
+  const div = furyDivLabel(r)
+  return {
+    id: r.id,
+    eventId: r.eventId,
+    division: div as Division,
+    teamName: '',
+    members: [{ id: r.clientId, name }],
+    teammateNote: r.formData.teammates ?? '',
+    status: (r.approvalStatus === 'approved' ? 'approved'
+      : r.approvalStatus === 'waitlisted' ? 'waitlist'
+      : r.approvalStatus === 'denied' ? 'denied'
+      : 'pending') as TeamRegistration['status'],
+    paymentStatus: 'paid',
+    balance: 0,
+    submittedAt: r.createdAt,
+  }
+}
+
+function FuryTeamingTab({ furyEventId, teamSize }: { furyEventId: string; teamSize: number }) {
+  const { data, isLoading, isError } = useFuryRegistrations(furyEventId)
+  const regs = (data?.registrations ?? []).map(furyRegistrantToTeamReg)
+
+  if (isLoading) {
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>Loading registrations…</div>
+  }
+  if (isError) {
+    return <div style={{ padding: 20, color: 'var(--sq-red)', fontSize: 13 }}>Could not load registrations.</div>
+  }
+  return <TeamingTab registrations={regs} initialAssignments={[]} teamSize={teamSize} />
 }
 
 function autoName(memberIds: string[], regById: Record<string, TeamRegistration>) {
@@ -617,6 +655,7 @@ function TeamingTab({
   const [nameDraft, setNameDraft] = useState('')
   const [aiSuggesting, setAiSuggesting] = useState(false)
   const [aiSuggested, setAiSuggested] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
   const [addingVideoId, setAddingVideoId] = useState<string | null>(null)
   const [videoDraft, setVideoDraft] = useState('')
   const [addingPendingId, setAddingPendingId] = useState<string | null>(null)
@@ -759,20 +798,96 @@ function TeamingTab({
     setEditingNameId(null)
   }
 
-  function simulateAiSuggest() {
+  async function runAiSuggest() {
+    if (pool.length === 0) return
     setAiSuggesting(true)
-    setTimeout(() => {
-      setAiSuggesting(false)
-      setAiSuggested(true)
-      const remaining = [...pool]
-      const newGroups: TeamGroup[] = []
-      while (remaining.length >= 2) {
-        const batch = remaining.splice(0, 4)
-        newGroups.push({ id: makeGroupId(), customName: '', memberIds: batch, pendingSlots: [], videoName: '', videoTbd: false })
+    setAiError(null)
+    try {
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined
+      if (!apiKey) {
+        throw new Error('VITE_ANTHROPIC_API_KEY is not set in .env.local')
       }
+
+      // Only send pool members — existing groups stay untouched
+      const poolRegs = pool.map(id => {
+        const r = regById[id]
+        return {
+          id,
+          name: r?.members[0]?.name ?? id,
+          teammateNote: r?.teammateNote?.trim() ?? '',
+        }
+      })
+
+      const participantList = poolRegs
+        .map(r => `id="${r.id}" name="${r.name}" wants="${r.teammateNote}"`)
+        .join('\n')
+
+      const prompt =
+        `Assign ${poolRegs.length} skydivers to teams of ~${teamSize} people.\n\n` +
+        `PARTICIPANTS:\n${participantList}\n\n` +
+        `RULES:\n` +
+        `- Read each person's "wants" field — free text naming desired teammates (may use first names, nicknames, or misspellings)\n` +
+        `- Fuzzy-match names case-insensitively; group mutual or one-way preferences together\n` +
+        `- Everyone must be in exactly one group; groups of 3–5 people are fine\n` +
+        `- Return ONLY a JSON array, no explanation, no markdown fences:\n` +
+        `  [{"ids":["<id>","<id>"]},{"ids":["<id>","<id>","<id>"]}]`
+
+      const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+      const message = await client.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      })
+
+      const rawText = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+
+      // Parse — strip any accidental markdown fences
+      let suggested: { ids: string[] }[]
+      try {
+        const clean = rawText.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim()
+        suggested = JSON.parse(clean)
+      } catch {
+        const match = rawText.match(/\[[\s\S]*\]/)
+        if (!match) throw new Error(`AI returned unparseable response: ${rawText.slice(0, 80)}`)
+        suggested = JSON.parse(match[0])
+      }
+
+      // Validate IDs
+      const validIds = new Set(poolRegs.map(r => r.id))
+      suggested = suggested
+        .map(g => ({ ids: (g.ids ?? []).filter(id => typeof id === 'string' && validIds.has(id)) }))
+        .filter(g => g.ids.length > 0)
+
+      // Ensure everyone gets assigned
+      const assigned = new Set(suggested.flatMap(g => g.ids))
+      const unassigned = poolRegs.filter(r => !assigned.has(r.id)).map(r => r.id)
+      for (let i = 0; i < unassigned.length; i++) {
+        if (suggested.length === 0) suggested.push({ ids: [] })
+        suggested[i % suggested.length].ids.push(unassigned[i])
+      }
+
+      const newGroups: TeamGroup[] = suggested
+        .filter(g => g.ids.length > 0)
+        .map(g => ({
+          id: makeGroupId(),
+          customName: '',
+          memberIds: g.ids,
+          pendingSlots: [],
+          videoName: '',
+          videoTbd: false,
+          isAiSuggested: true,
+        }))
+
+      const assignedIds = new Set(newGroups.flatMap(g => g.memberIds))
       setGroups(prev => [...prev, ...newGroups])
-      setPool(remaining)
-    }, 1500)
+      setPool(prev => prev.filter(id => !assignedIds.has(id)))
+      setAiSuggested(true)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'AI suggestion failed'
+      setAiError(msg)
+    } finally {
+      setAiSuggesting(false)
+    }
   }
 
   const visiblePool = pool
@@ -787,24 +902,29 @@ function TeamingTab({
     <div className={teamStyles.container}>
       <div className={teamStyles.header}>
         <div className={teamStyles.headerLeft}>
-          <span className={teamStyles.badge} style={{ background: visiblePool.length > 0 ? 'rgba(255,171,64,.15)' : 'rgba(76,175,80,.15)', color: visiblePool.length > 0 ? '#ffab40' : '#81c784' }}>
-            {visiblePool.length > 0 ? `${visiblePool.length} in pool` : '✓ Everyone assigned'}
+          <span className={teamStyles.badge} style={{ background: visiblePool.length > 0 ? 'rgba(255,171,64,.15)' : registrations.length === 0 ? 'rgba(255,255,255,.06)' : 'rgba(76,175,80,.15)', color: visiblePool.length > 0 ? '#ffab40' : registrations.length === 0 ? 'var(--adm-mute)' : '#81c784' }}>
+            {visiblePool.length > 0 ? `${visiblePool.length} in pool` : registrations.length === 0 ? 'No registrants' : '✓ Everyone assigned'}
           </span>
           <span className={teamStyles.badge} style={{ background: 'rgba(255,255,255,.06)', color: 'var(--adm-mute)' }}>
             {visibleGroups.length} {visibleGroups.length === 1 ? 'team' : 'teams'}
           </span>
         </div>
         <div className={teamStyles.headerRight}>
-          <button className={teamStyles.aiBtn} onClick={simulateAiSuggest} disabled={aiSuggesting || visiblePool.length === 0}>
+          <button className={teamStyles.aiBtn} onClick={runAiSuggest} disabled={aiSuggesting || visiblePool.length === 0}>
             {aiSuggesting ? '✦ Thinking...' : aiSuggested ? '✦ Re-suggest' : '✦ AI Suggest'}
           </button>
           <button className={teamStyles.btnGhost} onClick={addGroup}>+ New Team</button>
         </div>
       </div>
 
-      {aiSuggested && (
+      {aiError && (
+        <div className={teamStyles.aiNote} style={{ color: 'var(--sq-red)' }}>
+          ✦ AI error: {aiError}
+        </div>
+      )}
+      {aiSuggested && !aiError && (
         <div className={teamStyles.aiNote}>
-          ✦ Grouped unassigned people by teammate notes. Existing teams untouched — drag to adjust, or drop onto another team to add to both (multi-team).
+          ✦ Grouped by teammate notes. Existing teams untouched — drag to adjust, or drop onto another team to add to both (multi-team).
         </div>
       )}
 
@@ -822,7 +942,7 @@ function TeamingTab({
           </div>
 
           {visiblePool.length === 0 ? (
-            <div className={teamStyles.poolEmpty}>✓ Everyone is on a team</div>
+            <div className={teamStyles.poolEmpty}>{registrations.length === 0 ? 'No registrants yet' : '✓ Everyone is on a team'}</div>
           ) : visiblePool.map(regId => {
             const reg = regById[regId]
             if (!reg) return null
@@ -877,6 +997,11 @@ function TeamingTab({
                     <div className={`${teamStyles.sizeIndicator} ${sizeClass}`} title={memberCount < teamSize ? 'Needs more people' : memberCount > teamSize ? 'Overfull' : 'Full!'}>
                       {memberCount}/{teamSize}
                     </div>
+                  )}
+
+                  {/* AI badge */}
+                  {group.isAiSuggested && (
+                    <div className={teamStyles.aiBadge} title="Suggested by AI">✦ AI</div>
                   )}
 
                   {/* Chips */}

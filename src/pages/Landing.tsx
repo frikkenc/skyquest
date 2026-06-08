@@ -89,7 +89,7 @@ export default function Landing() {
                 <div className={styles.tileTagline}>{evt.shortTagline}</div>
               )}
               <div className={styles.tileFooter} onClick={e => e.preventDefault()}>
-                <StatusPill status={evt.status} />
+                {evt.status !== 'season-finale' && <StatusPill status={evt.status} />}
                 <EventCTA evt={evt} onNotifyMe={setNotifyEvent} />
               </div>
             </Link>

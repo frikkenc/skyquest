@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '../firebase'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import type {
@@ -108,8 +110,22 @@ const TOTAL_EVENTS = 6
 
 export default function Leaderboard() {
   const [tab, setTab] = useState<Tab>('AAA')
+  const [published, setPublished] = useState<PublishedEventResult[]>(loadPublished)
+  const [loading, setLoading] = useState(true)
 
-  const published = loadPublished()
+  useEffect(() => {
+    getDocs(collection(db, 'results_2026'))
+      .then(snap => {
+        const results = snap.docs.map(d => d.data() as PublishedEventResult)
+        if (results.length > 0) {
+          setPublished(results)
+          localStorage.setItem('sq-results-2026', JSON.stringify(results))
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
   const hasPublished = published.length > 0
   const awards = loadAwards().filter(a => a.isPublished)
 
@@ -134,7 +150,9 @@ export default function Leaderboard() {
           <span className="pill pill-live">SEASON LIVE</span>
         </div>
         <p style={{ color: 'var(--sq-gray)', marginTop: 8 }}>
-          Through 2 of 6 scoring events · Updated May 8, 2026
+          {loading ? 'Loading results…' : hasPublished
+            ? `${published.length} event${published.length !== 1 ? 's' : ''} scored · Live`
+            : 'No results yet — check back after the first event!'}
         </p>
 
         {/* KPI strip */}
