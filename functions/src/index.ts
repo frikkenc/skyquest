@@ -27,7 +27,11 @@ interface SuggestTeamsRequest {
 }
 
 export const suggestTeams = onCall(
-  { region: 'us-central1' },
+  // `secrets` binds Secret Manager keys into process.env at cold start. Without
+  // this, `firebase functions:secrets:set ANTHROPIC_API_KEY` stores the secret
+  // but the function instance never sees it, so process.env.ANTHROPIC_API_KEY
+  // stays undefined and every call throws "ANTHROPIC_API_KEY is not configured".
+  { region: 'us-central1', secrets: ['ANTHROPIC_API_KEY'] },
   async (request) => {
     // Auth required — admin must be signed in
     if (!request.auth) {
