@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
+import { EVENT_INSTANCES } from '../data/mockData'
 import type {
   LeaderboardEntry, Division, IndividualStanding, GalaAward,
   PublishedEventResult,
@@ -102,7 +103,11 @@ function computeIndividual(results: PublishedEventResult[]): IndividualStanding[
 
 type Tab = 'AAA' | 'AA' | 'A' | 'Individual' | 'Awards'
 const TABS: Tab[] = ['AAA', 'AA', 'A', 'Individual', 'Awards']
-const TOTAL_EVENTS = 6
+
+// Total scoring events for the season = everything except the awards finale.
+const TOTAL_EVENTS = EVENT_INSTANCES.filter(
+  e => e.typeSlug !== 'awards' && e.status !== 'season-finale'
+).length
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -134,14 +139,14 @@ export default function Leaderboard() {
           <span className="pill pill-live">SEASON LIVE</span>
         </div>
         <p style={{ color: 'var(--sq-gray)', marginTop: 8 }}>
-          Through 2 of 6 scoring events · Updated May 8, 2026
+          Through {published.length} of {TOTAL_EVENTS} scoring events
         </p>
 
         {/* KPI strip */}
         <div className={styles.statRow}>
           <div className="card"><div className={styles.statNum}>186</div><div className={styles.statLbl}>Jumpers</div></div>
           <div className="card"><div className={styles.statNum}>48</div><div className={styles.statLbl}>Teams</div></div>
-          <div className="card"><div className={styles.statNum}>2 / 6</div><div className={styles.statLbl}>Events Scored</div></div>
+          <div className="card"><div className={styles.statNum}>{published.length} / {TOTAL_EVENTS}</div><div className={styles.statLbl}>Events Scored</div></div>
           <div className="card"><div className={styles.statNum}>428</div><div className={styles.statLbl}>Top Individual Pts</div></div>
         </div>
 

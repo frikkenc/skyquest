@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { EventInstance } from '../types'
+import { normalizeRegistrationUrl } from '../utils/registrationUrl'
 
 interface Props {
   evt: EventInstance
@@ -36,7 +37,7 @@ export default function EventCTA({ evt, onNotifyMe, small = true }: Props) {
   }
   if (evt.status === 'open' && evt.furyRegistrationUrl) {
     return (
-      <a href={evt.furyRegistrationUrl} target="_blank" rel="noreferrer" className={`btn btn-primary ${sz}`}>
+      <a href={normalizeRegistrationUrl(evt.furyRegistrationUrl)} target="_blank" rel="noreferrer" className={`btn btn-primary ${sz}`}>
         {evt.registrationLabel ?? 'Sign Up'}
       </a>
     )

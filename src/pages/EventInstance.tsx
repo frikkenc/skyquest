@@ -7,6 +7,7 @@ import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
 import { EVENT_INSTANCES, EVENT_TYPES } from '../data/mockData'
 import { getEventPhoto } from '../lib/eventPhotos'
+import { normalizeRegistrationUrl } from '../utils/registrationUrl'
 import type { Division, TeamResult } from '../types'
 import styles from './EventInstance.module.css'
 
@@ -80,7 +81,7 @@ export default function EventInstance() {
         <div className={`wrap ${styles.heroInner}`}>
           <EventBadge slug={event.typeSlug} size={110} />
           <div style={{ flex: 1 }}>
-            <StatusPill status={event.status} />
+            <StatusPill status={event.status} evt={event} />
             <h1 className={styles.title}>{event.name}</h1>
             <div className={styles.metaRow}>
               <div className={styles.metaItem}>
@@ -107,7 +108,7 @@ export default function EventInstance() {
           {/* CTA in hero */}
           <div className={styles.heroCta}>
             {isOpen && (
-              <a href={event.furyRegistrationUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
+              <a href={normalizeRegistrationUrl(event.furyRegistrationUrl)} target="_blank" rel="noreferrer" className="btn btn-primary">
                 {event.registrationLabel ?? 'Sign Up'}
               </a>
             )}
@@ -161,7 +162,7 @@ export default function EventInstance() {
               </dl>
 
               {isOpen && (
-                <a href={event.furyRegistrationUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', marginTop: 16 }}>
+                <a href={normalizeRegistrationUrl(event.furyRegistrationUrl)} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', marginTop: 16 }}>
                   {event.registrationLabel ?? 'Sign Up'}
                 </a>
               )}

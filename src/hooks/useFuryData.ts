@@ -4,12 +4,35 @@ import {
   fetchFuryEventList, fetchFuryMoneySummary, fetchFuryOfferingStats,
 } from '../lib/furyClient'
 
+/**
+ * Shared options for Fury API queries.
+ *
+ * `networkMode: 'always'` — React Query v5 defaults to `'online'`, which pauses
+ *   queries when it thinks the browser is offline. A 401 from `furyGet` (auth
+ *   bad / expired token) was being treated as a transient signal: the query
+ *   would loop forever between `fetchStatus: 'fetching'` and `'paused'`,
+ *   `failureCount` reset each cycle, `status` stayed `'pending'`, and `isError`
+ *   never became `true`. The Registrations tab then fell through to the success
+ *   branch and rendered "0 registrants · live from Fury" — hiding the real
+ *   problem (or, on first paint, briefly flashing "Could not load Fury
+ *   registrations" before pausing into the silent loop). Forcing 'always' means
+ *   failures count, retries finish, and we land in a real error state.
+ *
+ * `retry: false` — 401 / 403 are not transient. Retrying just delays the
+ *   error banner; the user needs the failure surfaced immediately so they can
+ *   re-sign-in or fix the API URL. (We pulled `retry: 1` for the same reason.)
+ */
+const FURY_QUERY_OPTS = {
+  networkMode: 'always' as const,
+  retry: false as const,
+}
+
 export function useFurySession() {
   return useQuery({
     queryKey: ['fury', 'session'],
     queryFn: fetchFurySession,
     staleTime: 5 * 60_000,
-    retry: 1,
+    ...FURY_QUERY_OPTS,
   })
 }
 
@@ -19,7 +42,7 @@ export function useFuryRegistrations(furyEventId: string | undefined) {
     queryFn: () => fetchFuryRegistrations(furyEventId!),
     enabled: !!furyEventId,
     staleTime: 2 * 60_000,
-    retry: 1,
+    ...FURY_QUERY_OPTS,
   })
 }
 
@@ -28,7 +51,7 @@ export function useFuryEventList() {
     queryKey: ['fury', 'events'],
     queryFn: fetchFuryEventList,
     staleTime: 5 * 60_000,
-    retry: 1,
+    ...FURY_QUERY_OPTS,
   })
 }
 
@@ -56,6 +79,6 @@ export function useFuryEventStats(furyEventId: string | undefined) {
     },
     enabled: !!furyEventId,
     staleTime: 2 * 60_000,
-    retry: 1,
+    ...FURY_QUERY_OPTS,
   })
 }

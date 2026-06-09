@@ -7,8 +7,21 @@ import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
 import EventCTA from '../components/EventCTA'
 import { EVENT_INSTANCES } from '../data/mockData'
-import type { LeaderboardEntry } from '../types'
+import type { LeaderboardEntry, PublishedEventResult } from '../types'
 import styles from './Landing.module.css'
+
+// Mirrors Leaderboard.tsx: published results live in localStorage during the mock-data phase.
+function loadPublishedCount(): number {
+  try {
+    const raw = JSON.parse(localStorage.getItem('sq-results-2026') ?? '[]') as PublishedEventResult[]
+    return Array.isArray(raw) ? raw.length : 0
+  } catch { return 0 }
+}
+
+// Total scoring events for the season = everything except the awards finale.
+const TOTAL_SCORING_EVENTS = EVENT_INSTANCES.filter(
+  e => e.typeSlug !== 'awards' && e.status !== 'season-finale'
+).length
 
 function formatDate(iso: string) {
   const d = new Date(iso + 'T12:00:00')
@@ -17,6 +30,7 @@ function formatDate(iso: string) {
 
 export default function Landing() {
   const [notifyEvent, setNotifyEvent] = useState<string | null>(null)
+  const scoredCount = loadPublishedCount()
 
   return (
     <>
@@ -68,7 +82,7 @@ export default function Landing() {
         {/* Event tiles — the whole point of the page */}
         <div className={styles.sectionLabel}>2026 Events</div>
         <div className={styles.eventGrid}>
-          {EVENT_INSTANCES.map(evt => (
+          {[...EVENT_INSTANCES].sort((a, b) => a.date.localeCompare(b.date)).map(evt => (
             <Link
               key={evt.id}
               to={`/events/${evt.typeSlug}/${evt.id}`}
@@ -89,7 +103,7 @@ export default function Landing() {
                 <div className={styles.tileTagline}>{evt.shortTagline}</div>
               )}
               <div className={styles.tileFooter} onClick={e => e.preventDefault()}>
-                <StatusPill status={evt.status} />
+                <StatusPill status={evt.status} evt={evt} />
                 <EventCTA evt={evt} onNotifyMe={setNotifyEvent} />
               </div>
             </Link>
@@ -117,7 +131,7 @@ export default function Landing() {
         <div className={styles.sectionLabel}>Top of the Board</div>
         <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <div style={{ padding: '10px 16px 0', color: 'var(--sq-gray)', fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Through 2 of 6 scoring events · AAA
+            Through {scoredCount} of {TOTAL_SCORING_EVENTS} scoring events · AAA
           </div>
           <table className="lb">
             <thead>

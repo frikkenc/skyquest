@@ -18,6 +18,59 @@ type Tab = 'Registrations' | 'Teaming' | 'Scores' | 'Divisions' | 'Waitlist' | '
 
 const AVAILABLE_DIVISIONS: Division[] = ['AAA', 'AA', 'A', 'Rookie', 'Open', '2-way', '8-way']
 
+/**
+ * Map a Fury API registrant into the local TeamRegistration shape so the
+ * Teaming tab (which was built against mock data) can render real people.
+ *
+ * Without this, `registrations` was hardcoded `[]` and the Teaming tab badge
+ * read "✓ Everyone assigned" against an empty pool — a confusing lie now that
+ * registrations actually load.
+ */
+function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
+  const displayName =
+    r.client.preferredName ||
+    [r.client.firstName, r.client.lastName].filter(Boolean).join(' ').trim() ||
+    r.name ||
+    'Unknown'
+
+  // Fury registrants don't carry a "I'm filming" subtype directly — surface
+  // the "needs video" intent as a hint so it shows the 📷 chip in Teaming.
+  const isVideoOffering = r.units.some(u => /video/i.test(u.subtype))
+
+  const divRaw = (r.formData.whatIsYourPreferredDivision ?? '').toUpperCase().trim()
+  const division: Division =
+    divRaw === 'AAA' ? 'AAA' :
+    divRaw === 'AA' ? 'AA' :
+    divRaw === 'A' ? 'A' :
+    divRaw === 'ROOKIE' ? 'Rookie' :
+    divRaw === 'OPEN' ? 'Open' :
+    divRaw === '2-WAY' || divRaw === '2WAY' ? '2-way' :
+    divRaw === '8-WAY' || divRaw === '8WAY' ? '8-way' :
+    'A'
+
+  // Fury approvalStatus = 'approved' | 'pending' | 'waitlist' | 'denied'.
+  // Default unknowns to 'pending' so they still surface in the pool.
+  const status: TeamRegistration['status'] =
+    r.approvalStatus === 'approved' ? 'approved' :
+    r.approvalStatus === 'waitlist' ? 'waitlist' :
+    r.approvalStatus === 'denied' ? 'denied' :
+    'pending'
+
+  return {
+    id: r.id,
+    eventId,
+    division,
+    teamName: '', // Teaming assignments live separately; no team yet from Fury
+    offeringType: isVideoOffering ? 'video' : 'jumper',
+    members: [{ id: r.client.id || r.id, name: displayName }],
+    teammateNote: r.formData.teammates || undefined,
+    status,
+    paymentStatus: 'unpaid', // Not needed for Teaming; placeholder
+    balance: 0,
+    submittedAt: r.checkoutCompletedAt ?? r.createdAt,
+  }
+}
+
 export default function AdminEventInstance() {
   const { typeSlug, instanceId } = useParams<{ typeSlug: string; instanceId: string }>()
   const [tab, setTab] = useState<Tab>('Registrations')
@@ -38,11 +91,17 @@ export default function AdminEventInstance() {
     ...(isManualReg ? ['Waitlist' as Tab, 'Payments' as Tab] : []),
     'Emails', 'Printables',
   ]
-  const registrations: TeamRegistration[] = []
-  const lftCount = registrations.filter(r => !r.teamName && r.status !== 'denied').length
-
   // Use real Fury data when this event has a real Fury event ID (starts with 'evt-')
   const realFuryEventId = event?.furyEventId?.startsWith('evt-') ? event.furyEventId : undefined
+
+  // Same query key as FuryRegsTab below — react-query dedupes; one fetch feeds both tabs.
+  const { data: furyRegsData } = useFuryRegistrations(realFuryEventId)
+  const furyRegs = furyRegsData?.registrations ?? []
+  const registrations: TeamRegistration[] = furyRegs.map(r => furyToTeamReg(r, realFuryEventId ?? ''))
+  // LFT = "Looking For Team" — only the people who explicitly said so on the
+  // registration form. Don't conflate with "not yet assigned in the Teaming UI"
+  // (which is everyone until teams are built), or the hero/tab badges balloon.
+  const lftCount = furyRegs.filter(r => r.formData.needsTeamUp === 'yes').length
 
   if (!event || !eventType) {
     return <div style={{ padding: 48, color: 'var(--adm-mute)' }}>Event not found.</div>

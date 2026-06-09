@@ -62,7 +62,7 @@ export default function Schedule() {
                 <div className={styles.eventMeta}>
                   <h3><Link to={`/events/${evt.typeSlug}/${evt.id}`} style={{ color: 'inherit', textDecoration: 'none' }} className={styles.eventNameLink}>{evt.name}</Link></h3>
                   <div className={styles.sub}>
-                    {getEventDescription(evt)} · <StatusPill status={evt.status} />
+                    {getEventDescription(evt)} · <StatusPill status={evt.status} evt={evt} />
                   </div>
                 </div>
                 <div className={styles.eventActions}>
