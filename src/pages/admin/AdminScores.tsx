@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react'
-import { EVENT_INSTANCES } from '../../data/mockData'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '../../firebase'
+import { EVENT_INSTANCES, EVENT_RESULTS } from '../../data/mockData'
 import type { Division, TeamResult, TeamRegistration, PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
 
@@ -97,11 +99,11 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const isDueling = eventTypeSlug === 'dueling-dzs'
   const defaultRounds = isDueling ? 8 : DEFAULT_ROUNDS
 
-  const [roundCount, setRoundCount] = useState(() => isDueling ? loadRoundCount(instanceId, defaultRounds) : defaultRounds)
+  const [roundCount, setRoundCount] = useState(() => loadRoundCount(instanceId, defaultRounds))
   const [statuses, setStatuses] = useState<RoundStatus[]>(Array(MAX_ROUNDS).fill('ok'))
   const [hasJumpoff, setHasJumpoff] = useState(false)
   const [teams, setTeams] = useState<ScoredTeam[]>(() =>
-    isDueling ? initDuelingTeams(instanceId) : initTeams([])
+    isDueling ? initDuelingTeams(instanceId) : initTeams(EVENT_RESULTS[instanceId] ?? [])
   )
   const [editCell, setEditCell] = useState<{ tid: string; ri: number } | null>(null)
   const [editVal, setEditVal] = useState('')
@@ -261,9 +263,12 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
       teams: publishedTeams,
     }
 
+    // Keep localStorage as local cache
     const existing: PublishedEventResult[] = JSON.parse(localStorage.getItem('sq-results-2026') ?? '[]')
     const updated = [...existing.filter(r => r.instanceId !== instanceId), result]
     localStorage.setItem('sq-results-2026', JSON.stringify(updated))
+    // Write to Firestore so the public leaderboard updates
+    setDoc(doc(db, 'results_2026', instanceId), result).catch(console.error)
     setPublished(true)
     setSaved(true)
   }
@@ -468,7 +473,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const resetTeams = () => { setTeams(isDueling ? initDuelingTeams(instanceId) : initTeams([])); setSaved(false) }
+  const resetTeams = () => { setTeams(isDueling ? initDuelingTeams(instanceId) : initTeams(EVENT_RESULTS[instanceId] ?? [])); setSaved(false) }
 
   return (
     <div>
@@ -478,10 +483,10 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ fontSize: 11, color: 'var(--adm-mute)', letterSpacing: '.05em', textTransform: 'uppercase' }}>Rounds</span>
             <button className={styles.adminBtn} style={{ padding: '3px 9px', fontSize: 13, lineHeight: 1 }}
-              onClick={() => setRoundCount(c => { const n = Math.max(1, c - 1); if (isDueling) localStorage.setItem(`sq-rounds-${instanceId}`, String(n)); return n })}>−</button>
+              onClick={() => setRoundCount(c => { const n = Math.max(1, c - 1); localStorage.setItem(`sq-rounds-${instanceId}`, String(n)); return n })}>−</button>
             <span style={{ fontFamily: 'Bungee', fontStyle: 'italic', minWidth: 22, textAlign: 'center', fontSize: 14 }}>{roundCount}</span>
             <button className={styles.adminBtn} style={{ padding: '3px 9px', fontSize: 13, lineHeight: 1 }}
-              onClick={() => setRoundCount(c => { const n = Math.min(MAX_ROUNDS - 1, c + 1); if (isDueling) localStorage.setItem(`sq-rounds-${instanceId}`, String(n)); return n })}>+</button>
+              onClick={() => setRoundCount(c => { const n = Math.min(MAX_ROUNDS - 1, c + 1); localStorage.setItem(`sq-rounds-${instanceId}`, String(n)); return n })}>+</button>
           </div>
           <button className={`${styles.adminBtn} ${hasJumpoff ? styles.primary : ''}`}
             onClick={() => setHasJumpoff(j => !j)} style={{ fontSize: 11 }}>

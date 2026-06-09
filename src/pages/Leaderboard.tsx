@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '../firebase'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import { EVENT_INSTANCES } from '../data/mockData'
@@ -113,8 +115,22 @@ const TOTAL_EVENTS = EVENT_INSTANCES.filter(
 
 export default function Leaderboard() {
   const [tab, setTab] = useState<Tab>('AAA')
+  const [published, setPublished] = useState<PublishedEventResult[]>(loadPublished)
+  const [loading, setLoading] = useState(true)
 
-  const published = loadPublished()
+  useEffect(() => {
+    getDocs(collection(db, 'results_2026'))
+      .then(snap => {
+        const results = snap.docs.map(d => d.data() as PublishedEventResult)
+        if (results.length > 0) {
+          setPublished(results)
+          localStorage.setItem('sq-results-2026', JSON.stringify(results))
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
   const hasPublished = published.length > 0
   const awards = loadAwards().filter(a => a.isPublished)
 
@@ -139,7 +155,9 @@ export default function Leaderboard() {
           <span className="pill pill-live">SEASON LIVE</span>
         </div>
         <p style={{ color: 'var(--sq-gray)', marginTop: 8 }}>
-          Through {published.length} of {TOTAL_EVENTS} scoring events
+          {loading ? 'Loading results…' : hasPublished
+            ? `Through ${published.length} of ${TOTAL_EVENTS} scoring events · Live`
+            : 'No results yet — check back after the first event!'}
         </p>
 
         {/* KPI strip */}

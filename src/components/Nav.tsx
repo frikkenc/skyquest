@@ -3,6 +3,8 @@ import styles from './Nav.module.css'
 
 // Top-nav CTA always points at the register hub — let the user pick the event there.
 // Avoids the trap where a stale "next open event" URL goes dead or to the wrong meet.
+// NOTE: must be `register.furycoaching.com`. The legacy `registration.furycoaching.com`
+// host does NOT resolve (NXDOMAIN) — was the original "dead SIGN UP" bug.
 const REGISTER_URL = 'https://register.furycoaching.com/'
 
 export default function Nav() {

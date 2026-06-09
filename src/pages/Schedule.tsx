@@ -29,8 +29,10 @@ function getEventDescription(evt: EventInstance) {
 export default function Schedule() {
   const [notifyEvent, setNotifyEvent] = useState<string | null>(null)
 
+  const sorted = [...EVENT_INSTANCES].sort((a, b) => a.date.localeCompare(b.date))
+
   const grouped: { month: string; events: EventInstance[] }[] = []
-  EVENT_INSTANCES.forEach(evt => {
+  sorted.forEach(evt => {
     const month = getMonthLabel(evt.date)
     const existing = grouped.find(g => g.month === month)
     if (existing) existing.events.push(evt)

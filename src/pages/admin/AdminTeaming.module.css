@@ -434,6 +434,19 @@
   border: 1px solid rgba(255,171,64,.3);
 }
 
+/* AI suggestion badge on group cards */
+.aiBadge {
+  font-size: 9px;
+  font-family: 'Bungee', sans-serif;
+  letter-spacing: .04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: rgba(100, 160, 255, .15);
+  color: #7eb5ff;
+  border: 1px solid rgba(100, 160, 255, .3);
+}
+
 /* Division picker (day-of) */
 .divisionSelect {
   background: var(--adm-bg);

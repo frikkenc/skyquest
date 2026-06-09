@@ -2,6 +2,7 @@ import type {
   EventType,
   EventTypeSettings,
   EventInstance,
+  TeamResult,
 } from '../types'
 
 export const EVENT_TYPES: EventType[] = [
@@ -31,8 +32,8 @@ export const EVENT_TYPES: EventType[] = [
     slug: 'dueling-dzs',
     name: 'Dueling DZs',
     shortName: 'Dueling DZs',
-    description: 'Take off at one dropzone, land at the other — then board the plane and go back. Four rounds.',
-    longDescription: 'You leave from Elsinore or Perris, fly your 6-way round, and land at the other dropzone. Then you board the plane right there and go back — no ground crew, no shuttles, no fuss. Four rounds total. It\'s the most logistically wild event on the calendar and also one of the most popular. Open division.',
+    description: 'Four rounds of 6-way between two dropzones — leave one, land the other, board up, go back. Canyon Lake after.',
+    longDescription: 'This one actually works the way it sounds. Your team exits over the gap between Elsinore and Perris, flies the round, and touches down at the other dropzone. Board the plane right there. Go back. Repeat four times — no shuttles, no ground crew, just four rounds of back-and-forth with a view you don\'t get anywhere else. After the final round, everyone converges on Canyon Lake for awards, appetizers, and the kind of mixing that only happens when two dropzone communities spend a day sharing the same sky. Think of it as a mini inhop. Open division.',
     format: '6-way · Cross-DZ · 4 rounds',
     logo: '/logos/dueling-dzs.png',
     badgeClass: 'badge-dueling',
@@ -75,8 +76,8 @@ export const EVENT_TYPES: EventType[] = [
     slug: 'awards',
     name: 'Awards Show',
     shortName: 'Awards',
-    description: 'Season-ending awards night at the Bombshelter. Fancy dress optional.',
-    longDescription: "The season closes at the Bombshelter for a night of awards that are partly sincere and partly absurd. Year-end trophies, divisional medals, most creative team name, most epic fail — and live voting on a few categories. Free and open to anyone who jumped in the league or just wants to celebrate the season. Fancy dress optional. No skydiving on this one.",
+    description: 'Season-ending awards evening at the Bombshelter — same day as Ghost Nationals. Fancy dress optional.',
+    longDescription: "Ghost Nationals wraps, then everyone heads to the Bombshelter for the season close. Year-end trophies, divisional medals, most creative team name, most epic fail — and live voting on a few categories. Free and open to anyone who jumped in the league or just wants to celebrate the season. Fancy dress optional.",
     format: 'Live awards · Open to all · Free',
     logo: '',
     badgeClass: 'badge-awards',
@@ -120,7 +121,7 @@ export const EVENT_INSTANCES: EventInstance[] = [
     name: 'Poker Run @ Elsinore',
     shortTagline: '6-way meet. Poker hand. Cash pot. Tequila.',
     oneLiner: 'A 6-way meet with a deck of cards and a tequila-fueled twist — the most fun way to score SkyQuest points.',
-    date: '2026-05-10',
+    date: '2026-06-13',
     dropzone: 'Elsinore',
     status: 'open',
     divisions: ['Open'],
@@ -142,8 +143,8 @@ export const EVENT_INSTANCES: EventInstance[] = [
     typeSlug: 'dueling-dzs',
     name: 'Dueling DZs — Perris ↔ Elsinore',
     shortTagline: 'Take off at one DZ. Land at the other.',
-    oneLiner: 'Leave from Elsinore or Perris, land at the other, board the plane, and go back. Four rounds. No ground crew.',
-    date: '2026-06-21',
+    oneLiner: 'Four rounds of 6-way back and forth between two dropzones — board the plane, fly the round, land, board again. Canyon Lake after for awards and apps.',
+    date: '2026-10-25',
     dropzone: 'Perris ↔ Elsinore',
     // Reg coming soon, price TBD — show Notify Me until it opens.
     status: 'upcoming',
@@ -209,9 +210,9 @@ export const EVENT_INSTANCES: EventInstance[] = [
     id: 'awards-show-2026',
     typeSlug: 'awards',
     name: 'Awards Show @ The Bombshelter',
-    shortTagline: 'Season-ending awards night. Fancy dress optional.',
-    oneLiner: 'The 2026 SoCal SkyQuest season ends with a swanky (and silly) awards night at the Bombshelter. Free and open to all.',
-    date: '2026-12-05',  // placeholder — confirm exact date (after Ghost Nationals Nov 28)
+    shortTagline: 'Same evening as Ghost Nationals. Awards, medals, bad decisions. Fancy dress optional.',
+    oneLiner: 'Fly Ghost Nationals in the morning, celebrate the season that evening at the Bombshelter. Free and open to all.',
+    date: '2026-11-28',
     dropzone: 'The Bombshelter',
     status: 'season-finale',
     divisions: [],
@@ -220,4 +221,105 @@ export const EVENT_INSTANCES: EventInstance[] = [
     registrationLabel: 'RSVP',
   },
 ]
+
+// ── Event scores keyed by instanceId ─────────────────────────────────────────
+// Add completed-event round scores here; AdminScores loads them on mount.
+
+export const EVENT_RESULTS: Record<string, TeamResult[]> = {
+  'scsl-elsinore-spring-2026': [
+    // Division A
+    {
+      rank: 1, teamId: 'els26-t1', teamName: 'Spirograph',
+      members: [
+        { id: 'els26-m1a', name: 'Ron Setina' },
+        { id: 'els26-m1b', name: 'Carol Setina' },
+        { id: 'els26-m1c', name: 'Tessa Gill' },
+        { id: 'els26-m1d', name: 'Jennifer McCord' },
+      ],
+      division: 'A', roundScores: [6], total: 6,
+    },
+    {
+      rank: 1, teamId: 'els26-t2', teamName: 'Belly Bitches',
+      members: [
+        { id: 'els26-m2a', name: 'Christina Rhein' },
+        { id: 'els26-m2b', name: 'Thao Nguyen' },
+        { id: 'els26-m2c', name: 'Kayla Nebeker' },
+        { id: 'els26-m2d', name: 'Jessica Detering' },
+      ],
+      division: 'A', roundScores: [6], total: 6,
+    },
+    {
+      rank: 1, teamId: 'els26-t3', teamName: "Linda Lee's Flying Butts",
+      members: [
+        { id: 'els26-m3a', name: 'Ricki Cline' },
+        { id: 'els26-m3b', name: 'Abby Brandtmeier' },
+        { id: 'els26-m3c', name: 'Matthew Dottinger' },
+        { id: 'els26-m3d', name: 'Mary Santangelo' },
+      ],
+      division: 'A', roundScores: [6], total: 6,
+    },
+    {
+      rank: 4, teamId: 'els26-t4', teamName: "I'll Come Up With One Later",
+      members: [
+        { id: 'els26-m4a', name: 'Jim Stewart' },
+        { id: 'els26-m4b', name: 'Trent' },
+        { id: 'els26-m4c', name: 'Keith Conner' },
+        { id: 'els26-m4d', name: 'Shashank' },
+      ],
+      division: 'A', roundScores: [3], total: 3,
+    },
+    // Division AA
+    {
+      rank: 1, teamId: 'els26-t5', teamName: 'Emotional Support American',
+      members: [
+        { id: 'els26-m5a', name: 'Sam Yost' },
+        { id: 'els26-m5b', name: 'Cindy Kou' },
+        { id: 'els26-m5c', name: 'Dima' },
+        { id: 'els26-m5d', name: 'Anderson Briglia' },
+      ],
+      division: 'AA', roundScores: [10], total: 10,
+    },
+    {
+      rank: 2, teamId: 'els26-t6', teamName: 'Perris Prime',
+      members: [
+        { id: 'els26-m6a', name: 'Nathan Casper' },
+        { id: 'els26-m6b', name: 'Jay Richards' },
+        { id: 'els26-m6c', name: 'Derek Nelson' },
+        { id: 'els26-m6d', name: 'Erik Prime' },
+      ],
+      division: 'AA', roundScores: [8], total: 8,
+    },
+    {
+      rank: 3, teamId: 'els26-t7', teamName: 'Sun Kissed Spinners',
+      members: [
+        { id: 'els26-m7a', name: 'Christopher Massie' },
+        { id: 'els26-m7b', name: 'Chuck Reilly' },
+        { id: 'els26-m7c', name: 'Cody' },
+        { id: 'els26-m7d', name: 'Mike Teague' },
+      ],
+      division: 'AA', roundScores: [7], total: 7,
+    },
+    {
+      rank: 3, teamId: 'els26-t8', teamName: 'Only 4way Fans',
+      members: [
+        { id: 'els26-m8a', name: 'Sam Abelovski' },
+        { id: 'els26-m8b', name: 'Khan Griffith' },
+        { id: 'els26-m8c', name: 'Heather Abrahim' },
+        { id: 'els26-m8d', name: 'Yvonne Ontiveros' },
+      ],
+      division: 'AA', roundScores: [7], total: 7,
+    },
+    // Division AAA
+    {
+      rank: 1, teamId: 'els26-t9', teamName: 'Perris Probably Fine',
+      members: [
+        { id: 'els26-m9a', name: 'Grace Katz' },
+        { id: 'els26-m9b', name: 'Alex Sarmiento' },
+        { id: 'els26-m9c', name: 'David Schrager' },
+        { id: 'els26-m9d', name: 'Jeff Hill' },
+      ],
+      division: 'AAA', roundScores: [9], total: 9,
+    },
+  ],
+}
 
