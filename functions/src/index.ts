@@ -1,5 +1,10 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
-import Anthropic from '@anthropic-ai/sdk'
+// IMPORTANT: do NOT import @anthropic-ai/sdk at the top level. Pulling it in
+// (and its transitive deps) blows past the 10s module-load window Firebase
+// Functions uses to read backend specs, and deploy fails with "User code
+// failed to load. Cannot determine backend specification. Timeout after
+// 10000." Lazy-imported inside the handler instead — cold start pays the
+// cost once, deploy stays fast.
 
 /**
  * Callable function: suggestTeams
@@ -49,6 +54,8 @@ export const suggestTeams = onCall(
       throw new HttpsError('invalid-argument', 'No registrants provided')
     }
 
+    // Lazy-load — see comment at top of file.
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const client = new Anthropic({ apiKey })
 
     // Compact participant list — each line has id, name, and teammate notes
