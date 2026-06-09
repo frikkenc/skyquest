@@ -865,25 +865,44 @@ function TeamingTab({
 
       const callSuggest = httpsCallable<
         { registrants: typeof poolRegs; teamSize: number },
-        {
-          groups: { confirmedIds: string[]; pendingNames: string[]; reasoning: string }[]
+        // Loosely typed so we can validate at runtime — the function is
+        // server-side and could change shape (or return partial data) without
+        // the client knowing.
+        Partial<{
+          groups: Partial<{ confirmedIds: string[]; pendingNames: string[]; reasoning: string }>[]
           unassigned: string[]
-          conflicts: { description: string; involvedIds: string[] }[]
-        }
+          conflicts: Partial<{ description: string; involvedIds: string[] }>[]
+        }>
       >(functions, 'suggestTeams')
-      const { groups: suggested, unassigned, conflicts } = (await callSuggest({ registrants: poolRegs, teamSize })).data
+      const data = (await callSuggest({ registrants: poolRegs, teamSize })).data ?? {}
+
+      // Defensive coercion — every field optional, every array fallback to [].
+      // Field name `ids` is also accepted in case the older function shape is
+      // still cached anywhere.
+      const suggested = Array.isArray(data.groups) ? data.groups : []
+      const unassigned = Array.isArray(data.unassigned) ? data.unassigned : []
+      const conflicts = Array.isArray(data.conflicts) ? data.conflicts : []
 
       // Only confirmed registrants land in teams. Wanted-but-unregistered
       // names become pendingSlots so the captain can see "Bobbie B. not signed
       // up yet" rather than the system silently subbing in someone else.
-      // Teams stay at whatever size the preferences support — no padding to
-      // teamSize with strangers.
+      // Teams stay at whatever size the preferences support — no padding.
       const newGroups: TeamGroup[] = suggested
-        .filter(g => g.confirmedIds.length > 0)
+        .map(g => {
+          const ids = Array.isArray(g?.confirmedIds)
+            ? g.confirmedIds
+            // Legacy shape fallback: { ids: string[] }.
+            : Array.isArray((g as { ids?: unknown })?.ids)
+              ? ((g as { ids: unknown }).ids as string[])
+              : []
+          const pendingNames = Array.isArray(g?.pendingNames) ? g.pendingNames : []
+          return { ids, pendingNames }
+        })
+        .filter(g => g.ids.length > 0)
         .map(g => ({
           id: makeGroupId(),
           customName: '',
-          memberIds: g.confirmedIds,
+          memberIds: g.ids,
           pendingSlots: g.pendingNames,
           videoName: '',
           videoTbd: false,
@@ -896,7 +915,16 @@ function TeamingTab({
       const unassignedSet = new Set(unassigned)
       setGroups(prev => [...prev, ...newGroups])
       setPool(prev => prev.filter(id => !assignedIds.has(id) || unassignedSet.has(id)))
-      setAiConflicts(conflicts ?? [])
+      setAiConflicts(
+        conflicts
+          .filter((c): c is { description: string; involvedIds: string[] } =>
+            typeof c?.description === 'string' && c.description.length > 0,
+          )
+          .map(c => ({
+            description: c.description,
+            involvedIds: Array.isArray(c.involvedIds) ? c.involvedIds : [],
+          })),
+      )
       setAiSuggested(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'AI suggestion failed'
