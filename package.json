@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run deploy:hosting && npm run deploy:functions",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting --project skyquest",
+    "deploy:functions": "firebase deploy --only functions --project default"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

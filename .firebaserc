@@ -1,6 +1,7 @@
 {
   "projects": {
     "default": "fury-identity",
-    "hosting": "skyquest-7cfe0"
-  }
+    "skyquest": "skyquest-7cfe0"
+  },
+  "_comment": "Two projects intentionally — DO NOT consolidate. fury-identity holds Firebase Auth (the project SkyQuest signs into), Firestore data, and the suggestTeams Cloud Function. skyquest-7cfe0 is the public-facing hosting site (skyquest-7cfe0.web.app). Default project is fury-identity so `firebase deploy --only functions` lands on the right one; use npm scripts (deploy / deploy:hosting / deploy:functions) for everything else."
 }
