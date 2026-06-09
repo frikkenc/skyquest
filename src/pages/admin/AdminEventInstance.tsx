@@ -699,6 +699,10 @@ function TeamingTab({
   const [aiSuggesting, setAiSuggesting] = useState(false)
   const [aiSuggested, setAiSuggested] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  // Decision points the AI flagged — e.g. "Joe wants Jack & Jill; Jill wants
+  // Joe & Max — pick a third." We keep these around until the user resolves
+  // them by editing teams; they don't auto-clear on re-suggest.
+  const [aiConflicts, setAiConflicts] = useState<{ description: string; involvedIds: string[] }[]>([])
   const [addingVideoId, setAddingVideoId] = useState<string | null>(null)
   const [videoDraft, setVideoDraft] = useState('')
   const [addingPendingId, setAddingPendingId] = useState<string | null>(null)
@@ -845,13 +849,11 @@ function TeamingTab({
     if (pool.length === 0) return
     setAiSuggesting(true)
     setAiError(null)
+    setAiConflicts([])
     try {
       // Only send pool members — existing groups stay untouched.
-      // Route through the `suggestTeams` callable (functions/src/index.ts) so
-      // the Anthropic API key stays server-side. The previous in-browser
-      // `new Anthropic({apiKey, dangerouslyAllowBrowser: true})` shipped the
-      // VITE_ANTHROPIC_API_KEY in every bundle — anyone hitting the deployed
-      // site could lift it from devtools.
+      // Goes through the `suggestTeams` callable (functions/src/index.ts) so
+      // the Anthropic key stays server-side.
       const poolRegs = pool.map(id => {
         const r = regById[id]
         return {
@@ -863,28 +865,38 @@ function TeamingTab({
 
       const callSuggest = httpsCallable<
         { registrants: typeof poolRegs; teamSize: number },
-        { groups: { ids: string[] }[] }
+        {
+          groups: { confirmedIds: string[]; pendingNames: string[]; reasoning: string }[]
+          unassigned: string[]
+          conflicts: { description: string; involvedIds: string[] }[]
+        }
       >(functions, 'suggestTeams')
-      const result = await callSuggest({ registrants: poolRegs, teamSize })
-      // The function already validates/dedupes IDs and fills in stragglers,
-      // so the response is ready to consume as-is.
-      const suggested = result.data.groups
+      const { groups: suggested, unassigned, conflicts } = (await callSuggest({ registrants: poolRegs, teamSize })).data
 
+      // Only confirmed registrants land in teams. Wanted-but-unregistered
+      // names become pendingSlots so the captain can see "Bobbie B. not signed
+      // up yet" rather than the system silently subbing in someone else.
+      // Teams stay at whatever size the preferences support — no padding to
+      // teamSize with strangers.
       const newGroups: TeamGroup[] = suggested
-        .filter(g => g.ids.length > 0)
+        .filter(g => g.confirmedIds.length > 0)
         .map(g => ({
           id: makeGroupId(),
           customName: '',
-          memberIds: g.ids,
-          pendingSlots: [],
+          memberIds: g.confirmedIds,
+          pendingSlots: g.pendingNames,
           videoName: '',
           videoTbd: false,
           isAiSuggested: true,
         }))
 
       const assignedIds = new Set(newGroups.flatMap(g => g.memberIds))
+      // Anyone the AI didn't place — either explicitly unassigned, or just not
+      // mentioned in any group — stays in the pool. No silent shuffling.
+      const unassignedSet = new Set(unassigned)
       setGroups(prev => [...prev, ...newGroups])
-      setPool(prev => prev.filter(id => !assignedIds.has(id)))
+      setPool(prev => prev.filter(id => !assignedIds.has(id) || unassignedSet.has(id)))
+      setAiConflicts(conflicts ?? [])
       setAiSuggested(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'AI suggestion failed'
@@ -928,7 +940,54 @@ function TeamingTab({
       )}
       {aiSuggested && !aiError && (
         <div className={teamStyles.aiNote}>
-          ✦ Grouped by teammate notes. Existing teams untouched — drag to adjust, or drop onto another team to add to both (multi-team).
+          ✦ Grouped only people who explicitly named each other. Open slots are intentional — drag to adjust, or drop onto another team to add to both (multi-team).
+        </div>
+      )}
+      {aiConflicts.length > 0 && (
+        <div
+          className={teamStyles.aiNote}
+          style={{
+            background: 'rgba(255,171,64,.08)',
+            border: '1px solid rgba(255,171,64,.4)',
+            color: 'var(--adm-ink)',
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 8, color: '#ffab40' }}>
+            ⚠ {aiConflicts.length} decision point{aiConflicts.length === 1 ? '' : 's'} — pick a path:
+          </div>
+          {aiConflicts.map((c, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: 13,
+                marginBottom: i === aiConflicts.length - 1 ? 0 : 8,
+                paddingLeft: 12,
+                borderLeft: '2px solid rgba(255,171,64,.35)',
+              }}
+            >
+              <div>{c.description}</div>
+              {c.involvedIds.length > 0 && (
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--adm-mute)' }}>
+                  Involves: {c.involvedIds.map(id => regById[id]?.members[0]?.name ?? id).join(' · ')}
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={() => setAiConflicts([])}
+            style={{
+              marginTop: 10,
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,.15)',
+              color: 'var(--adm-mute)',
+              fontSize: 11,
+              padding: '4px 10px',
+              borderRadius: 4,
+              cursor: 'pointer',
+            }}
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
