@@ -1,0 +1,15 @@
+# Normalise line endings to LF in the repo; let working tree use native.
+# Prevents the "every file looks modified" churn from CRLF saves on Windows + Dropbox sync.
+* text=auto eol=lf
+
+# Binary types — leave alone.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.eot binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
