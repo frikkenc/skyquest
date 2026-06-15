@@ -86,8 +86,11 @@ function loadRoundCount(instanceId: string, defaultVal: number): number {
   catch { return defaultVal }
 }
 
-const RANKING_POINTS = [150, 120, 100, 80, 65, 55, 45, 35, 25, 15]
-function rankingPoints(rank: number) { return RANKING_POINTS[rank - 1] ?? 10 }
+// PublishedTeamResult.rankingPoints is required by the type but no longer
+// meaningful — the public leaderboard ignores it and scores on rawScore
+// (team adjusted total) directly. Keep the field set to 0 for now so we
+// stop emitting fictional placement numbers.
+const PLACEHOLDER_RANKING_POINTS = 0
 
 // JPP = score * 1000 / sum-of-jump-numbers. Higher = better for less-experienced teams.
 function calcJpp(total: number, jumps: number[]): number | null {
@@ -240,7 +243,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         rank: i + 1, teamId: t.teamId, teamName: t.teamName,
         members: t.members, division: 'Open',
         rawScore: t.total, jpp: t.jpp,
-        rankingPoints: rankingPoints(i + 1),
+        rankingPoints: PLACEHOLDER_RANKING_POINTS,
       }))
     } else {
       for (const div of SCORE_DIVS) {
@@ -252,7 +255,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
           rank: i + 1, teamId: t.teamId, teamName: t.teamName,
           members: t.members, division: div,
           rawScore: t.total,
-          rankingPoints: rankingPoints(i + 1),
+          rankingPoints: PLACEHOLDER_RANKING_POINTS,
         }))
       }
     }

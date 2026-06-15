@@ -25,8 +25,11 @@ import styles from './AdminEventInstance.module.css'
  *      PublishedEventResult to Firestore `results_2026/{instanceId}`.
  */
 
-const RANKING_POINTS = [150, 120, 100, 80, 65, 55, 45, 35, 25, 15]
-function rankingPoints(rank: number) { return RANKING_POINTS[rank - 1] ?? 10 }
+// PublishedTeamResult.rankingPoints is required by the type but no longer
+// meaningful — the public leaderboard ignores it and scores on rawScore
+// (team adjusted total) directly. Keep the field set to 0 so we stop
+// emitting fictional placement numbers.
+const PLACEHOLDER_RANKING_POINTS = 0
 
 interface PokerTeam {
   teamId: string
@@ -201,7 +204,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
       members: t.members,
       division: 'Open',
       rawScore: adj,
-      rankingPoints: rankingPoints(i + 1),
+      rankingPoints: PLACEHOLDER_RANKING_POINTS,
     }))
 
     const result: PublishedEventResult = {
@@ -284,8 +287,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
                   <th key={i} style={{ textAlign: 'center', padding: '8px 6px', width: 56 }}>R{i + 1}</th>
                 ))}
                 <th style={{ textAlign: 'right', padding: '8px 6px', width: 56 }} title="Sum of round scores">Raw</th>
-                <th style={{ textAlign: 'right', padding: '8px 6px', width: 64, color: 'var(--sq-yellow)' }} title="Raw + handicap — determines standings">Adj</th>
-                <th style={{ textAlign: 'right', padding: '8px 6px', width: 60 }}>Pts</th>
+                <th style={{ textAlign: 'right', padding: '8px 6px', width: 64, color: 'var(--sq-yellow)' }} title="Raw + handicap — determines standings and feeds the public leaderboard">Adj</th>
                 <th style={{ width: 32 }}></th>
               </tr>
             </thead>
@@ -360,9 +362,6 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
                       <td style={{ textAlign: 'right', padding: '10px 6px', fontWeight: 700, fontSize: 15, color: 'var(--sq-yellow)' }}>
                         {adj}
                       </td>
-                      <td style={{ textAlign: 'right', padding: '10px 6px', fontSize: 12, color: '#64b5f6' }}>
-                        {rankingPoints(rank)}
-                      </td>
                       <td style={{ textAlign: 'center', padding: '10px 4px' }}>
                         <button
                           onClick={() => removeTeam(t.teamId)}
@@ -376,7 +375,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
                     {isEditingMeta && (
                       <tr key={`${t.teamId}-meta`} style={{ background: 'rgba(255,255,255,.02)' }}>
                         <td></td>
-                        <td colSpan={rounds + 5} style={{ padding: '14px 6px 18px' }}>
+                        <td colSpan={rounds + 4} style={{ padding: '14px 6px 18px' }}>
                           <TeamMetaEditor team={t} onChange={patch => updateTeam(t.teamId, patch)} />
                         </td>
                       </tr>

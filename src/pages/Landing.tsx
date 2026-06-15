@@ -119,7 +119,7 @@ export default function Landing() {
           </div>
           <div className="card">
             <h3 className={styles.pillarTitle}>One Scoreboard All Season</h3>
-            <p className={styles.pillarBody}>Every event rolls into one ranking. Fly one meet or six — it all counts. We drop your lowest score, so a bad day doesn't end your run.</p>
+            <p className={styles.pillarBody}>Every event rolls into one ranking. Fly one meet or six — it all counts.</p>
           </div>
           <div className="card">
             <h3 className={styles.pillarTitle}>Swanky Year-End Awards</h3>

@@ -10,10 +10,10 @@ import type {
 } from '../types'
 import styles from './Leaderboard.module.css'
 
-// ── Points table ─────────────────────────────────────────────────────────────
-
-const RANKING_POINTS = [150, 120, 100, 80, 65, 55, 45, 35, 25, 15]
-function rankPts(rank: number) { return RANKING_POINTS[rank - 1] ?? 10 }
+// ── Scoring ──────────────────────────────────────────────────────────────────
+// A jumper's score is just the team's adjusted total for each event they flew
+// (raw round sum + handicap, set as rawScore at Publish time). No placement
+// table, no dropped events.
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ function loadAwards(): GalaAward[] {
 // ── Compute standings from published results ──────────────────────────────────
 
 function computeTeamStandings(results: PublishedEventResult[], division: Division): LeaderboardEntry[] {
-  const teamMap = new Map<string, LeaderboardEntry & { _pts: number[] }>()
+  const teamMap = new Map<string, LeaderboardEntry>()
 
   for (const result of results) {
     for (const team of result.teams) {
@@ -39,10 +39,9 @@ function computeTeamStandings(results: PublishedEventResult[], division: Divisio
         members: team.members, division: team.division,
         totalPoints: 0, eventsAttended: [] as string[],
         bestFinishRank: undefined, bestFinishEvent: undefined,
-        _pts: [] as number[],
       }
       existing.eventsAttended.push(result.instanceId)
-      existing._pts.push(team.rankingPoints)
+      existing.totalPoints += team.rawScore
       if (!existing.bestFinishRank || team.rank < existing.bestFinishRank) {
         existing.bestFinishRank = team.rank
         existing.bestFinishEvent = result.eventName
@@ -51,13 +50,7 @@ function computeTeamStandings(results: PublishedEventResult[], division: Divisio
     }
   }
 
-  const standings: LeaderboardEntry[] = []
-  teamMap.forEach(entry => {
-    const sorted = [...entry._pts].sort((a, b) => a - b)
-    const counted = sorted.length >= 2 ? sorted.slice(1) : sorted
-    standings.push({ ...entry, totalPoints: counted.reduce((s, p) => s + p, 0) })
-  })
-
+  const standings = Array.from(teamMap.values())
   standings.sort((a, b) => b.totalPoints - a.totalPoints)
   standings.forEach((e, i) => { e.rank = i + 1 })
   return standings
@@ -97,7 +90,7 @@ function normalizeJumperKey(name: string): string {
 }
 
 function computeIndividual(results: PublishedEventResult[]): IndividualStanding[] {
-  const map = new Map<string, Omit<IndividualStanding, 'rank' | 'totalPoints' | 'droppedEventId'> & { _pts: number[] }>()
+  const map = new Map<string, Omit<IndividualStanding, 'rank' | 'totalPoints' | 'droppedEventId'>>()
 
   for (const result of results) {
     for (const team of result.teams) {
@@ -109,13 +102,14 @@ function computeIndividual(results: PublishedEventResult[]): IndividualStanding[
         const key = normalizeJumperKey(member.name) || member.id || member.name
         const existing = map.get(key) ?? {
           jumperId: key, name: member.name, division: team.division,
-          eventScores: [], _pts: [],
+          eventScores: [],
         }
+        // A jumper's score per event = their team's adjusted total for that
+        // event (rawScore is set to the adjusted total at Publish time).
         existing.eventScores.push({
           instanceId: result.instanceId, eventName: result.eventName,
-          points: team.rankingPoints, teamName: team.teamName,
+          points: team.rawScore, teamName: team.teamName,
         })
-        existing._pts.push(team.rankingPoints)
         map.set(key, existing)
       }
     }
@@ -123,13 +117,11 @@ function computeIndividual(results: PublishedEventResult[]): IndividualStanding[
 
   const standings: IndividualStanding[] = []
   map.forEach(p => {
-    const sorted = [...p.eventScores].sort((a, b) => a.points - b.points)
-    const droppedEventId = sorted.length >= 2 ? sorted[0].instanceId : undefined
-    const counted = sorted.length >= 2 ? sorted.slice(1) : sorted
     standings.push({
       rank: 0, jumperId: p.jumperId, name: p.name, division: p.division,
-      eventScores: p.eventScores, droppedEventId,
-      totalPoints: counted.reduce((s, e) => s + e.points, 0),
+      eventScores: p.eventScores,
+      droppedEventId: undefined,
+      totalPoints: p.eventScores.reduce((s, e) => s + e.points, 0),
     })
   })
 
@@ -307,13 +299,10 @@ export default function Leaderboard() {
                           <div style={{ fontWeight: 700, fontSize: 15 }}>{entry.name}</div>
                           <div style={{ color: 'var(--sq-gray)', fontSize: 12, marginTop: 2 }}>
                             {entry.eventScores.map(e => (
-                              <span key={e.instanceId} style={{ opacity: e.instanceId === entry.droppedEventId ? 0.4 : 1, textDecoration: e.instanceId === entry.droppedEventId ? 'line-through' : 'none', marginRight: 6 }}>
+                              <span key={e.instanceId} style={{ marginRight: 6 }}>
                                 {e.teamName} +{e.points}
                               </span>
                             ))}
-                            {entry.droppedEventId && (
-                              <span style={{ color: 'var(--sq-gray)', fontSize: 11 }}>(lowest dropped)</span>
-                            )}
                           </div>
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--sq-gray)' }}>{entry.division}</td>
@@ -332,7 +321,7 @@ export default function Leaderboard() {
               </div>
               <div className={styles.legend} style={{ marginTop: 12 }}>
                 <span style={{ fontSize: 12, color: 'var(--sq-gray)' }}>
-                  Score = team placement points per event · lowest event score dropped when ≥ 2 attended
+                  Score = sum of team adjusted totals (raw round sum + handicap) across every event flown.
                 </span>
               </div>
             </>
@@ -366,7 +355,7 @@ export default function Leaderboard() {
           <div className={styles.legend}>
             <span><span className={`${styles.dot} ${styles.dotOn}`} /> Attended</span>
             <span style={{ fontSize: 12, color: 'var(--sq-gray)' }}>
-              Points: 1st={rankPts(1)}, 2nd={rankPts(2)}, 3rd={rankPts(3)}, 4th={rankPts(4)}, 5th={rankPts(5)}… · lowest event dropped
+              Score = sum of team adjusted totals across every event flown.
             </span>
           </div>
         )}
