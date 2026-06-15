@@ -221,7 +221,15 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
       localStorage.setItem('sq-results-2026', JSON.stringify(updated))
     } catch { /* quota */ }
 
-    setDoc(doc(db, 'results_2026', instanceId), result)
+    // Publishing results = the event is over. Flip the eventConfig status
+    // to 'complete' alongside the results write so the schedule, admin
+    // header pill, and any other status-driven UI stop showing "REG OPEN"
+    // for a meet that already happened. Done in parallel — neither blocks
+    // the other, and the leaderboard write is the more important one.
+    Promise.all([
+      setDoc(doc(db, 'results_2026', instanceId), result),
+      setDoc(doc(db, 'eventConfig', instanceId), { status: 'complete' }, { merge: true }),
+    ])
       .then(() => { setPublished(true); setSaved(true) })
       .catch(err => {
         console.error('Failed to publish poker run:', err)

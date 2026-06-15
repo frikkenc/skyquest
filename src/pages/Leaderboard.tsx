@@ -89,7 +89,7 @@ function normalizeJumperKey(name: string): string {
   return [first, ...parts.slice(1)].join(' ')
 }
 
-function computeIndividual(results: PublishedEventResult[]): IndividualStanding[] {
+function computeIndividual(results: PublishedEventResult[], totalSeasonEvents: number): IndividualStanding[] {
   const map = new Map<string, Omit<IndividualStanding, 'rank' | 'totalPoints' | 'droppedEventId'>>()
 
   for (const result of results) {
@@ -117,11 +117,27 @@ function computeIndividual(results: PublishedEventResult[]): IndividualStanding[
 
   const standings: IndividualStanding[] = []
   map.forEach(p => {
+    // Drop-lowest rule: best (N-1) of N when the jumper has flown every
+    // scoring event in the season. If they missed any event, they've already
+    // implicitly "dropped" the missing one by not counting it, so nothing more
+    // is removed — this is what keeps drops invisible mid-season while the
+    // bad-day-doesn't-end-your-run forgiveness still applies once everyone's
+    // flown the full schedule.
+    const flewAll = p.eventScores.length >= totalSeasonEvents && totalSeasonEvents > 0
+    let droppedEventId: string | undefined = undefined
+    let totalPoints = 0
+    if (flewAll) {
+      const lowest = p.eventScores.reduce((min, e) => e.points < min.points ? e : min, p.eventScores[0])
+      droppedEventId = lowest.instanceId
+      totalPoints = p.eventScores.reduce((s, e) => s + e.points, 0) - lowest.points
+    } else {
+      totalPoints = p.eventScores.reduce((s, e) => s + e.points, 0)
+    }
     standings.push({
       rank: 0, jumperId: p.jumperId, name: p.name, division: p.division,
       eventScores: p.eventScores,
-      droppedEventId: undefined,
-      totalPoints: p.eventScores.reduce((s, e) => s + e.points, 0),
+      droppedEventId,
+      totalPoints,
     })
   })
 
@@ -169,7 +185,7 @@ export default function Leaderboard() {
     return []
   }
 
-  const individual = computeIndividual(published)
+  const individual = computeIndividual(published, TOTAL_EVENTS)
 
   const divTabs: Tab[] = ['AAA', 'AA', 'A']
   const isTeamTab = divTabs.includes(tab)
@@ -298,11 +314,24 @@ export default function Leaderboard() {
                         <td>
                           <div style={{ fontWeight: 700, fontSize: 15 }}>{entry.name}</div>
                           <div style={{ color: 'var(--sq-gray)', fontSize: 12, marginTop: 2 }}>
-                            {entry.eventScores.map(e => (
-                              <span key={e.instanceId} style={{ marginRight: 6 }}>
-                                {e.teamName} +{e.points}
-                              </span>
-                            ))}
+                            {entry.eventScores.map(e => {
+                              const dropped = e.instanceId === entry.droppedEventId
+                              return (
+                                <span
+                                  key={e.instanceId}
+                                  style={{
+                                    opacity: dropped ? 0.4 : 1,
+                                    textDecoration: dropped ? 'line-through' : 'none',
+                                    marginRight: 6,
+                                  }}
+                                >
+                                  {e.teamName} +{e.points}
+                                </span>
+                              )
+                            })}
+                            {entry.droppedEventId && (
+                              <span style={{ color: 'var(--sq-gray)', fontSize: 11 }}>(lowest dropped)</span>
+                            )}
                           </div>
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--sq-gray)' }}>{entry.division}</td>
@@ -322,6 +351,8 @@ export default function Leaderboard() {
               <div className={styles.legend} style={{ marginTop: 12 }}>
                 <span style={{ fontSize: 12, color: 'var(--sq-gray)' }}>
                   Score = sum of team adjusted totals (raw round sum + handicap) across every event flown.
+                  Once you've flown all {TOTAL_EVENTS} scoring events, your worst event is dropped — until then,
+                  every score counts.
                 </span>
               </div>
             </>

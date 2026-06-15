@@ -271,8 +271,12 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     const existing: PublishedEventResult[] = JSON.parse(localStorage.getItem('sq-results-2026') ?? '[]')
     const updated = [...existing.filter(r => r.instanceId !== instanceId), result]
     localStorage.setItem('sq-results-2026', JSON.stringify(updated))
-    // Write to Firestore so the public leaderboard updates
+    // Write to Firestore so the public leaderboard updates.
     setDoc(doc(db, 'results_2026', instanceId), result).catch(console.error)
+    // Publishing results = event is over. Flip the eventConfig status to
+    // 'complete' so the schedule and admin header stop showing "REG OPEN"
+    // for a meet that's already happened.
+    setDoc(doc(db, 'eventConfig', instanceId), { status: 'complete' }, { merge: true }).catch(console.error)
     setPublished(true)
     setSaved(true)
   }
