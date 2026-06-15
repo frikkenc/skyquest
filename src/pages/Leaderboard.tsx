@@ -63,13 +63,50 @@ function computeTeamStandings(results: PublishedEventResult[], division: Divisio
   return standings
 }
 
+/**
+ * Normalize a jumper name into a stable key so the same person across events
+ * counts once. Handles:
+ *   - case ("SantAngelo" vs "Santangelo")
+ *   - punctuation/whitespace ("D'Amico" vs "DAmico")
+ *   - common short-form first names (Sam/Samuel, Matt/Matthew, Chris/Christopher).
+ *
+ * Add to NICKNAMES below as new collisions surface — don't try to be clever
+ * here. False positives (merging two different people) are worse than false
+ * negatives (showing the same person twice).
+ */
+const NICKNAMES: Record<string, string> = {
+  sam: 'samuel',
+  matt: 'matthew',
+  chris: 'christopher',
+  mike: 'michael',
+  jess: 'jessica',
+  rosie: 'rosemary',
+  rose: 'rosemary',
+  alex: 'alexander',
+  zach: 'zachary',
+  josh: 'joshua',
+  // 'Ander' Mattsson is the Swedish form, not a nickname for Anders — keep
+  // them distinct unless we see evidence otherwise.
+}
+function normalizeJumperKey(name: string): string {
+  const cleaned = (name || '').toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim()
+  if (!cleaned) return ''
+  const parts = cleaned.split(' ')
+  const first = NICKNAMES[parts[0]] ?? parts[0]
+  return [first, ...parts.slice(1)].join(' ')
+}
+
 function computeIndividual(results: PublishedEventResult[]): IndividualStanding[] {
   const map = new Map<string, Omit<IndividualStanding, 'rank' | 'totalPoints' | 'droppedEventId'> & { _pts: number[] }>()
 
   for (const result of results) {
     for (const team of result.teams) {
       for (const member of team.members) {
-        const key = member.id || member.name
+        // Always key by the normalized name so the same person under
+        // different spellings ("Mary SantAngelo" / "Mary Santangelo",
+        // "Sam Abelovski" / "Samuel Abelovski") shares one row. Ignore
+        // member.id from event-specific data, which is unique per event.
+        const key = normalizeJumperKey(member.name) || member.id || member.name
         const existing = map.get(key) ?? {
           jumperId: key, name: member.name, division: team.division,
           eventScores: [], _pts: [],

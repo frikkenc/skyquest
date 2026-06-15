@@ -78,10 +78,18 @@ function emptyTeam(): PokerTeam {
   }
 }
 
-function totalFor(t: PokerTeam, rounds: number) {
+function rawTotalFor(t: PokerTeam, rounds: number) {
   let s = 0
   for (let i = 0; i < rounds; i++) s += t.scores[i] ?? 0
   return s
+}
+
+/** Adjusted = raw round sum + handicap. Drives standings AND what gets
+ *  published as the team's score on the public leaderboard. Higher handicap =
+ *  less experienced team gets a bigger bonus, matching how Poker Run was
+ *  scored on the Elsinore whiteboard. */
+function adjustedTotalFor(t: PokerTeam, rounds: number) {
+  return rawTotalFor(t, rounds) + (t.handicap || 0)
 }
 
 export default function AdminScoresPokerRun({ instanceId }: { instanceId: string }) {
@@ -180,16 +188,19 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
     }
 
     const ranked = teams
-      .map(t => ({ t, total: totalFor(t, rounds) }))
-      .sort((a, b) => b.total - a.total)
+      .map(t => ({ t, raw: rawTotalFor(t, rounds), adj: adjustedTotalFor(t, rounds) }))
+      .sort((a, b) => b.adj - a.adj)
 
-    const publishedTeams: PublishedTeamResult[] = ranked.map(({ t, total }, i) => ({
+    // rawScore on the public leaderboard is the *adjusted* total — that's the
+    // number that determined finishing order, so it should match what's shown
+    // on the event detail page and feed into season standings.
+    const publishedTeams: PublishedTeamResult[] = ranked.map(({ t, adj }, i) => ({
       rank: i + 1,
       teamId: t.teamId,
       teamName: t.teamName || 'Unnamed Team',
       members: t.members,
       division: 'Open',
-      rawScore: total,
+      rawScore: adj,
       rankingPoints: rankingPoints(i + 1),
     }))
 
@@ -217,9 +228,11 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
+  // Ranking is by adjusted total (raw + handicap). Display both columns so
+  // it's clear how the order was reached.
   const ranked = [...teams]
-    .map(t => ({ t, total: totalFor(t, rounds) }))
-    .sort((a, b) => b.total - a.total)
+    .map(t => ({ t, raw: rawTotalFor(t, rounds), adj: adjustedTotalFor(t, rounds) }))
+    .sort((a, b) => b.adj - a.adj)
 
   return (
     <div style={{ padding: '8px 0' }}>
@@ -270,13 +283,14 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
                 {Array.from({ length: rounds }, (_, i) => (
                   <th key={i} style={{ textAlign: 'center', padding: '8px 6px', width: 56 }}>R{i + 1}</th>
                 ))}
-                <th style={{ textAlign: 'right', padding: '8px 6px', width: 64 }}>Total</th>
+                <th style={{ textAlign: 'right', padding: '8px 6px', width: 56 }} title="Sum of round scores">Raw</th>
+                <th style={{ textAlign: 'right', padding: '8px 6px', width: 64, color: 'var(--sq-yellow)' }} title="Raw + handicap — determines standings">Adj</th>
                 <th style={{ textAlign: 'right', padding: '8px 6px', width: 60 }}>Pts</th>
                 <th style={{ width: 32 }}></th>
               </tr>
             </thead>
             <tbody>
-              {ranked.map(({ t, total }, idx) => {
+              {ranked.map(({ t, raw, adj }, idx) => {
                 const isEditingMeta = editingTeamId === t.teamId
                 const rank = idx + 1
                 return (
@@ -340,8 +354,11 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
                           </td>
                         )
                       })}
-                      <td style={{ textAlign: 'right', padding: '10px 6px', fontWeight: 700, fontSize: 15, color: 'var(--adm-ink)' }}>
-                        {total}
+                      <td style={{ textAlign: 'right', padding: '10px 6px', fontSize: 14, color: 'var(--adm-mute)' }}>
+                        {raw}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '10px 6px', fontWeight: 700, fontSize: 15, color: 'var(--sq-yellow)' }}>
+                        {adj}
                       </td>
                       <td style={{ textAlign: 'right', padding: '10px 6px', fontSize: 12, color: '#64b5f6' }}>
                         {rankingPoints(rank)}
