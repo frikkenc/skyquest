@@ -4,6 +4,7 @@ import { db } from '../../firebase'
 import { EVENT_INSTANCES, EVENT_RESULTS } from '../../data/mockData'
 import type { Division, TeamResult, TeamRegistration, PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
+import AdminScoresPokerRun from './AdminScoresPokerRun'
 
 const MAX_ROUNDS = 20
 const DEFAULT_ROUNDS = 10
@@ -276,12 +277,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   // ── Early exits ──────────────────────────────────────────────────────────────
 
   if (eventTypeSlug === 'poker-run') {
-    return (
-      <div style={{ padding: 32, textAlign: 'center', color: 'var(--adm-mute)' }}>
-        <div style={{ fontSize: 18, fontFamily: 'Bungee', marginBottom: 8 }}>Poker Run</div>
-        <p>Poker Run scores are hand-result based. Score entry coming in a future update.</p>
-      </div>
-    )
+    return <AdminScoresPokerRun instanceId={instanceId} />
   }
 
   const statusIcon = (s: RoundStatus) => s === 'weather' ? ' ☁' : s === 'choice' ? ' ?' : ''

@@ -323,3 +323,90 @@ export const EVENT_RESULTS: Record<string, TeamResult[]> = {
   ],
 }
 
+// ── Poker Run seeds keyed by instanceId ─────────────────────────────────────
+//
+// Loaded by AdminScoresPokerRun on first mount when no localStorage state
+// exists. Once an admin saves anything, the local copy supersedes — these
+// seeds only matter for first-time-open. After Publish, the canonical results
+// land in Firestore `results_2026/{instanceId}`.
+
+export interface PokerRunTeamSeed {
+  teamId: string
+  teamName: string
+  handicap: number
+  members: { id: string; name: string }[]
+  /** Video flyer — separate from the scoring team but tracked for credit. */
+  videoName?: string
+  /** Per-round raw scores. Length is whatever was actually flown. */
+  scores: number[]
+}
+
+export const POKER_RUN_SEEDS: Record<string, { rounds: number; teams: PokerRunTeamSeed[] }> = {
+  // From Mary SantAngelo's email + the whiteboard photo (May 10, 2026).
+  // Whiteboard cumulative columns matched raw sums exactly, so handicaps are
+  // display-only here. Adjust the publish math if that ever changes.
+  'poker-run-elsinore-2026': {
+    rounds: 3,
+    teams: [
+      {
+        teamId: 'pr-elsinore-2026-dust-angels',
+        teamName: 'Dust Angels',
+        handicap: 6,
+        members: [
+          { id: 'pr-2026-jessica-detering', name: 'Jessica Detering' },
+          { id: 'pr-2026-josh-whiteside', name: 'Josh Whiteside' },
+          { id: 'pr-2026-james-kling', name: 'James Kling' },
+          { id: 'pr-2026-heather-abrahim', name: 'Heather Abrahim' },
+          { id: 'pr-2026-samuel-abelovski', name: 'Samuel Abelovski' },
+          { id: 'pr-2026-matt-dottinger', name: 'Matt Dottinger' },
+        ],
+        videoName: 'Justin Larios',
+        scores: [14, 12, 9],
+      },
+      {
+        teamId: 'pr-elsinore-2026-the-calamity',
+        teamName: 'The Calamity',
+        handicap: 1,
+        members: [
+          { id: 'pr-2026-zach-winoker', name: 'Zach Winoker' },
+          { id: 'pr-2026-mary-santangelo', name: 'Mary SantAngelo' },
+          { id: 'pr-2026-khan-griffith', name: 'Khan Griffith' },
+          { id: 'pr-2026-rosemary-brown', name: 'Rosemary Brown' },
+          { id: 'pr-2026-jay-richards', name: 'Jay Richards' },
+          { id: 'pr-2026-seth-johnson', name: 'Seth Johnson' },
+        ],
+        videoName: 'Roman',
+        scores: [8, 8, 8],
+      },
+      {
+        teamId: 'pr-elsinore-2026-half-a-six-pack',
+        teamName: 'Half a Six Pack',
+        handicap: 0,
+        members: [
+          { id: 'pr-2026-mike-teague', name: 'Mike Teague' },
+          { id: 'pr-2026-cody-miller', name: 'Cody Miller' },
+          { id: 'pr-2026-dillion-cole', name: 'Dillion Cole' },
+          { id: 'pr-2026-ander-mattsson', name: 'Ander Mattsson' },
+          { id: 'pr-2026-josh-hall', name: 'Josh Hall' },
+        ],
+        videoName: "Justin D'Amico",
+        scores: [7, 7, 6],
+      },
+      {
+        teamId: 'pr-elsinore-2026-jstf',
+        teamName: 'JSTF',
+        handicap: 3,
+        members: [
+          { id: 'pr-2026-christian-van-sickle', name: 'Christian Van Sickle' },
+          { id: 'pr-2026-spencer-stephen', name: 'Spencer Stephen' },
+          { id: 'pr-2026-tiger-valdes', name: 'Tiger Valdes' },
+          { id: 'pr-2026-matt-stelzer', name: 'Matt Stelzer' },
+          { id: 'pr-2026-koi-van-sickle', name: 'Koi Van Sickle' },
+        ],
+        videoName: 'Roman',
+        scores: [4, 5, 0],
+      },
+    ],
+  },
+}
+
