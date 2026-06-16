@@ -302,6 +302,26 @@ export default function EventInstance() {
                 </table>
               </div>
             )}
+
+            {/* Hop to season-wide views */}
+            {published != null && (
+              <div
+                style={{
+                  marginTop: 24,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  justifyContent: 'center',
+                }}
+              >
+                <Link to="/leaderboard" className="btn btn-primary">
+                  Full Season Leaderboard
+                </Link>
+                <Link to="/leaderboard#individual" className="btn btn-ghost">
+                  Individual Standings
+                </Link>
+              </div>
+            )}
           </>
         )}
       </div>

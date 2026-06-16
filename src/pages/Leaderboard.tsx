@@ -176,10 +176,36 @@ const TABS: Tab[] = ['AAA', 'AA', 'A', 'Individual', 'Awards']
 // and the admin /admin/leaderboard preview (wrapped with the admin chrome).
 // No `wrap` div here — wrapper provides padding/spacing.
 
+// Lowercased tab name → canonical Tab — used for hash deep-linking from
+// other pages (e.g. /leaderboard#individual lands on the Individual tab).
+const HASH_TO_TAB: Record<string, Tab> = {
+  aaa: 'AAA',
+  aa: 'AA',
+  a: 'A',
+  individual: 'Individual',
+  awards: 'Awards',
+}
+
+function tabFromHash(): Tab | null {
+  if (typeof window === 'undefined') return null
+  const raw = window.location.hash.replace(/^#/, '').toLowerCase()
+  return HASH_TO_TAB[raw] ?? null
+}
+
 export function LeaderboardContent() {
-  const [tab, setTab] = useState<Tab>('AAA')
+  const [tab, setTab] = useState<Tab>(() => tabFromHash() ?? 'AAA')
   const [published, setPublished] = useState<PublishedEventResult[]>(loadPublished)
   const [loading, setLoading] = useState(true)
+
+  // Respond to hash changes after mount (e.g. clicking another in-page link).
+  useEffect(() => {
+    const sync = () => {
+      const next = tabFromHash()
+      if (next) setTab(next)
+    }
+    window.addEventListener('hashchange', sync)
+    return () => window.removeEventListener('hashchange', sync)
+  }, [])
 
   useEffect(() => {
     getDocs(collection(db, 'results_2026'))
