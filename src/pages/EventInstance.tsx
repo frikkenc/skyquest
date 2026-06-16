@@ -1,14 +1,17 @@
 import { useParams, Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
-import { EVENT_INSTANCES, EVENT_TYPES } from '../data/mockData'
+import { EVENT_TYPES } from '../data/mockData'
+import { useLiveEventList } from '../hooks/useLiveEventList'
 import { getEventPhoto } from '../lib/eventPhotos'
 import { normalizeRegistrationUrl } from '../utils/registrationUrl'
-import type { Division, TeamResult } from '../types'
+import type { Division, PublishedEventResult, PublishedTeamResult } from '../types'
 import styles from './EventInstance.module.css'
 
 function formatDate(iso: string) {
@@ -18,10 +21,49 @@ function formatDate(iso: string) {
 
 export default function EventInstance() {
   const { typeSlug, instanceId } = useParams<{ typeSlug: string; instanceId: string }>()
-  const event = EVENT_INSTANCES.find(e => e.id === instanceId)
+  const { events } = useLiveEventList()
+  const event = events.find(e => e.id === instanceId)
   const eventType = event ? EVENT_TYPES.find(t => t.slug === event.typeSlug) : null
-  const [activeDivision, setActiveDivision] = useState<Division>('AA')
+  // Default to whichever division actually exists on the event. Falling back
+  // to 'AA' regardless was the source of the misleading "Results not yet
+  // available for AA" message on the Poker Run (which only has 'Open').
+  const [activeDivision, setActiveDivision] = useState<Division>(
+    (event?.divisions[0] ?? 'AAA') as Division,
+  )
   const [notifyOpen, setNotifyOpen] = useState(false)
+  const [published, setPublished] = useState<PublishedEventResult | null>(null)
+  const [resultsLoading, setResultsLoading] = useState(false)
+
+  // Load the published event result for this instance. results_2026 is
+  // public-read so unauthenticated visitors can see it. Only fetch for
+  // complete events — otherwise we'd hit Firestore on every event detail
+  // page load with no value.
+  useEffect(() => {
+    if (!instanceId || event?.status !== 'complete') {
+      setPublished(null)
+      return
+    }
+    setResultsLoading(true)
+    getDoc(doc(db, 'results_2026', instanceId))
+      .then(snap => {
+        setPublished(snap.exists() ? (snap.data() as PublishedEventResult) : null)
+      })
+      .catch(console.error)
+      .finally(() => setResultsLoading(false))
+  }, [instanceId, event?.status])
+
+  // When the event or published results resolve, snap the active division to
+  // one that actually has data (or, failing that, to the first division on
+  // the event metadata). Prevents the "Results not yet available for AA" bug
+  // when AA isn't even a tab on this event.
+  useEffect(() => {
+    if (!event) return
+    const publishedDivs = Array.from(new Set((published?.teams ?? []).map(t => t.division)))
+    const fallbackDivs = publishedDivs.length > 0 ? publishedDivs : event.divisions
+    if (fallbackDivs.length > 0 && !fallbackDivs.includes(activeDivision)) {
+      setActiveDivision(fallbackDivs[0] as Division)
+    }
+  }, [event, published, activeDivision])
 
   if (!event || !eventType) {
     return (
@@ -41,8 +83,24 @@ export default function EventInstance() {
   const isUpcoming = event.status === 'upcoming'
   const isFinale = event.status === 'season-finale'
 
-  const results: TeamResult[] = []
-  const rounds = results[0]?.roundScores.length ?? 8
+  // Tabs surface divisions that actually have published teams — not what the
+  // event metadata says. The Poker Run lists 'Open' in event.divisions but
+  // its teams publish under 'AAA' (so they roll up into the AAA season
+  // standings), so the tab needs to follow the data, not the schedule.
+  const divisionsWithResults = Array.from(
+    new Set((published?.teams ?? []).map(t => t.division)),
+  ) as Division[]
+  const visibleDivisions: Division[] = divisionsWithResults.length > 0
+    ? divisionsWithResults
+    : (event.divisions.length > 0 ? event.divisions : (['AAA', 'AA', 'A', 'Rookie'] as Division[]))
+
+  // Filter to the active division for this event. published.teams is the
+  // post-Publish snapshot from Firestore — each team carries rawScore (which
+  // is the adjusted total, raw round sum + handicap) but no per-round breakdown,
+  // so the round columns are hidden.
+  const results: PublishedTeamResult[] = (published?.teams ?? [])
+    .filter(t => t.division === activeDivision)
+    .sort((a, b) => a.rank - b.rank)
   const photo = getEventPhoto(event.typeSlug)
 
   return (
@@ -196,7 +254,7 @@ export default function EventInstance() {
             <div className="section-title" style={{ marginTop: 48 }}>Results</div>
 
             <div className={styles.divTabs}>
-              {(event.divisions.length > 0 ? event.divisions : ['AA', 'AAA', 'A', 'Rookie'] as Division[]).map(div => (
+              {visibleDivisions.map(div => (
                 <button
                   key={div}
                   className={`${styles.tab} ${activeDivision === div ? styles.tabActive : ''}`}
@@ -207,21 +265,24 @@ export default function EventInstance() {
               ))}
             </div>
 
-            {results.length === 0 ? (
+            {resultsLoading ? (
               <div className="card" style={{ textAlign: 'center', color: 'var(--sq-gray)', padding: 48 }}>
-                Results not yet available for {activeDivision}.
+                Loading results…
+              </div>
+            ) : results.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', color: 'var(--sq-gray)', padding: 48 }}>
+                {published == null
+                  ? 'Results not yet published for this event.'
+                  : `No ${activeDivision} teams in this event.`}
               </div>
             ) : (
               <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-                <table className="lb" style={{ minWidth: 600 }}>
+                <table className="lb" style={{ minWidth: 480 }}>
                   <thead>
                     <tr>
                       <th style={{ width: 52 }}>#</th>
                       <th>Team</th>
-                      {Array.from({ length: rounds }, (_, i) => (
-                        <th key={i} style={{ textAlign: 'center', width: 48 }}>R{i + 1}</th>
-                      ))}
-                      <th style={{ textAlign: 'right' }}>Total</th>
+                      <th style={{ textAlign: 'right' }}>Score</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -234,10 +295,7 @@ export default function EventInstance() {
                             {result.members.map(m => m.name).join(' · ')}
                           </div>
                         </td>
-                        {result.roundScores.map((s, i) => (
-                          <td key={i} style={{ textAlign: 'center', color: 'var(--sq-gray)', fontSize: 13 }}>{s}</td>
-                        ))}
-                        <td className="pts">{result.total}</td>
+                        <td className="pts">{result.rawScore}</td>
                       </tr>
                     ))}
                   </tbody>
