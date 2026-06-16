@@ -202,7 +202,10 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
       teamId: t.teamId,
       teamName: t.teamName || 'Unnamed Team',
       members: t.members,
-      division: 'Open',
+      // Poker Run teams roll up into the AAA bracket on the public leaderboard.
+      // The site only renders AAA/AA/A division tabs — tagging these as 'Open'
+      // would hide them. AAA = highest-tier, matches the championship vibe.
+      division: 'AAA',
       rawScore: adj,
       rankingPoints: PLACEHOLDER_RANKING_POINTS,
     }))

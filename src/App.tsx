@@ -11,6 +11,7 @@ import AdminEventInstance from './pages/admin/AdminEventInstance'
 import AdminEmailTemplates from './pages/admin/AdminEmailTemplates'
 import AdminSeasons from './pages/admin/AdminSeasons'
 import AdminFuryIdentity from './pages/admin/AdminFuryIdentity'
+import AdminLeaderboard from './pages/admin/AdminLeaderboard'
 import AdminCrazy8Cards from './pages/admin/AdminCrazy8Cards'
 import AdminLogin from './pages/admin/AdminLogin'
 import PrintPage from './pages/PrintPage' 
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="events/:typeSlug/:instanceId" element={<KeyedAdminEventInstance />} />
             <Route path="emails" element={<AdminEmailTemplates />} />
             <Route path="seasons" element={<AdminSeasons />} />
+            <Route path="leaderboard" element={<AdminLeaderboard />} />
             <Route path="config/identity" element={<AdminFuryIdentity />} />
             <Route path="*" element={<AdminPlaceholder />} />
           </Route>
