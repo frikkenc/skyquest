@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import {
-  EVENT_INSTANCES, EVENT_TYPES, EVENT_TYPE_SETTINGS,
-} from '../../data/mockData'
+import { EVENT_TYPES, EVENT_TYPE_SETTINGS } from '../../data/mockData'
+import { useLiveEventList } from '../../hooks/useLiveEventList'
 import StatusPill from '../../components/StatusPill'
 import EventBadge from '../../components/EventBadge'
 import type { Division, TeamRegistration, TeamAssignment } from '../../types'
@@ -78,7 +77,11 @@ export default function AdminEventInstance() {
   const [tab, setTab] = useState<Tab>('Registrations')
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
 
-  const event = EVENT_INSTANCES.find(e => e.id === instanceId)
+  // Read through the live hook so the admin header (status pill, dates,
+  // dropzone) reflects Fury Reg sync + Firestore eventConfig overrides — not
+  // just the stale mock baseline.
+  const { events } = useLiveEventList()
+  const event = events.find(e => e.id === instanceId)
   const eventType = EVENT_TYPES.find(t => t.slug === typeSlug)
   const eventSettings = EVENT_TYPE_SETTINGS.find(s => s.typeSlug === typeSlug)
   const isManualReg = eventSettings?.registrationMethod === 'manual'

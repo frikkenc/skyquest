@@ -6,7 +6,8 @@ import EventBadge from '../components/EventBadge'
 import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
 import EventCTA from '../components/EventCTA'
-import { EVENT_INSTANCES, EVENT_TYPES } from '../data/mockData'
+import { EVENT_TYPES } from '../data/mockData'
+import { useLiveEventList } from '../hooks/useLiveEventList'
 import type { EventInstance } from '../types'
 import styles from './Schedule.module.css'
 
@@ -29,7 +30,11 @@ function getEventDescription(evt: EventInstance) {
 export default function Schedule() {
   const [notifyEvent, setNotifyEvent] = useState<string | null>(null)
 
-  const sorted = [...EVENT_INSTANCES].sort((a, b) => a.date.localeCompare(b.date))
+  // useLiveEventList returns the EVENT_INSTANCES mock list with Fury Reg
+  // status (admins only) and Firestore eventConfig overrides (everyone)
+  // merged on top. Same shape as before — drop-in.
+  const { events } = useLiveEventList()
+  const sorted = events
 
   const grouped: { month: string; events: EventInstance[] }[] = []
   sorted.forEach(evt => {

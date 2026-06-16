@@ -7,6 +7,7 @@ import StatusPill from '../components/StatusPill'
 import NotifyMeModal from '../components/NotifyMeModal'
 import EventCTA from '../components/EventCTA'
 import { EVENT_INSTANCES } from '../data/mockData'
+import { useLiveEventList } from '../hooks/useLiveEventList'
 import type { LeaderboardEntry, PublishedEventResult } from '../types'
 import styles from './Landing.module.css'
 
@@ -31,6 +32,8 @@ function formatDate(iso: string) {
 export default function Landing() {
   const [notifyEvent, setNotifyEvent] = useState<string | null>(null)
   const scoredCount = loadPublishedCount()
+  // Same source as Schedule — mock with Fury + Firestore overrides merged on.
+  const { events } = useLiveEventList()
 
   return (
     <>
@@ -82,7 +85,7 @@ export default function Landing() {
         {/* Event tiles — the whole point of the page */}
         <div className={styles.sectionLabel}>2026 Events</div>
         <div className={styles.eventGrid}>
-          {[...EVENT_INSTANCES].sort((a, b) => a.date.localeCompare(b.date)).map(evt => (
+          {events.map(evt => (
             <Link
               key={evt.id}
               to={`/events/${evt.typeSlug}/${evt.id}`}

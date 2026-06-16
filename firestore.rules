@@ -1,17 +1,112 @@
+// fury-identity Firestore ruleset — UNIFIED across Fury Identity + SkyQuest.
+//
+// This is THE deployed file. The Jun 7 redeploy (from the Fury Identity repo)
+// dropped the SkyQuest eventConfig/crazy8config blocks, which silently broke
+// every admin Edit-modal status write. This file restores them and is now the
+// single source of truth for fury-identity. If anyone changes Fury Identity
+// rules upstream, the additions for SkyQuest below must be ported across
+// before the deploy ships — the project is shared, the ruleset is shared,
+// and Firestore replaces the entire ruleset on every `firebase deploy
+// --only firestore`. See CLAUDE.md "shared Firestore rules" notes for the
+// same lesson learned on christy-home.
+//
+// Deploy with:  firebase deploy --only firestore --project default
+// (default project alias is fury-identity per .firebaserc)
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /eventConfig/{docId} {
-      allow read, write: if request.auth != null;
+
+    function signedIn() {
+      return request.auth != null;
     }
-    // Frikken Crazy 8s — formation master list + per-year menu/market.
-    match /crazy8config/{docId} {
-      allow read, write: if request.auth != null;
+
+    function isMe(uid) {
+      return signedIn() && request.auth.uid == uid;
     }
-    // SkyQuest published event results — public read, admin write.
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    // Real (non-anonymous) Fury Identity user
+    function isRealUser() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function isAllowedSelfProfileUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        "firstName", "lastName", "preferredName", "phone", "metadata",
+        "updatedAt", "updatedAtServer"
+      ]);
+    }
+
+    // ── Fury Identity — user profiles ───────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isMe(uid) || isAdmin();
+      allow create: if isMe(uid);
+      allow update: if (isMe(uid) && isAllowedSelfProfileUpdate()) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Jump Costs — private per-user data ──────────────────────────────────
+    match /jc_teams/{teamId} {
+      allow create: if isRealUser() && request.resource.data.createdBy == request.auth.uid;
+      allow read: if isMe(resource.data.createdBy) || (isRealUser() && resource.data.shared == true);
+      allow update, delete: if isMe(resource.data.createdBy);
+    }
+
+    match /jc_camps/{campId} {
+      allow create: if isRealUser() && request.resource.data.createdBy == request.auth.uid;
+      allow read: if isMe(resource.data.createdBy) || (isRealUser() && resource.data.shared == true);
+      allow update, delete: if isMe(resource.data.createdBy);
+    }
+
+    // ── FuryLive — show data ─────────────────────────────────────────────────
+    match /shows/{showId} {
+      // Audience and host both need to read show state
+      allow read: if true;
+      // Only real signed-in users (admins) can create/edit shows
+      allow write: if isRealUser();
+
+      match /items/{itemId} {
+        allow read: if true;
+        allow write: if isRealUser();
+      }
+
+      // Votes: audience (including anonymous) can vote once per poll
+      match /votes/{pollId}/responses/{userId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && request.auth.uid == userId;
+      }
+
+      // Reactions: rolling 5-second buckets
+      match /reactions/{bucketId} {
+        allow read: if true;
+        allow write: if signedIn();
+      }
+    }
+
+    // ── SkyQuest published event results — public read, admin write ──────────
     match /results_2026/{instanceId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
+
+    // ── SkyQuest event config overrides — public READ, admin write ───────────
+    // Public read so the schedule/landing pages can show the latest status
+    // (open / closed / complete / cancelled) without requiring sign-in. Admins
+    // write via the Edit Event modal in /admin.
+    match /eventConfig/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── Frikken Crazy 8s — formation master list + per-year menu/market ─────
+    // Admin-only. Not user-facing.
+    match /crazy8config/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
   }
 }
