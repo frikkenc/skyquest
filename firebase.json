@@ -27,6 +27,19 @@
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
         ]
+      },
+      {
+        "//": "index.html must NOT cache — it points at the hashed JS bundle. The default Firebase Hosting Cache-Control on index.html is max-age=3600 (1 hour), which caused 'site changes aren't showing' bugs: status flips would deploy, the new bundle would be live, but browsers kept reusing a stale index.html that pointed at the previous bundle hash for up to an hour. no-store fixes the loop without breaking the immutable JS/CSS caching above (those are content-hashed, so eternal cache is safe).",
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        ]
+      },
+      {
+        "source": "/",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        ]
       }
     ]
   },
