@@ -57,37 +57,46 @@ export const SEED_2025_MARKET = toMarket(JUST_2025, FM_FINAL)
 // 2026 — starts blank, filled in as events score.
 export const SEED_2026_MARKET: { [slug: string]: MarketEntry } = {}
 
-// ── 2026 menu (from the Menu tab) ──
+// ── 2026 menu ──
 // Each round can have ANY number of combos; each combo can be 2 or 3 formations.
+//
+// Built from two signals: the market `earned` counts (high earned = common =
+// easy = cheap) and the 2024/2025 scoring sets (past difficulty judgments).
+// Pattern, per the series: each round pairs one smaller easy combo (worth less)
+// with a bigger higher-paying triple, values escalating strictly round to round
+// (pairs 2/5/9/14, triples 4/8/13/18). Hard/rare formations (Crank, Compressed,
+// Yeesh, Phalanx — all ~0 earned) are pushed to round 4 to justify the top
+// payouts; easy anchors (Star, Starzip, Speedbody) repeat across rounds like
+// Star did historically. JJ/Nacho/Sidebody are excluded as promo/Fresh-Meet.
 export const SEED_2026_MENU: YearMenu = {
   year: 2026,
   rounds: [
     {
       round: 1,
       combos: [
-        { id: 'r1-a', formations: ['opposed-diamonds', 'sattelite'], value: 2 },
-        { id: 'r1-b', formations: ['vulture', 'starzip', 'flipflake'], value: 4 },
+        { id: 'r1-a', formations: ['open', 'flipflake'], value: 2 },
+        { id: 'r1-b', formations: ['helix', 'starzip', 'friendly'], value: 4 },
       ],
     },
     {
       round: 2,
       combos: [
-        { id: 'r2-a', formations: ['deez-donuts', 'rainbow'], value: 5 },
-        { id: 'r2-b', formations: ['speedbody', 'star', 'flipflake'], value: 8 },
+        { id: 'r2-a', formations: ['sattelite', 'speedbody'], value: 5 },
+        { id: 'r2-b', formations: ['opposed-diamonds', 'deez-donuts', 'flipflake'], value: 8 },
       ],
     },
     {
       round: 3,
       combos: [
-        { id: 'r3-a', formations: ['star', 'helix'], value: 9 },
-        { id: 'r3-b', formations: ['yeesh', 'open', 'vulture'], value: 12 },
+        { id: 'r3-a', formations: ['star', 'vulture'], value: 9 },
+        { id: 'r3-b', formations: ['rainbow', 'inout', 'speedbody'], value: 13 },
       ],
     },
     {
       round: 4,
       combos: [
-        { id: 'r4-a', formations: ['starzip', 'crank'], value: 13 },
-        { id: 'r4-b', formations: ['friendly', 'inout', 'comp'], value: 16 },
+        { id: 'r4-a', formations: ['starzip', 'crank'], value: 14 },
+        { id: 'r4-b', formations: ['yeesh', 'phalanx', 'comp'], value: 18 },
       ],
     },
   ],
