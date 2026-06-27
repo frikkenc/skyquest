@@ -33,6 +33,20 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          # Public Cloud Run URL of the Fury Registration API (Path B). Hardcoded,
+          # NOT a secret, on purpose: it isn't sensitive (it's also in
+          # vite.config.ts and CLAUDE.md), and when it's absent at build time the
+          # prod bundle ships with BASE='' — every /api/* call then resolves
+          # against the hosting origin, hits the SPA rewrite, and returns
+          # index.html. res.json() chokes on "<!doctype" and the admin
+          # Registrations tab shows "Could not load Fury registrations". A literal
+          # can't silently go missing the way a forgotten secret can.
+          VITE_FURY_API_URL: https://api-wj2a2vwtsq-uc.a.run.app
+          # Brevo "Notify Me" email signup (src/components/NotifyMeModal.tsx).
+          # Same CI-missing-env failure mode as Fury above — set these repo secrets
+          # (Settings → Secrets → Actions) or the modal ships with an undefined key.
+          VITE_BREVO_API_KEY: ${{ secrets.VITE_BREVO_API_KEY }}
+          VITE_BREVO_LIST_ID: ${{ secrets.VITE_BREVO_LIST_ID }}
 
       - name: Deploy to Firebase Hosting (preview — PRs)
         if: github.event_name == 'pull_request'
