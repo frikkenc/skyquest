@@ -236,6 +236,19 @@ export default function EventInstance() {
               )}
             </div>
 
+            {/* Crazy 8s rulebook */}
+            {event.typeSlug === 'crazy8s' && (
+              <div className="card" style={{ marginTop: 16 }}>
+                <div className={styles.sideTitle}>How Scoring Works</div>
+                <p style={{ color: '#cfcfcf', fontSize: 14, lineHeight: 1.6 }}>
+                  Formations aren't points — combos are. Read the full rules before you plan your dives.
+                </p>
+                <Link to="/events/crazy8s/rules" className="btn btn-ghost" style={{ display: 'block', textAlign: 'center', marginTop: 12 }}>
+                  Read the Rules
+                </Link>
+              </div>
+            )}
+
             {/* Just Sign Up to Team Up */}
             {(isOpen || isManualOpen || isUpcoming) && event.typeSlug !== 'awards' && (
               <div className="card" style={{ marginTop: 16 }}>

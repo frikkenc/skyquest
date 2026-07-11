@@ -4,6 +4,7 @@ import Landing from './pages/Landing'
 import Schedule from './pages/Schedule'
 import Leaderboard from './pages/Leaderboard'
 import EventInstance from './pages/EventInstance'
+import Crazy8Rules from './pages/Crazy8Rules'
 import AdminLayout from './layouts/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminEventType from './pages/admin/AdminEventType'
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/events/crazy8s/rules" element={<Crazy8Rules />} />
           <Route path="/events/:typeSlug/:instanceId" element={<EventInstance />} />
           <Route path="/events/:typeSlug" element={<Schedule />} />
           <Route path="/events" element={<Schedule />} />

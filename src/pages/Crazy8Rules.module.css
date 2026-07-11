@@ -1,0 +1,62 @@
+/* Crazy 8s rules — long-form prose page */
+
+.prose {
+  max-width: 760px;
+  color: var(--sq-ink);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.prose h3 {
+  font-family: 'Bungee', sans-serif;
+  font-size: 17px;
+  color: var(--sq-white);
+  margin: 32px 0 12px;
+}
+
+.prose h4 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--sq-yellow);
+  margin: 24px 0 8px;
+}
+
+.prose p { margin: 0 0 12px; }
+
+.prose ul {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+
+.prose li { margin-bottom: 6px; }
+
+.prose li ul { margin-top: 6px; margin-bottom: 0; }
+
+.callout {
+  border-left: 3px solid var(--sq-red);
+  background: var(--sq-card);
+  padding: 14px 18px;
+  border-radius: 0 8px 8px 0;
+  margin: 16px 0;
+}
+
+.combosList li { font-variant-numeric: tabular-nums; }
+
+.roundCard {
+  margin-top: 16px;
+}
+
+.roundTitle {
+  font-family: 'Bungee', sans-serif;
+  font-size: 14px;
+  color: var(--sq-red);
+  margin-bottom: 10px;
+}
+
+.exampleNote {
+  color: var(--sq-gray);
+  font-style: italic;
+  font-size: 14px;
+}
