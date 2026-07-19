@@ -106,6 +106,29 @@ export interface TeamAssignment {
   confirmationEmailSentAt?: string
 }
 
+// A team being built in the admin Teaming tab. Persisted per event instance
+// in the Firestore `teaming` collection — see hooks/useTeamingDoc.ts.
+export interface TeamGroup {
+  id: string
+  customName: string   // empty = use auto name
+  division?: Division  // picked day-of, not during registration
+  memberIds: string[]
+  pendingSlots: string[]   // names of people expected but not yet registered
+  videoName: string        // '' = unset
+  videoTbd: boolean
+  isAiSuggested?: boolean  // true = created by the AI Suggest button
+}
+
+// Firestore doc shape for `teaming/{instanceId}`.
+export interface TeamingDoc {
+  groups: TeamGroup[]
+  pool: string[]           // registration ids not yet on a team
+  // regId → display name, denormalized at save time so the public check-in
+  // and print pages can render teams without the auth-gated Fury API.
+  memberNames: Record<string, string>
+  updatedAt: string
+}
+
 export interface ScoreEntry {
   teamId: string
   roundNumber: number

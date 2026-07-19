@@ -1,19 +1,21 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { EVENT_TYPES, EVENT_TYPE_SETTINGS } from '../../data/mockData'
 import { useLiveEventList } from '../../hooks/useLiveEventList'
 import StatusPill from '../../components/StatusPill'
 import EventBadge from '../../components/EventBadge'
-import type { Division, TeamRegistration, TeamAssignment } from '../../types'
+import type { Division, TeamRegistration, TeamGroup, EventInstance } from '../../types'
 import type { FuryRegistrant } from '../../lib/furyClient'
 import { useFuryRegistrations } from '../../hooks/useFuryData'
 import { useEventDivisions } from '../../hooks/useEventDivisions'
+import { useTeamingDoc, teamingDocToPrintData, type TeamingSaveState } from '../../hooks/useTeamingDoc'
 import styles from './AdminEventInstance.module.css'
 import teamStyles from './AdminTeaming.module.css'
 import PrintablesTab from './AdminPrintables'
 import ScoresTab from './AdminScores'
 import { httpsCallable } from 'firebase/functions'
-import { functions } from '../../firebase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { functions, db } from '../../firebase'
 
 type Tab = 'Registrations' | 'Teaming' | 'Scores' | 'Divisions' | 'Waitlist' | 'Payments' | 'Emails' | 'Printables'
 
@@ -311,10 +313,10 @@ export default function AdminEventInstance() {
 
       {/* ── TEAMING TAB ── */}
       {tab === 'Teaming' && realFuryEventId && (
-        <FuryTeamingTab furyEventId={realFuryEventId} teamSize={eventSettings?.defaultTeamSize ?? 4} />
+        <FuryTeamingTab furyEventId={realFuryEventId} instanceId={event.id} teamSize={eventSettings?.defaultTeamSize ?? 4} />
       )}
       {tab === 'Teaming' && !realFuryEventId && (
-        <TeamingTab registrations={registrations} initialAssignments={[]} teamSize={eventSettings?.defaultTeamSize ?? 4} />
+        <TeamingTab registrations={registrations} instanceId={event.id} teamSize={eventSettings?.defaultTeamSize ?? 4} />
       )}
 
       {/* ── SCORES TAB ── */}
@@ -391,11 +393,7 @@ export default function AdminEventInstance() {
 
       {/* ── PRINTABLES TAB ── */}
       {tab === 'Printables' && (
-        <PrintablesTab
-          event={event}
-          assignments={[]}
-          registrations={registrations}
-        />
+        <PrintablesLoader event={event} registrations={registrations} />
       )}
 
       {/* ── EMAILS TAB ── */}
@@ -550,11 +548,47 @@ function ManualRegTab({ registrations, eventId }: { registrations: TeamRegistrat
   const [newName, setNewName] = useState('')
   const [newMembers, setNewMembers] = useState('')
 
+  // Roster persists on eventConfig/{eventId}.manualRoster — same doc the Edit
+  // Event modal writes, so no new rules needed. Explicit save via the button.
+  const [loadPhase, setLoadPhase] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [saving, setSaving] = useState(false)
+  const [savedAt, setSavedAt] = useState<string | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    getDoc(doc(db, 'eventConfig', eventId)).then(snap => {
+      if (cancelled) return
+      const roster = snap.data()?.manualRoster
+      if (Array.isArray(roster)) setTeams(roster)
+      setLoadPhase('ready')
+    }).catch(() => { if (!cancelled) setLoadPhase('error') })
+    return () => { cancelled = true }
+  }, [eventId])
+
+  async function saveRoster() {
+    setSaving(true)
+    try {
+      await setDoc(doc(db, 'eventConfig', eventId), { manualRoster: teams }, { merge: true })
+      setSavedAt(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
+    } catch {
+      alert('Save failed — check your connection and try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function addTeam() {
     if (!newName.trim()) return
     setTeams(prev => [...prev, { id: 'new-' + Date.now(), name: newName.trim(), members: newMembers.trim() }])
     setNewName('')
     setNewMembers('')
+  }
+
+  if (loadPhase === 'loading') {
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>Loading roster…</div>
+  }
+  if (loadPhase === 'error') {
+    // Don't offer editing on a failed load — saving would overwrite the real roster.
+    return <div style={{ padding: 20, color: 'var(--sq-red)', fontSize: 13 }}>Could not load the saved roster — check your connection and reload before editing.</div>
   }
 
   return (
@@ -628,25 +662,21 @@ function ManualRegTab({ registrations, eventId }: { registrations: TeamRegistrat
         </table>
       </div>
 
-      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-        <button className={`${styles.adminBtn} ${styles.primary}`}>Save Roster</button>
+      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+        {savedAt && !saving && (
+          <span style={{ fontSize: 12, color: '#81c784' }}>✓ Saved {savedAt}</span>
+        )}
+        <button className={`${styles.adminBtn} ${styles.primary}`} onClick={saveRoster} disabled={saving}>
+          {saving ? 'Saving…' : 'Save Roster'}
+        </button>
       </div>
     </div>
   )
 }
 
 // ── TEAMING TAB COMPONENT ─────────────────────────────────────────────────────
-
-interface TeamGroup {
-  id: string
-  customName: string   // empty = use auto name
-  division?: Division  // picked day-of, not during registration
-  memberIds: string[]
-  pendingSlots: string[]   // names of people expected but not yet registered
-  videoName: string        // '' = unset
-  videoTbd: boolean
-  isAiSuggested?: boolean  // true = created by the AI Suggest button
-}
+// TeamGroup lives in src/types.ts — it's shared with the Firestore persistence
+// layer (useTeamingDoc) and the print/check-in consumers.
 
 function makeGroupId() {
   return 'g-' + Math.random().toString(36).slice(2, 8)
@@ -656,7 +686,7 @@ function firstName(fullName: string) {
   return fullName.split(' ')[0]
 }
 
-function FuryTeamingTab({ furyEventId, teamSize }: { furyEventId: string; teamSize: number }) {
+function FuryTeamingTab({ furyEventId, instanceId, teamSize }: { furyEventId: string; instanceId: string; teamSize: number }) {
   const { data, isLoading, isError } = useFuryRegistrations(furyEventId)
   // Use the shared furyToTeamReg mapper at the top of this file — it adds
   // offeringType detection (video / captain) so the Teaming pool shows the
@@ -669,7 +699,26 @@ function FuryTeamingTab({ furyEventId, teamSize }: { furyEventId: string; teamSi
   if (isError) {
     return <div style={{ padding: 20, color: 'var(--sq-red)', fontSize: 13 }}>Could not load registrations.</div>
   }
-  return <TeamingTab registrations={regs} initialAssignments={[]} teamSize={teamSize} />
+  return <TeamingTab registrations={regs} instanceId={instanceId} teamSize={teamSize} />
+}
+
+// Printables reads the same saved teaming doc the Teaming tab writes. Fury
+// registrations take precedence for member data; the doc's synthesized regs
+// only fill gaps (video slots, people who cancelled after teams were built).
+function PrintablesLoader({ event, registrations }: { event: EventInstance; registrations: TeamRegistration[] }) {
+  const { loadState } = useTeamingDoc(event.id)
+
+  if (loadState.status === 'loading') {
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>Loading teams…</div>
+  }
+  const tdoc = loadState.status === 'ready' ? loadState.doc : null
+  const printData = tdoc
+    ? teamingDocToPrintData(tdoc, event.id)
+    : { assignments: [], registrations: [] }
+  const furyIds = new Set(registrations.map(r => r.id))
+  const merged = [...registrations, ...printData.registrations.filter(r => !furyIds.has(r.id))]
+
+  return <PrintablesTab event={event} assignments={printData.assignments} registrations={merged} />
 }
 
 function autoName(memberIds: string[], regById: Record<string, TeamRegistration>) {
@@ -682,21 +731,86 @@ function autoName(memberIds: string[], regById: Record<string, TeamRegistration>
 
 function TeamingTab({
   registrations,
-  initialAssignments,
+  instanceId,
   teamSize,
 }: {
   registrations: TeamRegistration[]
-  initialAssignments: TeamAssignment[]
+  instanceId: string
   teamSize: number
+}) {
+  const { loadState, saveState, scheduleSave } = useTeamingDoc(instanceId)
+
+  if (loadState.status === 'loading') {
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>Loading saved teams…</div>
+  }
+  if (loadState.status === 'error') {
+    // Deliberately no editor here: mounting empty state on a failed load and
+    // then auto-saving would overwrite the real saved teams with nothing.
+    return <div style={{ padding: 20, color: 'var(--sq-red)', fontSize: 13 }}>Could not load saved teams — check your connection and reload before editing.</div>
+  }
+
+  const saved = loadState.doc
+  const regIds = new Set(registrations.map(r => r.id))
+  // Reconcile the saved doc with the live roster: drop ids that no longer
+  // exist (cancelled registrations), and put registrants the doc has never
+  // seen (signed up since the last save) into the pool.
+  const initialGroups = (saved?.groups ?? []).map(g => ({
+    ...g,
+    memberIds: g.memberIds.filter(id => regIds.has(id)),
+  }))
+  const knownIds = new Set([
+    ...(saved?.pool ?? []),
+    ...(saved?.groups ?? []).flatMap(g => g.memberIds),
+  ])
+  const initialPool = saved
+    ? [
+        ...saved.pool.filter(id => regIds.has(id)),
+        ...registrations.map(r => r.id).filter(id => !knownIds.has(id)),
+      ]
+    : registrations.map(r => r.id)
+
+  const memberNames = Object.fromEntries(registrations.map(r => [r.id, r.members[0]?.name ?? '']))
+
+  return (
+    <TeamingEditor
+      key={instanceId}
+      registrations={registrations}
+      initialGroups={initialGroups}
+      initialPool={initialPool}
+      teamSize={teamSize}
+      saveState={saveState}
+      onChange={(groups, pool) => scheduleSave(groups, pool, memberNames)}
+    />
+  )
+}
+
+function TeamingEditor({
+  registrations,
+  initialGroups,
+  initialPool,
+  teamSize,
+  saveState,
+  onChange,
+}: {
+  registrations: TeamRegistration[]
+  initialGroups: TeamGroup[]
+  initialPool: string[]
+  teamSize: number
+  saveState: TeamingSaveState
+  onChange: (groups: TeamGroup[], pool: string[]) => void
 }) {
   const regById = Object.fromEntries(registrations.map(r => [r.id, r]))
 
-  const init = {
-    groups: [] as TeamGroup[],
-    pool: registrations.map(r => r.id),
-  }
-  const [groups, setGroups] = useState<TeamGroup[]>(init.groups)
-  const [pool, setPool] = useState<string[]>(init.pool)
+  const [groups, setGroups] = useState<TeamGroup[]>(initialGroups)
+  const [pool, setPool] = useState<string[]>(initialPool)
+
+  // Save-as-you-go: every mutation lands in Firestore (debounced in the
+  // hook). Skip the mount render — it's just the loaded state echoing back.
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    onChange(groups, pool)
+  }, [groups, pool])
   const [editingNameId, setEditingNameId] = useState<string | null>(null)
   const [nameDraft, setNameDraft] = useState('')
   const [aiSuggesting, setAiSuggesting] = useState(false)
@@ -954,6 +1068,18 @@ function TeamingTab({
           </span>
           <span className={teamStyles.badge} style={{ background: 'rgba(255,255,255,.06)', color: 'var(--adm-mute)' }}>
             {visibleGroups.length} {visibleGroups.length === 1 ? 'team' : 'teams'}
+          </span>
+          <span
+            className={teamStyles.badge}
+            style={saveState === 'error'
+              ? { background: 'rgba(216,24,24,.15)', color: 'var(--sq-red)' }
+              : { background: 'rgba(255,255,255,.06)', color: saveState === 'saved' ? '#81c784' : 'var(--adm-mute)' }}
+            title="Teams save to the cloud automatically as you edit"
+          >
+            {saveState === 'saving' ? 'Saving…'
+              : saveState === 'saved' ? '✓ Saved'
+              : saveState === 'error' ? '⚠ Save failed — copy your teams down before leaving'
+              : 'Auto-saves'}
           </span>
         </div>
         <div className={teamStyles.headerRight}>

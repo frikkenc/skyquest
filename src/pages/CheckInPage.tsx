@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { EVENT_INSTANCES } from '../data/mockData'
 import type { TeamAssignment, TeamRegistration } from '../types'
+import { loadTeamingDoc, teamingDocToPrintData } from '../hooks/useTeamingDoc'
 
 type JumpData = Record<string, number[]>  // assignmentId → per-member jump counts
 
@@ -12,9 +13,26 @@ function saveJumps(id: string, data: JumpData) { localStorage.setItem(lsKey(id),
 export default function CheckInPage() {
   const { instanceId = '' } = useParams<{ instanceId: string }>()
   const event = EVENT_INSTANCES.find(e => e.id === instanceId)
-  const allRegs: TeamRegistration[] = []
-  const regById = Object.fromEntries(allRegs.map(r => [r.id, r])) as Record<string, TeamRegistration>
-  const teams: TeamAssignment[] = []
+
+  // Teams + member names come from the saved teaming doc the admin Teaming
+  // tab writes. This page is public (no auth), so it reads the denormalized
+  // names in the doc rather than the auth-gated Fury API.
+  const [teamData, setTeamData] = useState<{ teams: TeamAssignment[]; regById: Record<string, TeamRegistration> } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    loadTeamingDoc(instanceId)
+      .catch(() => null)
+      .then(tdoc => {
+        if (cancelled) return
+        const { assignments, registrations } = tdoc
+          ? teamingDocToPrintData(tdoc, instanceId)
+          : { assignments: [], registrations: [] }
+        setTeamData({ teams: assignments, regById: Object.fromEntries(registrations.map(r => [r.id, r])) })
+      })
+    return () => { cancelled = true }
+  }, [instanceId])
+  const teams = teamData?.teams ?? []
+  const regById = teamData?.regById ?? {}
 
   const [view, setView] = useState<'list' | 'entry' | 'done'>('list')
   const [selected, setSelected] = useState<TeamAssignment | null>(null)
@@ -32,6 +50,14 @@ export default function CheckInPage() {
     return (
       <div style={{ minHeight: '100vh', background: '#111', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <p>Event not found.</p>
+      </div>
+    )
+  }
+
+  if (!teamData) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#111', color: '#888', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <p>Loading teams…</p>
       </div>
     )
   }

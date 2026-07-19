@@ -108,5 +108,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // ── SkyQuest teaming — teams built in the admin Teaming tab ─────────────
+    // Public read on purpose: the day-of check-in page (/checkin/:id) and
+    // shareable print links (/print/:id/:type) are unauthenticated and render
+    // teams from this doc (member names are denormalized into it). Write is
+    // sign-in gated like the other admin surfaces.
+    match /teaming/{instanceId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
   }
 }
