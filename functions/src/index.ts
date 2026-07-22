@@ -148,19 +148,26 @@ export const suggestTeams = onCall(
       throw new HttpsError('internal', `Anthropic API error: ${msg}`)
     }
 
-    // Strip any accidental markdown fences before parsing.
-    const cleanJson = (() => {
-      const stripped = rawText.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim()
-      if (stripped.startsWith('{')) return stripped
-      // Try extracting the first {...} block as a fallback.
-      const match = rawText.match(/\{[\s\S]*\}/)
-      return match ? match[0] : stripped
-    })()
+    // The model sometimes wraps the JSON in markdown fences and/or appends
+    // prose after the closing fence. Try candidates from most to least
+    // specific: fenced block contents → first {...} block → raw text.
+    const candidates: string[] = []
+    const fenced = rawText.match(/```[a-z]*\s*([\s\S]*?)```/i)
+    if (fenced) candidates.push(fenced[1].trim())
+    const braced = rawText.match(/\{[\s\S]*\}/)
+    if (braced) candidates.push(braced[0])
+    candidates.push(rawText)
 
-    let parsed: AiResponse
-    try {
-      parsed = JSON.parse(cleanJson) as AiResponse
-    } catch {
+    let parsed: AiResponse | null = null
+    for (const candidate of candidates) {
+      try {
+        parsed = JSON.parse(candidate) as AiResponse
+        break
+      } catch {
+        // try the next candidate
+      }
+    }
+    if (!parsed) {
       throw new HttpsError('internal', `AI returned unparseable response: ${rawText.slice(0, 160)}`)
     }
 
