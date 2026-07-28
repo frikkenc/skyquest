@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkin/
+Disallow: /print/
+Sitemap: https://skyquest.furycoaching.com/sitemap.xml
