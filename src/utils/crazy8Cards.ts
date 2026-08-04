@@ -407,9 +407,9 @@ export interface StripCombo { formations: PickItem[]; value: number }
 export interface StripRound { round: number; combos: StripCombo[] }
 
 /**
- * Combos-by-round strips — one horizontal band per round with its combos
- * (formation art + total value), dashed cut line between rounds so the sheet
- * can be sliced into strips. Returns one SVG string per US Letter page.
+ * Combos-by-round strips — one horizontal band per round, ONE dive (combo)
+ * per line (formation art + names + total value). No cut marks; rounds simply
+ * stack with a gap and paginate (roughly two rounds per US Letter page).
  */
 export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: string }): string[] {
   const withCombos = rounds.filter(r => r.combos.length > 0)
@@ -419,57 +419,60 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
   const M = 30
   const TITLE_H = 46
   const LABEL_W = 78
-  const CELL_GAP = 10
   const CELL_H = 74
   const ROW_GAP = 8
   const STRIP_PAD = 12
-  const PER_ROW = 2
+  const ROUND_GAP = 14
+  const PER_ROW = 1        // one dive per line
   const usableW = SHEET_W - 2 * M
   const combosAreaW = usableW - LABEL_W - 12
-  const cellW = (combosAreaW - (PER_ROW - 1) * CELL_GAP) / PER_ROW
+  const cellW = combosAreaW
 
   const stripHeight = (nCombos: number): number => {
     const rows = Math.max(1, Math.ceil(nCombos / PER_ROW))
     return STRIP_PAD * 2 + rows * CELL_H + (rows - 1) * ROW_GAP
   }
 
+  // One dive per full-width line: formation art on the left (with "+" between),
+  // the combo's names centered in the open space, and the point value on the right.
   const comboCell = (combo: StripCombo, x: number, y: number): string => {
     const n = combo.formations.length
-    const valW = 52
-    const artAreaW = cellW - valW - 16
-    const thumbGap = 4
-    const thumbW = Math.min(52, (artAreaW - (n - 1) * thumbGap) / Math.max(1, n))
-    const thumbH = 38
-    const thumbY = y + 8
+    const valW = 56
+    const thumbGap = 6
+    const plusW = 12
+    const thumbW = 58
+    const thumbH = 46
+    const thumbY = y + (CELL_H - thumbH) / 2
     let thumbs = ''
+    let tx = x + 12
     combo.formations.forEach((f, i) => {
-      const tx = x + 8 + i * (thumbW + thumbGap)
       thumbs += embedFormation(f.svg, tx, thumbY, thumbW, thumbH)
+      tx += thumbW
       if (i < n - 1) {
-        // "+" between formations
-        thumbs += `<text x="${tx + thumbW + thumbGap / 2}" y="${thumbY + thumbH / 2 + 5}" text-anchor="middle" font-family="${REF_FONT}" font-size="14" fill="#999999">+</text>`
+        thumbs += `<text x="${tx + plusW / 2}" y="${y + CELL_H / 2 + 6}" text-anchor="middle" font-family="${REF_FONT}" font-size="18" fill="#999999">+</text>`
+        tx += plusW + thumbGap
       }
     })
-    const caption = combo.formations.map(f => f.name.toUpperCase()).join(' + ')
-    const capFs = caption.length > 42 ? 6.5 : caption.length > 30 ? 7.5 : 9
-    const valX = x + cellW - valW - 6
+    const caption = combo.formations.map(f => f.name.toUpperCase()).join('  +  ')
+    const valX = x + cellW - valW - 8
+    const capX = tx + 16
+    const capAvail = valX - capX - 10
+    const capFs = Math.max(7, Math.min(16, capAvail / (caption.length * 0.64)))
     return (
       `<rect x="${x}" y="${y}" width="${cellW}" height="${CELL_H}" rx="6" fill="#FAFAFA" stroke="#DDDDDD" stroke-width="1"/>` +
       thumbs +
+      `<text x="${capX}" y="${y + CELL_H / 2 + capFs / 3}" font-family="${REF_FONT}" font-size="${capFs.toFixed(1)}" font-weight="900" fill="#1A3A6E">${escapeXml(caption)}</text>` +
       `<rect x="${valX}" y="${y + 10}" width="${valW}" height="${CELL_H - 20}" rx="5" fill="#1A3A6E"/>` +
       `<text x="${valX + valW / 2}" y="${y + CELL_H / 2 + 3}" text-anchor="middle" font-family="${REF_FONT}" font-size="22" font-weight="900" fill="#FFFFFF">${combo.value}</text>` +
-      `<text x="${valX + valW / 2}" y="${y + CELL_H - 12}" text-anchor="middle" font-family="${REF_FONT}" font-size="7" fill="#FFFFFF" opacity="0.8">PTS</text>` +
-      `<text x="${x + 8}" y="${y + CELL_H - 8}" font-family="${REF_FONT}" font-size="${capFs}" fill="#333333">${escapeXml(caption)}</text>`
+      `<text x="${valX + valW / 2}" y="${y + CELL_H - 12}" text-anchor="middle" font-family="${REF_FONT}" font-size="7" fill="#FFFFFF" opacity="0.8">PTS</text>`
     )
   }
 
   const strip = (round: StripRound, y: number): string => {
     const h = stripHeight(round.combos.length)
+    const cx = M + LABEL_W + 12
     const cells = round.combos.map((combo, i) => {
-      const col = i % PER_ROW
-      const row = Math.floor(i / PER_ROW)
-      const cx = M + LABEL_W + 12 + col * (cellW + CELL_GAP)
-      const cy = y + STRIP_PAD + row * (CELL_H + ROW_GAP)
+      const cy = y + STRIP_PAD + i * (CELL_H + ROW_GAP)
       return comboCell(combo, cx, cy)
     }).join('\n  ')
     return (
@@ -480,15 +483,13 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
     )
   }
 
-  const cutLine = (y: number): string =>
-    `<line x1="${M}" y1="${y}" x2="${SHEET_W - M}" y2="${y}" stroke="#BBBBBB" stroke-width="1" stroke-dasharray="6 4"/>` +
-    `<text x="${M + 8}" y="${y - 3}" font-family="${REF_FONT}" font-size="9" fill="#BBBBBB">✂ cut</text>`
-
   const bottom = SHEET_H - M
+  const MAX_ROUNDS_PER_PAGE = 2
   const pages: string[] = []
   let body: string[] = []
   let y = M + TITLE_H
   let firstOnPage = true
+  let roundsOnPage = 0
 
   const flush = (isFirstPage: boolean) => {
     const header = isFirstPage
@@ -500,18 +501,20 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
 
   for (const round of withCombos) {
     const h = stripHeight(round.combos.length)
-    if (!firstOnPage && y + h > bottom) {
+    // New page when this round won't fit, or the page already holds the max.
+    if (!firstOnPage && (roundsOnPage >= MAX_ROUNDS_PER_PAGE || y + h > bottom)) {
       flush(pages.length === 0)
       y = M
       firstOnPage = true
+      roundsOnPage = 0
     }
     if (!firstOnPage) {
-      body.push(cutLine(y))
-      y += 10
+      y += ROUND_GAP
     }
     body.push(strip(round, y))
     y += h
     firstOnPage = false
+    roundsOnPage++
   }
   if (body.length) flush(pages.length === 0)
   return pages
