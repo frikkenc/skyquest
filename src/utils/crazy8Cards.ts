@@ -417,16 +417,26 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
   const title = (opts?.title ?? 'Frikken Crazy 8s — Round Menus').toUpperCase()
 
   const M = 30
-  const TITLE_H = 46
+  const TITLE_H = 40
   const LABEL_W = 78
-  const CELL_H = 74
-  const ROW_GAP = 8
-  const STRIP_PAD = 12
-  const ROUND_GAP = 14
+  const ROW_GAP = 6
+  const STRIP_PAD = 8
+  const ROUND_GAP = 10
   const PER_ROW = 1        // one dive per line
   const usableW = SHEET_W - 2 * M
   const combosAreaW = usableW - LABEL_W - 12
   const cellW = combosAreaW
+
+  // Size each dive row so the whole menu fills ONE page when it can. Clamp to a
+  // legible range; if even the min doesn't fit, height-based pagination below
+  // spills the overflow onto extra pages.
+  const numRounds = withCombos.length
+  const totalCombos = withCombos.reduce((sum, r) => sum + r.combos.length, 0)
+  const usableStripH = (SHEET_H - M) - (M + TITLE_H) - 6  // 6px safety
+  const fitH =
+    (usableStripH - numRounds * STRIP_PAD * 2 - (totalCombos - numRounds) * ROW_GAP - (numRounds - 1) * ROUND_GAP)
+    / Math.max(1, totalCombos)
+  const CELL_H = Math.max(54, Math.min(92, fitH))
 
   const stripHeight = (nCombos: number): number => {
     const rows = Math.max(1, Math.ceil(nCombos / PER_ROW))
@@ -484,12 +494,10 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
   }
 
   const bottom = SHEET_H - M
-  const MAX_ROUNDS_PER_PAGE = 2
   const pages: string[] = []
   let body: string[] = []
   let y = M + TITLE_H
   let firstOnPage = true
-  let roundsOnPage = 0
 
   const flush = (isFirstPage: boolean) => {
     const header = isFirstPage
@@ -501,12 +509,11 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
 
   for (const round of withCombos) {
     const h = stripHeight(round.combos.length)
-    // New page when this round won't fit, or the page already holds the max.
-    if (!firstOnPage && (roundsOnPage >= MAX_ROUNDS_PER_PAGE || y + h > bottom)) {
+    // Spill to a new page only when this round genuinely won't fit.
+    if (!firstOnPage && y + h > bottom) {
       flush(pages.length === 0)
       y = M
       firstOnPage = true
-      roundsOnPage = 0
     }
     if (!firstOnPage) {
       y += ROUND_GAP
@@ -514,7 +521,6 @@ export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: st
     body.push(strip(round, y))
     y += h
     firstOnPage = false
-    roundsOnPage++
   }
   if (body.length) flush(pages.length === 0)
   return pages
