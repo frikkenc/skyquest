@@ -1256,10 +1256,24 @@ function TeamingEditor({
                           // of the row, so skip them here (name shows only once).
                           if (personId === group.videoMemberId) return null
                           const isMulti = multiTeamIds.has(personId)
+                          // Native title tooltip: full name + details. Native (not a
+                          // styled popover) so it can't be clipped by the row's
+                          // horizontal-scroll overflow.
+                          const chipTitle = [
+                            reg.fullName ?? reg.members[0]?.name,
+                            [
+                              reg.division,
+                              reg.offeringType === 'video' ? 'Video' : reg.offeringType === 'captain' ? 'Captain' : null,
+                              reg.status !== 'approved' ? reg.status : null,
+                              isMulti ? 'on multiple teams' : null,
+                            ].filter(Boolean).join(' · '),
+                            reg.teammateNote ? `wants: ${reg.teammateNote}` : null,
+                          ].filter(Boolean).join('\n')
                           return (
                             <div
                               key={personId}
                               className={`${teamStyles.memberChip} ${isMulti ? teamStyles.memberChipMulti : ''}`}
+                              title={chipTitle}
                               draggable
                               onDragStart={e => onPersonDragStart(e, personId, 'group', group.id)}
                               onDragEnd={() => { dragInfo.current = null; setDragOverGroupId(null) }}
@@ -1289,18 +1303,6 @@ function TeamingEditor({
                                 className={teamStyles.chipRemove}
                                 onClick={e => { e.stopPropagation(); removeFromGroup(group.id, personId) }}
                               >×</button>
-                              <div className={teamStyles.chipNote}>
-                                <div className={teamStyles.chipTipName}>{reg.fullName ?? reg.members[0]?.name}</div>
-                                <div className={teamStyles.chipTipMeta}>
-                                  {reg.division}
-                                  {reg.offeringType === 'video' && ' · 📷 Video'}
-                                  {reg.offeringType === 'captain' && ' · ⭐ Captain'}
-                                  {reg.status !== 'approved' && ` · ${reg.status}`}
-                                </div>
-                                {reg.teammateNote && (
-                                  <div className={teamStyles.chipTipWants}>wants: {reg.teammateNote}</div>
-                                )}
-                              </div>
                             </div>
                           )
                         })}
