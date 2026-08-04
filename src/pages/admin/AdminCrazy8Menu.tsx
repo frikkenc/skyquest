@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { auth } from '../../firebase'
 import { useCrazy8Master, useCrazy8Year, useCrazy8MarketTotals } from '../../hooks/useCrazy8'
+import {
+  loadFormationSvg, renderRoundStripsSheet, openMultiPageSvgPrintWindow,
+} from '../../utils/crazy8Cards'
 import type { MenuCombo, MenuRound } from '../../types/crazy8'
 import styles from './AdminCrazy8Cards.module.css'
 
@@ -14,6 +17,7 @@ export default function AdminCrazy8Menu() {
   const { yearDoc, loading, saving, saveMenu } = useCrazy8Year(year)
   const [draft, setDraft] = useState<MenuRound[]>([])
   const [dirty, setDirty] = useState(false)
+  const [printBusy, setPrintBusy] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err', text: string } | null>(null)
 
   useEffect(() => {
@@ -26,6 +30,15 @@ export default function AdminCrazy8Menu() {
     master.formations.forEach(f => { m[f.slug] = f.name })
     return m
   }, [master])
+
+  // Formations offered in the "add" dropdown: this year's valid set (from the
+  // Formations tab) when one is saved, otherwise all non-retired master ones.
+  const offerable = useMemo(() => {
+    const activeSet = yearDoc.activeFormations
+    return master.formations.filter(f =>
+      !f.retired && (!activeSet || activeSet.includes(f.slug)),
+    )
+  }, [master, yearDoc.activeFormations])
 
   function update(next: MenuRound[]) {
     setDraft(next)
@@ -98,6 +111,38 @@ export default function AdminCrazy8Menu() {
     }
   }
 
+  // Print the current draft as cuttable per-round strips (formation art + value).
+  async function handlePrintStrips() {
+    const hasCombos = draft.some(r => r.combos.some(c => c.formations.length > 0))
+    if (!hasCombos) {
+      setMessage({ type: 'err', text: 'Add at least one combo before printing.' })
+      return
+    }
+    setPrintBusy(true)
+    try {
+      const rounds = await Promise.all(draft.map(async r => ({
+        round: r.round,
+        combos: await Promise.all(
+          r.combos
+            .filter(c => c.formations.length > 0)
+            .map(async c => ({
+              value: c.value,
+              formations: await Promise.all(c.formations.map(async slug => {
+                const def = master.formations.find(f => f.slug === slug)
+                return { name: def?.name ?? slug, svg: await loadFormationSvg(slug, def?.svgContent) }
+              })),
+            })),
+        ),
+      })))
+      const pages = renderRoundStripsSheet(rounds, { title: `Frikken Crazy 8s ${year} — Round Menus` })
+      openMultiPageSvgPrintWindow(pages, `Crazy 8 Round Menus ${year}`)
+    } catch (err: any) {
+      setMessage({ type: 'err', text: `Print failed: ${err?.message ?? err}` })
+    } finally {
+      setPrintBusy(false)
+    }
+  }
+
   if (loading) return <div style={{ color: 'var(--adm-mute)', padding: 12 }}>Loading menu…</div>
 
   const yearOptions = [CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1]
@@ -112,12 +157,16 @@ export default function AdminCrazy8Menu() {
           {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
         <span style={{ color: 'var(--adm-mute)', fontSize: 12 }}>
-          4 rounds, any number of combos per round. Each combo can have 2 or 3 formations.
+          4 rounds, any number of combos per round. Each combo can have 2 or 3 formations
+          {yearDoc.activeFormations ? ` (from ${year}'s ${offerable.length} valid formations)` : ''}.
         </span>
         <span className={`${styles.savePill} ${saving ? styles.savingPill : ''}`}>
           {saving ? 'Saving…' : dirty ? 'Unsaved' : 'Saved'}
         </span>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button className={styles.btn} onClick={handlePrintStrips} disabled={printBusy}>
+            {printBusy ? 'Building…' : '🖨 Print round strips'}
+          </button>
           <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={!dirty || saving}>
             Save menu
           </button>
@@ -178,7 +227,7 @@ export default function AdminCrazy8Menu() {
                     <option value="">
                       {combo.formations.length >= 3 ? 'Max 3 formations' : '+ Add formation…'}
                     </option>
-                    {master.formations.filter(f => !f.retired).map(f => (
+                    {offerable.map(f => (
                       <option key={f.slug} value={f.slug}>{f.name} ({formatTotal(totals[f.slug] ?? 0)})</option>
                     ))}
                   </select>

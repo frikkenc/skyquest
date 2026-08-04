@@ -2,13 +2,14 @@ import { useState } from 'react'
 import AdminCrazy8Generate from './AdminCrazy8Generate'
 import AdminCrazy8Market from './AdminCrazy8Market'
 import AdminCrazy8Menu from './AdminCrazy8Menu'
+import AdminCrazy8Formations from './AdminCrazy8Formations'
 import styles from './AdminCrazy8Cards.module.css'
 
-type InnerTab = 'Generate' | 'Market' | 'Menu'
-const INNER_TABS: InnerTab[] = ['Generate', 'Market', 'Menu']
+type InnerTab = 'Formations' | 'Generate' | 'Market' | 'Menu'
+const INNER_TABS: InnerTab[] = ['Formations', 'Generate', 'Market', 'Menu']
 
 export default function AdminCrazy8Cards() {
-  const [tab, setTab] = useState<InnerTab>('Generate')
+  const [tab, setTab] = useState<InnerTab>('Formations')
 
   return (
     <div>
@@ -24,9 +25,10 @@ export default function AdminCrazy8Cards() {
         ))}
       </div>
 
-      {tab === 'Generate' && <AdminCrazy8Generate />}
-      {tab === 'Market'   && <AdminCrazy8Market />}
-      {tab === 'Menu'     && <AdminCrazy8Menu />}
+      {tab === 'Formations' && <AdminCrazy8Formations />}
+      {tab === 'Generate'   && <AdminCrazy8Generate />}
+      {tab === 'Market'     && <AdminCrazy8Market />}
+      {tab === 'Menu'       && <AdminCrazy8Menu />}
     </div>
   )
 }

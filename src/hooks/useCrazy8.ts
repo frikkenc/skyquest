@@ -43,7 +43,17 @@ export function useCrazy8Master() {
     await saveMaster(next)
   }
 
-  return { master, loading, saving, saveMaster, upsertFormation }
+  async function removeFormation(slug: string) {
+    await saveMaster({ formations: master.formations.filter(f => f.slug !== slug) })
+  }
+
+  async function setRetired(slug: string, retired: boolean) {
+    await saveMaster({
+      formations: master.formations.map(f => f.slug === slug ? { ...f, retired } : f),
+    })
+  }
+
+  return { master, loading, saving, saveMaster, upsertFormation, removeFormation, setRetired }
 }
 
 function emptyMenuRounds(): MenuRound[] {
@@ -75,6 +85,7 @@ export function useCrazy8Year(year: number) {
           year,
           menu: data.menu ?? { year, rounds: emptyMenuRounds() },
           market: data.market ?? {},
+          activeFormations: Array.isArray(data.activeFormations) ? data.activeFormations : undefined,
         })
       } else {
         setYearDoc({ year, menu: { year, rounds: emptyMenuRounds() }, market: {} })
@@ -87,7 +98,14 @@ export function useCrazy8Year(year: number) {
     setYearDoc(next)
     setSaving(true)
     try {
-      await setDoc(docRef(`year_${year}`), next, { merge: false })
+      // Firestore rejects `undefined` fields — only include activeFormations when set.
+      const payload: Crazy8YearDoc = {
+        year: next.year,
+        menu: next.menu,
+        market: next.market,
+        ...(Array.isArray(next.activeFormations) ? { activeFormations: next.activeFormations } : {}),
+      }
+      await setDoc(docRef(`year_${year}`), payload, { merge: false })
     } finally {
       setSaving(false)
     }
@@ -101,7 +119,11 @@ export function useCrazy8Year(year: number) {
     await saveYear({ ...yearDoc, menu: { year, rounds } })
   }
 
-  return { yearDoc, loading, saving, saveYear, saveMarket, saveMenu }
+  async function saveActiveFormations(slugs: string[]) {
+    await saveYear({ ...yearDoc, activeFormations: slugs })
+  }
+
+  return { yearDoc, loading, saving, saveYear, saveMarket, saveMenu, saveActiveFormations }
 }
 
 // One-click loader for the starter data extracted from the user's Sheet.

@@ -233,6 +233,16 @@ export async function fetchText(url: string): Promise<string> {
   return res.text()
 }
 
+/** Resolve a formation's SVG: inline master content first, then the public file, then a placeholder. */
+export async function loadFormationSvg(slug: string, svgContent?: string): Promise<string> {
+  if (svgContent) return svgContent
+  try {
+    return await fetchText(`/crazy8/formations/${slug}.svg`)
+  } catch {
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><text x="50" y="50" text-anchor="middle" fill="#888" font-size="10">no art</text></svg>'
+  }
+}
+
 /** Open an SVG string in a new window styled for print, exact US Letter sizing. */
 export function openSvgPrintWindow(svg: string, title: string, isSheet = false) {
   const pageCss = isSheet
@@ -267,4 +277,224 @@ export function downloadSvg(svg: string, filename: string) {
   a.download = filename
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 200)
+}
+
+// ── Reference sheets: formation pick sheet + combos-by-round strips ──────────
+// These print the year's *valid* formations (a pick menu players choose from)
+// and the menu combos grouped into cuttable per-round strips.
+
+/** Pull an SVG's inner body + viewBox so it can be nested at any box. */
+function svgInnerAndViewBox(raw: string): { inner: string; viewBox: string } {
+  const vbMatch = raw.match(/viewBox="([^"]+)"/)
+  const widthMatch = raw.match(/\bwidth="([\d.]+)(?:px)?"/)
+  const heightMatch = raw.match(/\bheight="([\d.]+)(?:px)?"/)
+  let viewBox = '0 0 100 100'
+  if (vbMatch) viewBox = vbMatch[1]
+  else if (widthMatch && heightMatch) viewBox = `0 0 ${widthMatch[1]} ${heightMatch[1]}`
+  return { inner: stripSvgWrapper(raw), viewBox }
+}
+
+/** Nest a formation SVG into an arbitrary box, preserving aspect ratio. */
+function embedFormation(raw: string, x: number, y: number, w: number, h: number): string {
+  const { inner, viewBox } = svgInnerAndViewBox(raw)
+  return `<svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`
+}
+
+const REF_FONT = "Bungee, Impact, 'Arial Black', sans-serif"
+
+function letterPage(body: string): string {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${SHEET_W} ${SHEET_H}" width="${SHEET_W}pt" height="${SHEET_H}pt">
+  <rect width="${SHEET_W}" height="${SHEET_H}" fill="#FFFFFF"/>
+  ${body}
+</svg>`
+}
+
+export interface PickItem { name: string; svg: string }
+
+/**
+ * Pick sheet — every valid formation as an art + name tile, laid out in a grid
+ * and paginated across US Letter pages. Returns one SVG string per page.
+ */
+export function renderFormationPickSheet(items: PickItem[], opts?: { title?: string; cols?: number }): string[] {
+  if (items.length === 0) return []
+  const title = (opts?.title ?? 'Frikken Crazy 8s — Formations').toUpperCase()
+  const cols = opts?.cols ?? 4
+  const M = 30
+  const GAP = 12
+  const TITLE_H = 52
+  const TILE_H = 138
+  const ART_H = 100
+  const usableW = SHEET_W - 2 * M
+  const colW = (usableW - (cols - 1) * GAP) / cols
+  const rowsPerPage = Math.max(1, Math.floor((SHEET_H - M - TITLE_H - M + GAP) / (TILE_H + GAP)))
+  const perPage = cols * rowsPerPage
+  const pageCount = Math.ceil(items.length / perPage)
+
+  const pages: string[] = []
+  for (let p = 0; p < pageCount; p++) {
+    const slice = items.slice(p * perPage, p * perPage + perPage)
+    const tiles = slice.map((item, i) => {
+      const col = i % cols
+      const row = Math.floor(i / cols)
+      const x = M + col * (colW + GAP)
+      const y = M + TITLE_H + row * (TILE_H + GAP)
+      const nm = item.name.toUpperCase()
+      const fs = nm.length > 13 ? 9 : nm.length > 10 ? 11 : 13
+      return (
+        `<rect x="${x}" y="${y}" width="${colW}" height="${TILE_H}" rx="8" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>` +
+        embedFormation(item.svg, x + 10, y + 8, colW - 20, ART_H) +
+        `<text x="${x + colW / 2}" y="${y + TILE_H - 12}" text-anchor="middle" font-family="${REF_FONT}" font-size="${fs}" font-weight="900" fill="#111111">${escapeXml(nm)}</text>`
+      )
+    }).join('\n  ')
+
+    const header =
+      `<text x="${M}" y="${M + 24}" font-family="${REF_FONT}" font-size="22" font-style="italic" font-weight="900" fill="#111111">${escapeXml(title)}</text>` +
+      (pageCount > 1
+        ? `<text x="${SHEET_W - M}" y="${M + 24}" text-anchor="end" font-family="${REF_FONT}" font-size="12" fill="#666666">Page ${p + 1} / ${pageCount}</text>`
+        : '')
+    pages.push(letterPage(`${header}\n  ${tiles}`))
+  }
+  return pages
+}
+
+export interface StripCombo { formations: PickItem[]; value: number }
+export interface StripRound { round: number; combos: StripCombo[] }
+
+/**
+ * Combos-by-round strips — one horizontal band per round with its combos
+ * (formation art + total value), dashed cut line between rounds so the sheet
+ * can be sliced into strips. Returns one SVG string per US Letter page.
+ */
+export function renderRoundStripsSheet(rounds: StripRound[], opts?: { title?: string }): string[] {
+  const withCombos = rounds.filter(r => r.combos.length > 0)
+  if (withCombos.length === 0) return []
+  const title = (opts?.title ?? 'Frikken Crazy 8s — Round Menus').toUpperCase()
+
+  const M = 30
+  const TITLE_H = 46
+  const LABEL_W = 78
+  const CELL_GAP = 10
+  const CELL_H = 74
+  const ROW_GAP = 8
+  const STRIP_PAD = 12
+  const PER_ROW = 2
+  const usableW = SHEET_W - 2 * M
+  const combosAreaW = usableW - LABEL_W - 12
+  const cellW = (combosAreaW - (PER_ROW - 1) * CELL_GAP) / PER_ROW
+
+  const stripHeight = (nCombos: number): number => {
+    const rows = Math.max(1, Math.ceil(nCombos / PER_ROW))
+    return STRIP_PAD * 2 + rows * CELL_H + (rows - 1) * ROW_GAP
+  }
+
+  const comboCell = (combo: StripCombo, x: number, y: number): string => {
+    const n = combo.formations.length
+    const valW = 52
+    const artAreaW = cellW - valW - 16
+    const thumbGap = 4
+    const thumbW = Math.min(52, (artAreaW - (n - 1) * thumbGap) / Math.max(1, n))
+    const thumbH = 38
+    const thumbY = y + 8
+    let thumbs = ''
+    combo.formations.forEach((f, i) => {
+      const tx = x + 8 + i * (thumbW + thumbGap)
+      thumbs += embedFormation(f.svg, tx, thumbY, thumbW, thumbH)
+      if (i < n - 1) {
+        // "+" between formations
+        thumbs += `<text x="${tx + thumbW + thumbGap / 2}" y="${thumbY + thumbH / 2 + 5}" text-anchor="middle" font-family="${REF_FONT}" font-size="14" fill="#999999">+</text>`
+      }
+    })
+    const caption = combo.formations.map(f => f.name.toUpperCase()).join(' + ')
+    const capFs = caption.length > 42 ? 6.5 : caption.length > 30 ? 7.5 : 9
+    const valX = x + cellW - valW - 6
+    return (
+      `<rect x="${x}" y="${y}" width="${cellW}" height="${CELL_H}" rx="6" fill="#FAFAFA" stroke="#DDDDDD" stroke-width="1"/>` +
+      thumbs +
+      `<rect x="${valX}" y="${y + 10}" width="${valW}" height="${CELL_H - 20}" rx="5" fill="#1A3A6E"/>` +
+      `<text x="${valX + valW / 2}" y="${y + CELL_H / 2 + 3}" text-anchor="middle" font-family="${REF_FONT}" font-size="22" font-weight="900" fill="#FFFFFF">${combo.value}</text>` +
+      `<text x="${valX + valW / 2}" y="${y + CELL_H - 12}" text-anchor="middle" font-family="${REF_FONT}" font-size="7" fill="#FFFFFF" opacity="0.8">PTS</text>` +
+      `<text x="${x + 8}" y="${y + CELL_H - 8}" font-family="${REF_FONT}" font-size="${capFs}" fill="#333333">${escapeXml(caption)}</text>`
+    )
+  }
+
+  const strip = (round: StripRound, y: number): string => {
+    const h = stripHeight(round.combos.length)
+    const cells = round.combos.map((combo, i) => {
+      const col = i % PER_ROW
+      const row = Math.floor(i / PER_ROW)
+      const cx = M + LABEL_W + 12 + col * (cellW + CELL_GAP)
+      const cy = y + STRIP_PAD + row * (CELL_H + ROW_GAP)
+      return comboCell(combo, cx, cy)
+    }).join('\n  ')
+    return (
+      `<rect x="${M}" y="${y}" width="${usableW}" height="${h}" rx="8" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>` +
+      `<text x="${M + 14}" y="${y + h / 2 - 4}" font-family="${REF_FONT}" font-size="11" fill="#999999" font-style="italic">ROUND</text>` +
+      `<text x="${M + 14}" y="${y + h / 2 + 22}" font-family="${REF_FONT}" font-size="34" font-weight="900" fill="#D81818">${round.round}</text>` +
+      cells
+    )
+  }
+
+  const cutLine = (y: number): string =>
+    `<line x1="${M}" y1="${y}" x2="${SHEET_W - M}" y2="${y}" stroke="#BBBBBB" stroke-width="1" stroke-dasharray="6 4"/>` +
+    `<text x="${M + 8}" y="${y - 3}" font-family="${REF_FONT}" font-size="9" fill="#BBBBBB">✂ cut</text>`
+
+  const bottom = SHEET_H - M
+  const pages: string[] = []
+  let body: string[] = []
+  let y = M + TITLE_H
+  let firstOnPage = true
+
+  const flush = (isFirstPage: boolean) => {
+    const header = isFirstPage
+      ? `<text x="${M}" y="${M + 22}" font-family="${REF_FONT}" font-size="20" font-style="italic" font-weight="900" fill="#111111">${escapeXml(title)}</text>`
+      : ''
+    pages.push(letterPage(`${header}\n  ${body.join('\n  ')}`))
+    body = []
+  }
+
+  for (const round of withCombos) {
+    const h = stripHeight(round.combos.length)
+    if (!firstOnPage && y + h > bottom) {
+      flush(pages.length === 0)
+      y = M
+      firstOnPage = true
+    }
+    if (!firstOnPage) {
+      body.push(cutLine(y))
+      y += 10
+    }
+    body.push(strip(round, y))
+    y += h
+    firstOnPage = false
+  }
+  if (body.length) flush(pages.length === 0)
+  return pages
+}
+
+/** Open one or more full-page SVGs in a print window, one letter page each. */
+export function openMultiPageSvgPrintWindow(svgs: string[], title: string) {
+  if (svgs.length === 0) { alert('Nothing to print.'); return }
+  const pages = svgs.map(s => `<div class="page">${s}</div>`).join('\n')
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>${title}</title>
+  <style>
+    @page { size: 8.5in 11in; margin: 0; }
+    html, body { margin: 0; padding: 0; background: white; }
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+    svg { display: block; margin: 0 auto; }
+    @media screen { body { padding: 16px; background: #ccc; } .page { margin-bottom: 16px; } svg { box-shadow: 0 2px 12px rgba(0,0,0,0.2); } }
+    @media print { body { padding: 0; background: white; } svg { box-shadow: none; } }
+  </style>
+</head>
+<body>${pages}<script>setTimeout(function(){window.print()},400)</script></body>
+</html>`
+  const win = window.open('', '_blank', 'width=900,height=1000')
+  if (!win) { alert('Pop-up blocked — allow pop-ups and try again.'); return }
+  win.document.write(html)
+  win.document.close()
+  win.focus()
 }

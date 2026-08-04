@@ -58,6 +58,8 @@ export default function AdminCrazy8Market() {
           year: y,
           menu: existing?.menu ?? { year: y, rounds: [] },
           market: data[y] ?? {},
+          // Preserve this year's valid-formation selection (managed on the Formations tab).
+          ...(Array.isArray(existing?.activeFormations) ? { activeFormations: existing!.activeFormations } : {}),
         }, { merge: false })
       }
       setMessage({ type: 'ok', text: 'Saved.' })

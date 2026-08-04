@@ -42,4 +42,7 @@ export interface Crazy8YearDoc {
   year: number
   menu: YearMenu
   market: { [slug: string]: MarketEntry }
+  // Slugs of the formations that are "in play" this year. When absent, treat
+  // as "all non-retired master formations" (back-compat with pre-selection docs).
+  activeFormations?: string[]
 }

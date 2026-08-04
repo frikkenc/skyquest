@@ -321,6 +321,56 @@
 }
 .savePill.savingPill { color: var(--sq-red); }
 
+/* Formations tab — active-selection grid */
+.fmGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.fmRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--adm-border, rgba(255,255,255,0.07));
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fmRow.fmOff { opacity: 0.45; }
+.fmRow.fmRetired { border-style: dashed; }
+
+.fmCheck { width: 18px; height: 18px; accent-color: var(--sq-red); cursor: pointer; flex-shrink: 0; }
+
+.fmName {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--adm-ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 6px;
+  border-radius: 4px;
+  min-width: 0;
+}
+.fmName:hover { border-color: rgba(255,255,255,0.1); }
+.fmName:focus { outline: none; border-color: var(--sq-red); background: rgba(255,255,255,0.05); }
+
+.fmMini { width: 30px; height: 24px; flex-shrink: 0; background: #fff; border-radius: 3px; }
+
+.fmIconBtn {
+  background: transparent;
+  border: none;
+  color: var(--adm-mute);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.fmIconBtn:hover { color: var(--sq-red); background: rgba(255,255,255,0.06); }
+
 .menuRound {
   background: var(--adm-card, rgba(255,255,255,0.02));
   border: 1px solid var(--adm-border, rgba(255,255,255,0.07));
