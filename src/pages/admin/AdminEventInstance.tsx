@@ -1312,7 +1312,11 @@ function TeamingEditor({
                       <button className={teamStyles.addSlotBtn} onClick={() => setAddingPendingId(group.id)}>+ Pending</button>
                     )}
 
-                    {/* Video — inline */}
+                    {/* Video — inline. Hidden when a team member is the video
+                        person: their chip's highlighted 📷 is the single
+                        indicator, so the name isn't shown twice. Still shown for
+                        an external/free-text video person and the "+ video" add. */}
+                    {!group.videoMemberId && (
                     <div className={teamStyles.videoInline}>
                       <span className={teamStyles.videoLabel}>📷</span>
                       {group.videoTbd ? (
@@ -1342,6 +1346,7 @@ function TeamingEditor({
                         <button className={teamStyles.addVideoBtn} onClick={() => setAddingVideoId(group.id)}>+ video</button>
                       )}
                     </div>
+                    )}
                   </div>
 
                   {/* Name edit / custom name label */}
