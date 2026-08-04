@@ -861,6 +861,7 @@ function TeamingEditor({
         // Auto-fill video slot if registrant signed up as video and slot is empty
         if (droppedReg?.offeringType === 'video' && !g.videoName && !g.videoTbd) {
           updates.videoName = droppedReg.members[0]?.name ?? ''
+          updates.videoMemberId = personId
         }
         return { ...g, ...updates }
       }))
@@ -926,19 +927,33 @@ function TeamingEditor({
 
   function setVideoForGroup(groupId: string, name: string) {
     if (!name.trim()) return
-    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, videoName: name.trim(), videoTbd: false } : g))
+    // Free-text/external video person — not one of the members, so drop any member link.
+    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, videoName: name.trim(), videoTbd: false, videoMemberId: undefined } : g))
     setAddingVideoId(null)
     setVideoDraft('')
   }
 
   function setVideoTbd(groupId: string) {
-    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, videoTbd: true, videoName: '' } : g))
+    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, videoTbd: true, videoName: '', videoMemberId: undefined } : g))
     setAddingVideoId(null)
     setVideoDraft('')
   }
 
   function clearVideo(groupId: string) {
-    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, videoName: '', videoTbd: false } : g))
+    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, videoName: '', videoTbd: false, videoMemberId: undefined } : g))
+  }
+
+  // Toggle a team member as that team's video person. On → they become the
+  // team's video (also fills videoName so it flows to printables); clicking the
+  // current video member again clears it.
+  function toggleMemberVideo(groupId: string, personId: string, name: string) {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g
+      if (g.videoMemberId === personId) {
+        return { ...g, videoMemberId: undefined, videoName: '', videoTbd: false }
+      }
+      return { ...g, videoMemberId: personId, videoName: name, videoTbd: false }
+    }))
   }
 
   function addPending(groupId: string, name: string) {
@@ -1244,7 +1259,23 @@ function TeamingEditor({
                             >
                               <span className={teamStyles.dragHandle}>⠿</span>
                               <span className={teamStyles.memberChipName}>{reg.members[0]?.name}</span>
-                              {reg.offeringType === 'video' && <span className={teamStyles.chipOfferingVideo}>📷</span>}
+                              {(() => {
+                                const isTeamVideo = group.videoMemberId === personId
+                                const registeredVideo = reg.offeringType === 'video'
+                                return (
+                                  <button
+                                    className={`${teamStyles.chipVideoToggle} ${isTeamVideo ? teamStyles.chipVideoOn : registeredVideo ? teamStyles.chipVideoHint : ''}`}
+                                    title={
+                                      isTeamVideo
+                                        ? 'Team video person — click to unset'
+                                        : registeredVideo
+                                          ? 'Registered as video flyer — click to set as team video'
+                                          : 'Mark as team video person'
+                                    }
+                                    onClick={e => { e.stopPropagation(); toggleMemberVideo(group.id, personId, reg.members[0]?.name ?? '') }}
+                                  >📷</button>
+                                )
+                              })()}
                               {reg.offeringType === 'captain' && <span className={teamStyles.chipOfferingCaptain}>⭐</span>}
                               {isMulti && <span className={teamStyles.multiTag} title="On multiple teams">×2</span>}
                               <button

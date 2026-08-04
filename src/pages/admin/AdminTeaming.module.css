@@ -219,6 +219,32 @@
   opacity: .8;
 }
 
+/* Clickable per-member "video person" toggle */
+.chipVideoToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 1px;
+  font-size: 10px;
+  line-height: 1;
+  opacity: .28;               /* off: faint, invites a click */
+  filter: grayscale(1);
+  transition: opacity .12s, filter .12s;
+}
+.chipVideoToggle:hover { opacity: .85; filter: grayscale(0); }
+/* Registered as video in Fury, but not yet set as this team's video person */
+.chipVideoHint {
+  opacity: .6;
+  filter: grayscale(.4);
+}
+/* This member IS the team's video person */
+.chipVideoOn {
+  opacity: 1;
+  filter: none;
+  background: rgba(206,147,216,.18);
+  border-radius: 4px;
+}
+
 .chipOfferingCaptain {
   font-size: 10px;
   opacity: .8;

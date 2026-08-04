@@ -116,6 +116,7 @@ export interface TeamGroup {
   pendingSlots: string[]   // names of people expected but not yet registered
   videoName: string        // '' = unset
   videoTbd: boolean
+  videoMemberId?: string   // set when the team's video person is one of its members (drives the 📷 toggle); videoName is kept in sync for printables
   isAiSuggested?: boolean  // true = created by the AI Suggest button
 }
 
