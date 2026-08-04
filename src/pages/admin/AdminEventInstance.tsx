@@ -1248,6 +1248,9 @@ function TeamingEditor({
                         {group.memberIds.map(personId => {
                           const reg = regById[personId]
                           if (!reg) return null
+                          // The video person renders as the purple chip at the end
+                          // of the row, so skip them here (name shows only once).
+                          if (personId === group.videoMemberId) return null
                           const isMulti = multiTeamIds.has(personId)
                           return (
                             <div
@@ -1312,11 +1315,10 @@ function TeamingEditor({
                       <button className={teamStyles.addSlotBtn} onClick={() => setAddingPendingId(group.id)}>+ Pending</button>
                     )}
 
-                    {/* Video — inline. Hidden when a team member is the video
-                        person: their chip's highlighted 📷 is the single
-                        indicator, so the name isn't shown twice. Still shown for
-                        an external/free-text video person and the "+ video" add. */}
-                    {!group.videoMemberId && (
+                    {/* Video — inline. The video person always renders here as a
+                        purple chip at the end of the row; when they're a team
+                        member they're skipped from the inline member list above
+                        (see the memberIds map) so the name shows only once. */}
                     <div className={teamStyles.videoInline}>
                       <span className={teamStyles.videoLabel}>📷</span>
                       {group.videoTbd ? (
@@ -1346,7 +1348,6 @@ function TeamingEditor({
                         <button className={teamStyles.addVideoBtn} onClick={() => setAddingVideoId(group.id)}>+ video</button>
                       )}
                     </div>
-                    )}
                   </div>
 
                   {/* Name edit / custom name label */}
