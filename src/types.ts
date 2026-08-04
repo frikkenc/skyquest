@@ -85,6 +85,7 @@ export interface TeamRegistration {
   teamName: string
   offeringType?: OfferingType   // role they registered as in Fury (default: jumper)
   members: TeamMember[]
+  fullName?: string       // legal first+last name (chip shows a preferred name/nickname; this is for the hover tooltip)
   teammateNote?: string   // free-text "who's on your team" from registration form
   status: 'pending' | 'approved' | 'waitlist' | 'denied' | 'unmatched'
   paymentStatus: 'unpaid' | 'partial' | 'paid'

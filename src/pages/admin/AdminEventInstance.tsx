@@ -30,9 +30,10 @@ const AVAILABLE_DIVISIONS: Division[] = ['AAA', 'AA', 'A', 'Rookie', 'Open', '2-
  * registrations actually load.
  */
 function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
+  const legalName = [r.client.firstName, r.client.lastName].filter(Boolean).join(' ').trim()
   const displayName =
     r.client.preferredName ||
-    [r.client.firstName, r.client.lastName].filter(Boolean).join(' ').trim() ||
+    legalName ||
     r.name ||
     'Unknown'
 
@@ -66,6 +67,9 @@ function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
     teamName: '', // Teaming assignments live separately; no team yet from Fury
     offeringType: isVideoOffering ? 'video' : 'jumper',
     members: [{ id: r.client.id || r.id, name: displayName }],
+    // Full legal name for the hover tooltip when the chip shows only a
+    // preferred name/nickname. Omit when it's identical to the chip label.
+    fullName: legalName && legalName !== displayName ? legalName : undefined,
     teammateNote: r.formData.teammates || undefined,
     status,
     paymentStatus: 'unpaid', // Not needed for Teaming; placeholder
@@ -1285,9 +1289,18 @@ function TeamingEditor({
                                 className={teamStyles.chipRemove}
                                 onClick={e => { e.stopPropagation(); removeFromGroup(group.id, personId) }}
                               >×</button>
-                              {reg.teammateNote && (
-                                <div className={teamStyles.chipNote}>"{reg.teammateNote}"</div>
-                              )}
+                              <div className={teamStyles.chipNote}>
+                                <div className={teamStyles.chipTipName}>{reg.fullName ?? reg.members[0]?.name}</div>
+                                <div className={teamStyles.chipTipMeta}>
+                                  {reg.division}
+                                  {reg.offeringType === 'video' && ' · 📷 Video'}
+                                  {reg.offeringType === 'captain' && ' · ⭐ Captain'}
+                                  {reg.status !== 'approved' && ` · ${reg.status}`}
+                                </div>
+                                {reg.teammateNote && (
+                                  <div className={teamStyles.chipTipWants}>wants: {reg.teammateNote}</div>
+                                )}
+                              </div>
                             </div>
                           )
                         })}

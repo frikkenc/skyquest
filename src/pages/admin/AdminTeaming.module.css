@@ -645,7 +645,7 @@
 
 .chipRemove:hover { color: var(--sq-red); }
 
-/* Hover tooltip for teammate notes */
+/* Hover tooltip: full name + details */
 .chipNote {
   display: none;
   position: absolute;
@@ -658,7 +658,6 @@
   padding: 7px 11px;
   font-size: 11px;
   color: var(--adm-mute);
-  font-style: italic;
   white-space: normal;
   max-width: 260px;
   min-width: 120px;
@@ -667,6 +666,24 @@
   box-shadow: 0 4px 16px rgba(0,0,0,.4);
   text-align: left;
   line-height: 1.4;
+}
+
+.chipTipName {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--adm-ink);
+}
+.chipTipMeta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--adm-mute);
+  margin-top: 1px;
+}
+.chipTipWants {
+  font-style: italic;
+  margin-top: 4px;
+  color: var(--adm-mute);
 }
 
 .memberChip:hover .chipNote { display: block; }
