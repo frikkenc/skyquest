@@ -28,7 +28,7 @@ Christy` },
 
 You're in for {{eventName}} at {{eventDz}} on {{eventDate}}!
 
-This is a 4-way Formation Skydiving comp — 8 rounds, all divisions. You'll get the dive pool by {{divePoolDate}}.
+This is a 4-way Formation Skydiving comp — 5 rounds, all divisions. You'll get the dive pool by {{divePoolDate}}.
 
 What you signed up for:
   Team: {{teamName}}

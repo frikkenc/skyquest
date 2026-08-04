@@ -44,7 +44,7 @@ export default function AdminEventType() {
           <p className={styles.headerDesc}>{eventType.description}</p>
           <div className={styles.headerBadges}>
             <span className={styles.badgeSize}>4-way</span>
-            <span className={styles.badgeRounds}>8 rounds</span>
+            <span className={styles.badgeRounds}>5 rounds</span>
             <span className={styles.badgeDivs}>AAA · AA · A · Rookie</span>
           </div>
         </div>
