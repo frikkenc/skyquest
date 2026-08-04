@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import { getFunctions } from 'firebase/functions'
+import { getStorage } from 'firebase/storage'
 
 // Firebase config — set these in .env.local:
 //   VITE_FIREBASE_API_KEY=...
@@ -25,4 +26,5 @@ export const db = getFirestore(app)
 export const auth = getAuth(app)
 // us-central1 to match functions/src/index.ts deployment region.
 export const functions = getFunctions(app, 'us-central1')
+export const storage = getStorage(app)
 export default app

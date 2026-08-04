@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { auth } from '../../firebase'
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
+import { auth, storage } from '../../firebase'
 import { useCrazy8Master, useCrazy8Year } from '../../hooks/useCrazy8'
 import {
-  loadFormationSvg, renderFormationPickSheet, openMultiPageSvgPrintWindow,
+  loadFormationSvg, renderFormationPickSheet, openMultiPageSvgPrintWindow, fetchAsDataUri,
 } from '../../utils/crazy8Cards'
 import type { FormationDef } from '../../types/crazy8'
 import styles from './AdminCrazy8Cards.module.css'
@@ -17,6 +18,7 @@ export default function AdminCrazy8Formations() {
   const [active, setActive] = useState<Set<string>>(new Set())
   const [dirty, setDirty] = useState(false)
   const [printBusy, setPrintBusy] = useState(false)
+  const [artBusy, setArtBusy] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'ok' | 'err', text: string } | null>(null)
 
   // Add-formation modal
@@ -127,6 +129,50 @@ export default function AdminCrazy8Formations() {
     }
   }
 
+  // Replace the art on an existing formation. Uploads the SVG to Firebase
+  // Storage (the master doc can't hold ~1MB inline — Firestore caps docs at
+  // 1MB) and stores just the download URL on the formation. Both the pick
+  // sheet and the round strips resolve art from artUrl first.
+  async function handleReplaceArt(f: FormationDef, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''  // reset so re-selecting the same file re-fires onChange
+    if (!file) return
+    if (!auth.currentUser) {
+      setMessage({ type: 'err', text: 'Not signed in — log in at /admin/login first.' })
+      return
+    }
+    setArtBusy(f.slug)
+    try {
+      const svg = await file.text()
+      if (!svg.includes('<svg')) {
+        setMessage({ type: 'err', text: `${file.name} doesn't look like an SVG.` })
+        return
+      }
+      // Unique object name per upload so a re-upload can't be masked by a
+      // cached copy of the previous download URL.
+      const path = `crazy8/formations/${f.slug}-${Date.now().toString(36)}.svg`
+      const objRef = storageRef(storage, path)
+      await uploadBytes(objRef, new Blob([svg], { type: 'image/svg+xml' }), { contentType: 'image/svg+xml' })
+      const artUrl = await getDownloadURL(objRef)
+      // Store the URL; drop any legacy inline svgContent so artUrl wins cleanly
+      // (delete rather than set undefined — Firestore rejects undefined fields).
+      const previousArt = f.artUrl
+      const updated: FormationDef = { ...f, artUrl }
+      delete updated.svgContent
+      await upsertFormation(updated)
+      // Best-effort: remove the superseded Storage object so old art doesn't
+      // pile up. Only ours to delete — legacy public-file art has no artUrl.
+      if (previousArt) {
+        deleteObject(storageRef(storage, previousArt)).catch(() => { /* orphan is harmless */ })
+      }
+      setMessage({ type: 'ok', text: `Updated art for ${f.name}.` })
+    } catch (err: any) {
+      setMessage({ type: 'err', text: `Art update failed: ${err?.message ?? err}` })
+    } finally {
+      setArtBusy(null)
+    }
+  }
+
   function handleNewSvgUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -143,10 +189,18 @@ export default function AdminCrazy8Formations() {
     }
     setPrintBusy(true)
     try {
-      const items = await Promise.all(
-        chosen.map(async f => ({ name: f.name, svg: await loadFormationSvg(f.slug, f.svgContent) })),
-      )
-      const pages = renderFormationPickSheet(items, { title: `Frikken Crazy 8s ${year} — Formations` })
+      const [items, logo] = await Promise.all([
+        Promise.all(chosen.map(async f => ({
+          name: f.name,
+          svg: await loadFormationSvg(f.slug, { artUrl: f.artUrl, svgContent: f.svgContent }),
+        }))),
+        fetchAsDataUri('/crazy8/assets/fc8_badge.png').catch(() => null),
+      ])
+      const pages = renderFormationPickSheet(items, {
+        title: `Frikken Crazy 8s ${year}`,
+        subtitle: 'Pick your formations',
+        logoDataUri: logo,
+      })
       openMultiPageSvgPrintWindow(pages, `Crazy 8 Formations ${year}`)
     } catch (err: any) {
       setMessage({ type: 'err', text: `Print failed: ${err?.message ?? err}` })
@@ -231,9 +285,11 @@ export default function AdminCrazy8Formations() {
       <div className={styles.fmGrid}>
         {master.formations.map(f => {
           const on = active.has(f.slug) && !f.retired
-          const src = f.svgContent
-            ? `data:image/svg+xml;utf8,${encodeURIComponent(f.svgContent)}`
-            : `/crazy8/formations/${f.slug}.svg`
+          const src = f.artUrl
+            ? f.artUrl
+            : f.svgContent
+              ? `data:image/svg+xml;utf8,${encodeURIComponent(f.svgContent)}`
+              : `/crazy8/formations/${f.slug}.svg`
           return (
             <div key={f.slug} className={`${styles.fmRow} ${on ? '' : styles.fmOff} ${f.retired ? styles.fmRetired : ''}`}>
               <input
@@ -248,6 +304,18 @@ export default function AdminCrazy8Formations() {
                 defaultValue={f.name} onBlur={e => commitName(f, e.target.value)}
                 title="Rename (affects all years)"
               />
+              <label
+                className={styles.fmIconBtn}
+                title="Replace art (upload SVG)"
+                style={{ cursor: artBusy ? 'wait' : 'pointer', opacity: artBusy === f.slug ? 0.5 : 1 }}
+              >
+                {artBusy === f.slug ? '⏳' : '🖼'}
+                <input
+                  type="file" accept=".svg,image/svg+xml" style={{ display: 'none' }}
+                  disabled={!!artBusy}
+                  onChange={e => handleReplaceArt(f, e)}
+                />
+              </label>
               <button className={styles.fmIconBtn} onClick={() => handleRetire(f)} title={f.retired ? 'Un-retire' : 'Retire (hide from menus everywhere)'}>
                 {f.retired ? '↩' : '⦸'}
               </button>

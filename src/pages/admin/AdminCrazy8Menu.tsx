@@ -129,7 +129,10 @@ export default function AdminCrazy8Menu() {
               value: c.value,
               formations: await Promise.all(c.formations.map(async slug => {
                 const def = master.formations.find(f => f.slug === slug)
-                return { name: def?.name ?? slug, svg: await loadFormationSvg(slug, def?.svgContent) }
+                return {
+                  name: def?.name ?? slug,
+                  svg: await loadFormationSvg(slug, { artUrl: def?.artUrl, svgContent: def?.svgContent }),
+                }
               })),
             })),
         ),

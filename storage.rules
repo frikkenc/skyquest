@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// fury-identity Storage ruleset — owned by SkyQuest.
+//
+// This bucket (gs://fury-identity.firebasestorage.app) was enabled specifically
+// for SkyQuest's Frikken Crazy 8s formation art. If another app ever starts
+// using this bucket, add its paths here — a redeploy of this file is the whole
+// ruleset for the bucket (same clobber caveat as firestore.rules).
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Frikken Crazy 8s formation art. Admin uploads (must be signed in); public
+    // read so the pick sheet + round-strip printables can fetch and embed the
+    // SVG markup in any browser. Art is line-drawing SVG — not sensitive.
+    match /crazy8/formations/{fileName=**} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/svg\\+xml');
+      // Signed-in admins can delete (used to clean up superseded art files).
+      allow delete: if request.auth != null;
+    }
+
+    // Everything else stays locked down.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

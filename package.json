@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "deploy": "npm run deploy:hosting && npm run deploy:functions",
     "deploy:hosting": "npm run build && firebase deploy --only hosting --project skyquest",
-    "deploy:functions": "firebase deploy --only functions --project default"
+    "deploy:functions": "firebase deploy --only functions --project default",
+    "deploy:storage": "firebase deploy --only storage --project default"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

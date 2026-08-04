@@ -233,9 +233,23 @@ export async function fetchText(url: string): Promise<string> {
   return res.text()
 }
 
-/** Resolve a formation's SVG: inline master content first, then the public file, then a placeholder. */
-export async function loadFormationSvg(slug: string, svgContent?: string): Promise<string> {
-  if (svgContent) return svgContent
+/**
+ * Resolve a formation's SVG markup, in priority order:
+ *   1. artUrl        — uploaded to Firebase Storage (preferred; any size)
+ *   2. svgContent    — inline markup on the master doc (legacy / tiny art)
+ *   3. public file   — /crazy8/formations/<slug>.svg (the shipped defaults)
+ *   4. placeholder   — "no art" stub
+ */
+export async function loadFormationSvg(
+  slug: string,
+  source?: { artUrl?: string | null; svgContent?: string | null } | string | null,
+): Promise<string> {
+  // Back-compat: a bare string used to mean svgContent.
+  const src = typeof source === 'string' ? { svgContent: source } : (source ?? {})
+  if (src.artUrl) {
+    try { return await fetchText(src.artUrl) } catch { /* fall through to next source */ }
+  }
+  if (src.svgContent) return src.svgContent
   try {
     return await fetchText(`/crazy8/formations/${slug}.svg`)
   } catch {
@@ -312,50 +326,81 @@ function letterPage(body: string): string {
 
 export interface PickItem { name: string; svg: string }
 
+// Frikken Crazy 8s brand palette (matches the card back + point badges).
+const FC8_NAVY = '#1A3A6E'
+const FC8_RED = '#D81818'
+const FC8_STEEL = '#9FB8E0'
+
 /**
- * Pick sheet — every valid formation as an art + name tile, laid out in a grid
- * and paginated across US Letter pages. Returns one SVG string per page.
+ * Pick sheet — every valid formation as an art + name tile, auto-fit onto a
+ * SINGLE US Letter page with a branded header (Crazy 8 badge + navy/red band).
+ * Returns a one-element array (kept as [] for the multi-page print helper).
  */
-export function renderFormationPickSheet(items: PickItem[], opts?: { title?: string; cols?: number }): string[] {
+export function renderFormationPickSheet(
+  items: PickItem[],
+  opts?: { title?: string; subtitle?: string; logoDataUri?: string | null },
+): string[] {
   if (items.length === 0) return []
-  const title = (opts?.title ?? 'Frikken Crazy 8s — Formations').toUpperCase()
-  const cols = opts?.cols ?? 4
-  const M = 30
-  const GAP = 12
-  const TITLE_H = 52
-  const TILE_H = 138
-  const ART_H = 100
+  const title = (opts?.title ?? 'Frikken Crazy 8s').toUpperCase()
+  const subtitle = (opts?.subtitle ?? 'Pick your formations').toUpperCase()
+  const logo = opts?.logoDataUri || null
+  const N = items.length
+
+  const M = 22
+  const GAP = 8
+  const HEADER_H = 66
+  const HEADER_GAP = 10
+  const NAME_H = 17
+
   const usableW = SHEET_W - 2 * M
-  const colW = (usableW - (cols - 1) * GAP) / cols
-  const rowsPerPage = Math.max(1, Math.floor((SHEET_H - M - TITLE_H - M + GAP) / (TILE_H + GAP)))
-  const perPage = cols * rowsPerPage
-  const pageCount = Math.ceil(items.length / perPage)
+  const usableH = SHEET_H - M - HEADER_H - HEADER_GAP - M
 
-  const pages: string[] = []
-  for (let p = 0; p < pageCount; p++) {
-    const slice = items.slice(p * perPage, p * perPage + perPage)
-    const tiles = slice.map((item, i) => {
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const x = M + col * (colW + GAP)
-      const y = M + TITLE_H + row * (TILE_H + GAP)
-      const nm = item.name.toUpperCase()
-      const fs = nm.length > 13 ? 9 : nm.length > 10 ? 11 : 13
-      return (
-        `<rect x="${x}" y="${y}" width="${colW}" height="${TILE_H}" rx="8" fill="#FFFFFF" stroke="#111111" stroke-width="1.5"/>` +
-        embedFormation(item.svg, x + 10, y + 8, colW - 20, ART_H) +
-        `<text x="${x + colW / 2}" y="${y + TILE_H - 12}" text-anchor="middle" font-family="${REF_FONT}" font-size="${fs}" font-weight="900" fill="#111111">${escapeXml(nm)}</text>`
-      )
-    }).join('\n  ')
-
-    const header =
-      `<text x="${M}" y="${M + 24}" font-family="${REF_FONT}" font-size="22" font-style="italic" font-weight="900" fill="#111111">${escapeXml(title)}</text>` +
-      (pageCount > 1
-        ? `<text x="${SHEET_W - M}" y="${M + 24}" text-anchor="end" font-family="${REF_FONT}" font-size="12" fill="#666666">Page ${p + 1} / ${pageCount}</text>`
-        : '')
-    pages.push(letterPage(`${header}\n  ${tiles}`))
+  // Choose the column count whose grid yields the largest squarish tile while
+  // still fitting all N formations on one page (maximize the smaller side).
+  let best = { cols: 1, tileW: usableW, tileH: usableH, score: -1 }
+  for (let cols = 1; cols <= N; cols++) {
+    const rows = Math.ceil(N / cols)
+    const tileW = (usableW - (cols - 1) * GAP) / cols
+    const tileH = (usableH - (rows - 1) * GAP) / rows
+    if (tileW <= 20 || tileH <= 34) continue
+    const score = Math.min(tileW, tileH)
+    if (score > best.score) best = { cols, tileW, tileH, score }
   }
-  return pages
+  const { cols, tileW, tileH } = best
+  const gridW = cols * tileW + (cols - 1) * GAP
+  const gridX = M + (usableW - gridW) / 2
+  const gridY = M + HEADER_H + HEADER_GAP
+  const artH = tileH - NAME_H - 6
+
+  const tiles = items.map((item, i) => {
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    const x = gridX + col * (tileW + GAP)
+    const y = gridY + row * (tileH + GAP)
+    const nm = item.name.toUpperCase()
+    const fs = Math.max(7, Math.min(13, (tileW - 8) / (nm.length * 0.62)))
+    return (
+      `<rect x="${x}" y="${y}" width="${tileW}" height="${tileH}" rx="7" fill="#FFFFFF" stroke="${FC8_NAVY}" stroke-width="1.5"/>` +
+      embedFormation(item.svg, x + 6, y + 6, tileW - 12, artH) +
+      `<text x="${x + tileW / 2}" y="${y + tileH - 6}" text-anchor="middle" font-family="${REF_FONT}" font-size="${fs.toFixed(1)}" font-weight="900" fill="${FC8_NAVY}">${escapeXml(nm)}</text>`
+    )
+  }).join('\n  ')
+
+  // Branded header band: navy field, Crazy 8 badge, title + subtitle, red rule.
+  const logoImg = logo
+    ? `<image x="${M + 8}" y="${M + 8}" width="${HEADER_H - 16}" height="${HEADER_H - 16}" preserveAspectRatio="xMidYMid meet" xlink:href="${logo}"/>`
+    : ''
+  const titleX = logo ? M + HEADER_H + 4 : M + 16
+  const titleAvail = M + usableW - titleX - 12
+  const titleFs = Math.max(12, Math.min(22, titleAvail / (title.length * 0.6)))
+  const header =
+    `<rect x="${M}" y="${M}" width="${usableW}" height="${HEADER_H}" rx="10" fill="${FC8_NAVY}"/>` +
+    logoImg +
+    `<text x="${titleX}" y="${M + HEADER_H / 2}" font-family="${REF_FONT}" font-size="${titleFs.toFixed(1)}" font-style="italic" font-weight="900" fill="#FFFFFF">${escapeXml(title)}</text>` +
+    `<text x="${titleX}" y="${M + HEADER_H / 2 + 18}" font-family="${REF_FONT}" font-size="10" letter-spacing="1.5" fill="${FC8_STEEL}">${escapeXml(subtitle)}</text>` +
+    `<rect x="${M + 10}" y="${M + HEADER_H - 6}" width="${usableW - 20}" height="3" rx="1.5" fill="${FC8_RED}"/>`
+
+  return [letterPage(`${header}\n  ${tiles}`)]
 }
 
 export interface StripCombo { formations: PickItem[]; value: number }
