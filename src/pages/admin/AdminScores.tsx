@@ -5,6 +5,7 @@ import { EVENT_INSTANCES, EVENT_RESULTS } from '../../data/mockData'
 import type { Division, TeamResult, TeamRegistration, PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
 import AdminScoresPokerRun from './AdminScoresPokerRun'
+import AdminScoresCrazy8 from './AdminScoresCrazy8'
 
 const MAX_ROUNDS = 20
 const DEFAULT_ROUNDS = 10
@@ -285,6 +286,12 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
 
   if (eventTypeSlug === 'poker-run') {
     return <AdminScoresPokerRun instanceId={instanceId} />
+  }
+
+  // Crazy 8s isn't scored per round — teams trade formation cards for menu
+  // combos at the end of the day, so it gets its own cash-in tally.
+  if (eventTypeSlug === 'crazy8s') {
+    return <AdminScoresCrazy8 instanceId={instanceId} />
   }
 
   const statusIcon = (s: RoundStatus) => s === 'weather' ? ' ☁' : s === 'choice' ? ' ?' : ''
