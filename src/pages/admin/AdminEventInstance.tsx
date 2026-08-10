@@ -52,13 +52,17 @@ function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
     divRaw === '8-WAY' || divRaw === '8WAY' ? '8-way' :
     'A'
 
-  // Fury approvalStatus = 'approved' | 'pending' | 'waitlist' | 'denied'.
-  // Default unknowns to 'pending' so they still surface in the pool.
+  // Fury approvalStatus = 'approved' | 'pending' | 'waitlist' | 'denied' |
+  // 'not_required' (events that don't gate registration on admin approval —
+  // e.g. SCSL). r.status = 'active' | 'canceled'. A registrant counts as
+  // "registered" when their slot is active and not awaiting/denied approval;
+  // treating 'not_required' as pending is what made the manifest flag everyone
+  // NOT REG.
   const status: TeamRegistration['status'] =
-    r.approvalStatus === 'approved' ? 'approved' :
+    r.status === 'canceled' || r.approvalStatus === 'denied' ? 'denied' :
     r.approvalStatus === 'waitlist' ? 'waitlist' :
-    r.approvalStatus === 'denied' ? 'denied' :
-    'pending'
+    r.approvalStatus === 'pending' ? 'pending' :
+    'approved'  // 'approved' or 'not_required' on an active slot = registered
 
   return {
     id: r.id,
@@ -72,8 +76,12 @@ function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
     fullName: legalName && legalName !== displayName ? legalName : undefined,
     teammateNote: r.formData.teammates || undefined,
     status,
-    paymentStatus: 'unpaid', // Not needed for Teaming; placeholder
-    balance: 0,
+    // The registrations feed carries no per-person paid status (SCSL allows
+    // pay-day-of via cash/Venmo/Zelle), so paymentStatus stays a placeholder.
+    // balance = the real registration fee (sum of unit prices) — the amount to
+    // collect on the day-of teams manifest.
+    paymentStatus: 'unpaid',
+    balance: r.units.reduce((sum, u) => sum + (u.nominalPrice || 0), 0),
     submittedAt: r.checkoutCompletedAt ?? r.createdAt,
   }
 }

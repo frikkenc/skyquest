@@ -276,14 +276,16 @@ export function teamsManifestHtml(teams: TeamAssignment[], regById: RegMap, even
     const knownDiv = team.division ?? (regById[team.memberIds[0]]?.division ?? '')
     const headLabel = knownTeamName ? ` — ${knownTeamName}` : ''
 
+    // Day-of collect sheet: name · fee · checkbox to tick off as paid is
+    // collected. (No online-paid data in the feed — so it's a manual sheet.)
     const memberRow = (reg: TeamRegistration) => {
       const name = reg.members[0]?.name ?? ''
-      const isPaid = reg.paymentStatus === 'paid'
-      const notReg = reg.status === 'pending' && reg.paymentStatus === 'unpaid'
+      const fee = reg.balance > 0 ? `$${reg.balance}` : '—'
       return `<div class="tm-row">
         <span class="tm-dot">●</span>
-        <span class="tm-name">${name}${notReg ? ' <span class="tm-nr">NOT REG</span>' : ''}</span>
-        <span class="tm-badge ${isPaid ? 'badge-paid' : 'badge-owes'}">${isPaid ? 'PAID' : 'OWES'}</span>
+        <span class="tm-name">${name}</span>
+        <span class="tm-fee">${fee}</span>
+        <span class="tm-check"></span>
       </div>`
     }
 
@@ -306,9 +308,6 @@ export function teamsManifestHtml(teams: TeamAssignment[], regById: RegMap, even
       </div>
     </div>`
   }
-
-  const notRegCount = teams.flatMap(t => t.memberIds.map(id => regById[id]))
-    .filter(r => r && r.status === 'pending' && r.paymentStatus === 'unpaid').length
 
   return `<!DOCTYPE html><html><head><title>Teams Manifest — ${event.name}</title>
 <style>
@@ -335,10 +334,8 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 .tm-row{display:flex;align-items:center;padding:3pt 0;border-bottom:1px solid #f0f0f0;gap:5pt}
 .tm-dot{color:#d81818;font-size:11pt;flex-shrink:0;line-height:1}
 .tm-name{flex:1;font-size:9pt;font-weight:700}
-.tm-nr{font-size:6pt;color:#d81818;font-weight:800;letter-spacing:.03em;margin-left:4pt}
-.tm-badge{font-size:6pt;font-weight:800;padding:1.5pt 5pt;border-radius:2pt;flex-shrink:0;letter-spacing:.05em}
-.badge-paid{background:#1a5c2a;color:#fff}
-.badge-owes{background:#d81818;color:#fff}
+.tm-fee{font-size:8.5pt;font-weight:800;color:#111;flex-shrink:0;min-width:32pt;text-align:right}
+.tm-check{width:11pt;height:11pt;border:1.2pt solid #333;border-radius:2pt;flex-shrink:0;margin-left:2pt}
 .tc-video{padding-top:4pt;font-size:8pt;color:#555}
 .footnote{margin-top:12pt;font-size:7pt;color:#888;padding-top:5pt;border-top:1px solid #ddd}
 .dfooter{margin-top:8pt;padding-top:5pt;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7.5pt;color:#888}
@@ -351,7 +348,7 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 </div>
 <div class="hrule"></div>
 <div class="teams-grid">${teams.map((t, i) => cardHtml(t, i + 1)).join('')}</div>
-${notRegCount > 0 ? '<div class="footnote">NOT REG = not yet registered as of print date</div>' : ''}
+<div class="footnote">$ = registration fee &nbsp;·&nbsp; ☐ = check off as you collect day-of &nbsp;·&nbsp; some may have already paid online</div>
 <div class="dfooter"><span>SoCal SkyQuest | furycoaching.com/socal-skyquest</span><span>Page 1</span></div>
 </body></html>`
 }

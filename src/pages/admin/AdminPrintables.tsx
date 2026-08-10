@@ -63,7 +63,7 @@ export default function PrintablesTab({ event, assignments, registrations }: Pro
       id: 'teams',
       icon: '⚑',
       title: 'Teams Manifest',
-      sub: 'All teams with PAID / OWES',
+      sub: 'All teams · fee to collect day-of',
       action: () => openPrint(teamsManifestHtml(teams, regById, event)),
       disabled: teams.length === 0,
     },
