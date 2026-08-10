@@ -10,6 +10,13 @@ export function eventYear(event: EventInstance): number {
   return new Date(event.date + 'T12:00:00').getFullYear()
 }
 
+// Print header title from the event name. Drops the "(SoCal SkyQuest)" league
+// suffix — the subtitle already carries it — so any event's printouts are
+// correctly titled (not hardcoded to SCSL).
+export function eventTitle(event: EventInstance): string {
+  return event.name.replace(/\s*\(SoCal SkyQuest\)\s*$/i, '').trim().toUpperCase()
+}
+
 export function openPrint(html: string) {
   const win = window.open('', '_blank', 'width=900,height=700')
   if (!win) { alert('Pop-up blocked — allow pop-ups for this page and try again.'); return }
@@ -60,7 +67,7 @@ export function manifestSlipsHtml(teams: TeamAssignment[], regById: RegMap, even
       <div class="shead">
         <img class="slogo" src="${logo}" alt="">
         <div class="stitleblock">
-          <div class="stitle">SCSL 4-WAY</div>
+          <div class="stitle">${eventTitle(event)}</div>
           <div class="ssub">SoCal SkyQuest • ${event.dropzone} ${year}</div>
         </div>
         <div class="scircle"></div>
@@ -168,7 +175,7 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 </style></head><body>
 <div class="dhead">
   <div class="hl"><img class="hlogo" src="${logo}" alt="">
-    <div><div class="htitle">SCSL 4-WAY MEET</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
+    <div><div class="htitle">${eventTitle(event)}</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
   </div>
   <div class="hbadge">CHECK-IN LIST</div>
 </div>
@@ -242,7 +249,7 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 </style></head><body>
 <div class="dhead">
   <div class="hl"><img class="hlogo" src="${logo}" alt="">
-    <div><div class="htitle">SCSL 4-WAY MEET</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
+    <div><div class="htitle">${eventTitle(event)}</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
   </div>
   <div class="hbadge">PAYMENT STATUS</div>
 </div>
@@ -342,7 +349,7 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 </style></head><body>
 <div class="dhead">
   <div class="hl"><img class="hlogo" src="${logo}" alt="">
-    <div><div class="htitle">SCSL 4-WAY MEET</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
+    <div><div class="htitle">${eventTitle(event)}</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
   </div>
   <div class="hbadge">TEAMS MANIFEST</div>
 </div>

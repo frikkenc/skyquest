@@ -6,7 +6,7 @@ import StatusPill from '../../components/StatusPill'
 import EventBadge from '../../components/EventBadge'
 import type { Division, TeamRegistration, TeamGroup, EventInstance } from '../../types'
 import type { FuryRegistrant } from '../../lib/furyClient'
-import { useFuryRegistrations } from '../../hooks/useFuryData'
+import { useFuryRegistrations, useFuryEventStats } from '../../hooks/useFuryData'
 import { useEventDivisions } from '../../hooks/useEventDivisions'
 import { useTeamingDoc, teamingDocToPrintData, type TeamingSaveState } from '../../hooks/useTeamingDoc'
 import styles from './AdminEventInstance.module.css'
@@ -116,6 +116,10 @@ export default function AdminEventInstance() {
   // Same query key as FuryRegsTab below — react-query dedupes; one fetch feeds both tabs.
   const { data: furyRegsData } = useFuryRegistrations(realFuryEventId)
   const furyRegs = furyRegsData?.registrations ?? []
+  // Live money/registration stats for the hero KPIs — the static event object's
+  // counts are stale (showed 0 Reg'd / 0 Approved / $0 Revenue). Falls back to
+  // the event fields until the fetch lands (or for non-Fury events).
+  const { data: liveStats } = useFuryEventStats(realFuryEventId)
   const registrations: TeamRegistration[] = furyRegs.map(r => furyToTeamReg(r, realFuryEventId ?? ''))
   // LFT = "Looking For Team" — only the people who explicitly said so on the
   // registration form. Don't conflate with "not yet assigned in the Teaming UI"
@@ -181,9 +185,9 @@ export default function AdminEventInstance() {
           </div>
           <div className={styles.heroKpis}>
             {[
-              { n: event.registrationCount, l: 'Reg\'d' },
-              { n: event.approvedCount, l: 'Approved' },
-              { n: `$${(event.revenue ?? 0).toLocaleString()}`, l: 'Revenue' },
+              { n: liveStats?.registrationCount ?? event.registrationCount, l: 'Reg\'d' },
+              { n: liveStats?.approvedCount ?? event.approvedCount, l: 'Approved' },
+              { n: `$${(liveStats?.revenue ?? event.revenue ?? 0).toLocaleString()}`, l: 'Revenue' },
               { n: lftCount, l: 'LFT', warn: lftCount > 0 },
             ].map(k => (
               <div key={k.l} className={styles.heroKpi}>
