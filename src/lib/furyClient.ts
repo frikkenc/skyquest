@@ -80,6 +80,23 @@ export interface FuryRegistrationsPayload {
   registrations: FuryRegistrant[]
 }
 
+/**
+ * A recorded payment against one registration. `method` is how it was actually
+ * taken ('venmo' | 'cash' | 'card' | 'zelle' | …) — Fury records whatever the
+ * admin picked, so treat it as free text rather than a closed set.
+ *
+ * Payments are NOT part of the registrations feed; they're only reachable one
+ * registration at a time, which is why fetching them is opt-in per surface.
+ */
+export interface FuryPayment {
+  id: string
+  registrationId: string
+  amount: number
+  method: string
+  status: string   // 'paid' | 'refunded' | …
+  createdAt: string
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 export function fetchFurySession(): Promise<FurySession> {
@@ -134,6 +151,10 @@ export interface FuryOfferingStats {
     denied: number
     totalActive: number
   }>
+}
+
+export function fetchFuryRegistrationPayments(registrationId: string): Promise<FuryPayment[]> {
+  return furyGet<FuryPayment[]>(`/api/registrations/${registrationId}/payments`)
 }
 
 export function fetchFuryEventList(): Promise<FuryEvent[]> {

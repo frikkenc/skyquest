@@ -6,7 +6,7 @@ import StatusPill from '../../components/StatusPill'
 import EventBadge from '../../components/EventBadge'
 import type { Division, TeamRegistration, TeamGroup, EventInstance } from '../../types'
 import type { FuryRegistrant } from '../../lib/furyClient'
-import { useFuryRegistrations, useFuryEventStats } from '../../hooks/useFuryData'
+import { useFuryRegistrations, useFuryEventStats, useFuryPayments } from '../../hooks/useFuryData'
 import { useEventDivisions } from '../../hooks/useEventDivisions'
 import { useTeamingDoc, teamingDocToPrintData, loadNumbersFor, type TeamingSaveState } from '../../hooks/useTeamingDoc'
 import styles from './AdminEventInstance.module.css'
@@ -730,6 +730,11 @@ function FuryTeamingTab({ furyEventId, instanceId, teamSize }: { furyEventId: st
 // only fill gaps (video slots, people who cancelled after teams were built).
 function PrintablesLoader({ event, registrations }: { event: EventInstance; registrations: TeamRegistration[] }) {
   const { loadState } = useTeamingDoc(event.id)
+  // Fury has no bulk payments endpoint, so this is one request per registration.
+  // It's scoped to this tab — the check-in sheet is the only thing that needs
+  // "how did they pay", and nothing else should pay that cost.
+  const realRegIds = registrations.map(r => r.id)
+  const { byRegId, isLoading: paymentsLoading, failedCount } = useFuryPayments(realRegIds)
 
   if (loadState.status === 'loading') {
     return <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-mute)', fontSize: 13 }}>Loading teams…</div>
@@ -741,7 +746,22 @@ function PrintablesLoader({ event, registrations }: { event: EventInstance; regi
   const furyIds = new Set(registrations.map(r => r.id))
   const merged = [...registrations, ...printData.registrations.filter(r => !furyIds.has(r.id))]
 
-  return <PrintablesTab event={event} assignments={printData.assignments} registrations={merged} />
+  return (
+    <>
+      {failedCount > 0 && (
+        <div style={{ margin: '0 0 12px', padding: '8px 12px', fontSize: 12, borderRadius: 6, background: 'rgba(255,171,64,.08)', border: '1px solid rgba(255,171,64,.3)', color: '#ffab40' }}>
+          Payment history failed to load for {failedCount} {failedCount === 1 ? 'person' : 'people'} — the check-in sheet shows the fee owed for those, with a blank line to write in how they paid.
+        </div>
+      )}
+      <PrintablesTab
+        event={event}
+        assignments={printData.assignments}
+        registrations={merged}
+        payments={byRegId}
+        paymentsLoading={paymentsLoading}
+      />
+    </>
+  )
 }
 
 function autoName(memberIds: string[], regById: Record<string, TeamRegistration>) {

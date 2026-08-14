@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import {
-  fetchFurySession, fetchFuryRegistrations,
+  fetchFurySession, fetchFuryRegistrations, fetchFuryRegistrationPayments,
   fetchFuryEventList, fetchFuryMoneySummary, fetchFuryOfferingStats,
+  type FuryPayment,
 } from '../lib/furyClient'
 
 /**
@@ -44,6 +45,46 @@ export function useFuryRegistrations(furyEventId: string | undefined) {
     staleTime: 2 * 60_000,
     ...FURY_QUERY_OPTS,
   })
+}
+
+/**
+ * Payments for a set of registrations, keyed by registration id.
+ *
+ * Fury has no bulk payments endpoint — it's one request per registration, so a
+ * 60-person meet is 60 requests. Only call this from a surface that genuinely
+ * needs "how did they pay" (the check-in sheet); everywhere else works off
+ * `balance` alone. Each id is its own cache entry, so re-renders and repeat
+ * visits are free, and a registration added later only fetches itself.
+ *
+ * A registration whose fetch fails maps to `undefined` rather than `[]` so
+ * callers can tell "no payments recorded" apart from "we couldn't find out" —
+ * printing "OWES $30" for someone who already paid is a worse failure than
+ * printing a blank.
+ */
+export function useFuryPayments(registrationIds: string[], enabled = true) {
+  const results = useQueries({
+    queries: registrationIds.map(id => ({
+      queryKey: ['fury', 'payments', id],
+      queryFn: () => fetchFuryRegistrationPayments(id),
+      enabled,
+      staleTime: 60_000,
+      ...FURY_QUERY_OPTS,
+    })),
+  })
+
+  const byRegId: Record<string, FuryPayment[] | undefined> = {}
+  registrationIds.forEach((id, i) => {
+    const r = results[i]
+    byRegId[id] = r?.isSuccess ? (r.data ?? []) : undefined
+  })
+
+  return {
+    byRegId,
+    isLoading: results.some(r => r.isLoading),
+    // Partial failure is normal-ish (one 500 among 60); surface a count rather
+    // than an all-or-nothing error so the sheet still prints.
+    failedCount: results.filter(r => r.isError).length,
+  }
 }
 
 export function useFuryEventList() {

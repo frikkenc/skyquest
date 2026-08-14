@@ -104,7 +104,8 @@ export interface TeamAssignment {
   division?: Division
   teamName?: string
   memberIds: string[]          // TeamRegistration ids
-  videoPersonId?: string       // TeamRegistration id
+  videoPersonId?: string       // TeamRegistration id (synthetic for a free-text video name)
+  videoMemberId?: string       // set when the video person is one of the team's own members
   alternateIds?: string[]      // TeamRegistration ids
   isConfirmed: boolean
   confirmedAt?: string
@@ -113,6 +114,10 @@ export interface TeamAssignment {
   // group teams into loads without recomputing the breaks themselves.
   loadNumber?: number
   loadTime?: string
+  // Expected-but-unregistered names (TeamGroup.pendingSlots). They have no
+  // registration to look up, and they're exactly who the check-in sheet needs
+  // to chase, so they ride along by name.
+  pendingNames?: string[]
 }
 
 // A team being built in the admin Teaming tab. Persisted per event instance

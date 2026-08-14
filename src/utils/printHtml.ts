@@ -1,4 +1,5 @@
 import type { TeamAssignment, TeamRegistration, EventInstance } from '../types'
+import type { FuryPayment } from '../lib/furyClient'
 
 export type RegMap = Record<string, TeamRegistration>
 
@@ -122,36 +123,138 @@ body{font-family:Arial,sans-serif;background:#fff}
 
 // ── 2. Check-In List ───────────────────────────────────────────────────────────
 
-export function checkInListHtml(regs: TeamRegistration[], event: EventInstance): string {
+/**
+ * The day-of table sheet: who's here, who still owes you something.
+ *
+ * Organised by team rather than alphabetically, because check-in happens a
+ * team at a time — a captain walks up with their whole team, and an alpha list
+ * means four separate lookups across two columns.
+ *
+ * Each person carries the two things the table has to settle before they jump:
+ * whether they're registered, and whether they've paid (and how, so a "I already
+ * Venmo'd you" can be checked rather than argued). Team name and division are
+ * blank write-in fields — both get decided at the table, not in advance.
+ *
+ * `payments` is optional and keyed by registration id: `undefined` for an id
+ * means we couldn't find out (the per-registration fetch failed), which prints
+ * differently from a confirmed "nothing paid".
+ */
+export function checkInListHtml(
+  teams: TeamAssignment[],
+  regById: RegMap,
+  event: EventInstance,
+  opts: {
+    payments?: Record<string, FuryPayment[] | undefined>
+    unassigned?: TeamRegistration[]
+  } = {},
+): string {
   const logo = `${window.location.origin}/logos/skyquest-master.png`
   const year = eventYear(event)
+  const payments = opts.payments
 
-  // Cancelled used to arrive here as 'denied'; it's now its own status, so it
-  // has to be excluded explicitly or people who pulled out reappear on check-in.
-  const confirmed = regs.filter(r => r.status !== 'denied' && r.status !== 'cancelled')
-  const sorted = [...confirmed].sort((a, b) => {
-    const aLast = (a.members[0]?.name ?? '').split(' ').at(-1) ?? ''
-    const bLast = (b.members[0]?.name ?? '').split(' ').at(-1) ?? ''
-    return aLast.localeCompare(bLast)
-  })
+  // Only 'paid' rows count — a refunded payment means the money went back.
+  const paidFor = (regId: string) => {
+    const rows = payments?.[regId]
+    if (!rows) return null                       // unknown vs. known-nothing
+    const paid = rows.filter(p => p.status === 'paid')
+    if (!paid.length) return { total: 0, methods: [] as string[] }
+    return {
+      total: paid.reduce((s, p) => s + p.amount, 0),
+      methods: [...new Set(paid.map(p => p.method))],
+    }
+  }
 
-  const half = Math.ceil(sorted.length / 2)
-  const cols = [sorted.slice(0, half), sorted.slice(half)]
+  const regCell = (reg: TeamRegistration) => {
+    if (reg.status === 'pending') return '<span class="tag tag-bad">NOT REG</span>'
+    if (reg.status === 'waitlist') return '<span class="tag tag-warn">WAITLIST</span>'
+    if (reg.status === 'cancelled') return '<span class="tag tag-bad">CANCELLED</span>'
+    return '<span class="tag tag-ok">REG&rsquo;D</span>'
+  }
 
-  const rowHtml = (reg: TeamRegistration) => {
-    const name = reg.members[0]?.name ?? ''
-    const parts = name.split(' ')
-    const last = parts.at(-1) ?? ''
-    const first = parts.slice(0, -1).join(' ')
-    const unpaid = reg.paymentStatus !== 'paid'
-    return `<div class="ci-row${unpaid ? ' ci-unpaid' : ''}">
-      <div class="ci-box"></div>
-      <div class="ci-name"><strong>${last}</strong>, ${first}</div>
-      <div class="ci-line"></div>
+  const payCell = (reg: TeamRegistration) => {
+    // Someone who pulled out owes nothing. They stay on the sheet so the table
+    // can see the team is short, but chasing them for money is wrong.
+    if (reg.status === 'cancelled') return '<span class="amt none">—</span>'
+    const p = paidFor(reg.id)
+    const owed = reg.balance || 0
+    // Nothing to collect (video slots and comped entries are $0) — an "OWES $0"
+    // badge next to their name is just noise at the table.
+    if (!owed && (!p || p.total === 0)) return '<span class="amt none">—</span>'
+    // No payment data at all — print the amount and a line, same as the old
+    // sheet did, rather than asserting they owe it.
+    if (!p) return `<span class="amt">$${owed}</span><span class="wline"></span>`
+    if (p.total > 0) {
+      const short = p.total < owed ? ` <span class="tag tag-warn">SHORT $${owed - p.total}</span>` : ''
+      return `<span class="tag tag-ok">PAID $${p.total}</span> <span class="method">${p.methods.join(' + ')}</span>${short}`
+    }
+    return `<span class="tag tag-bad">OWES $${owed}</span><span class="wline"></span>`
+  }
+
+  const personRow = (reg: TeamRegistration, isVideo = false) => {
+    const full = reg.fullName || reg.members[0]?.name || ''
+    return `<div class="p-row">
+      <span class="p-box"></span>
+      <span class="p-name">${full}</span>
+      <span class="p-reg">${regCell(reg)}${isVideo ? ' <span class="tag tag-vid">VIDEO</span>' : ''}</span>
+      <span class="p-pay">${payCell(reg)}</span>
     </div>`
   }
 
-  return `<!DOCTYPE html><html><head><title>Check-In List — ${event.name}</title>
+  // Expected but never registered — no id to look up, and the whole reason
+  // they're printed is so someone chases them at the table.
+  const pendingRow = (name: string) => `<div class="p-row">
+      <span class="p-box"></span>
+      <span class="p-name">${name}</span>
+      <span class="p-reg"><span class="tag tag-bad">NOT REG</span></span>
+      <span class="p-pay"><span class="tag tag-bad">OWES</span><span class="wline"></span></span>
+    </div>`
+
+  const teamBlock = (team: TeamAssignment, slot: number) => {
+    const members = team.memberIds.map(id => regById[id]).filter(Boolean)
+    // When the video person is one of the team's own members they'd otherwise
+    // print twice — once as a jumper, once as a synthetic video registration
+    // under a different id. Tag their real row instead and drop the extra one,
+    // so their registration and payment status stays visible.
+    const videoIsMember = !!team.videoMemberId
+    const videoReg = !videoIsMember && team.videoPersonId ? regById[team.videoPersonId] : null
+    const videoName = videoReg ? (videoReg.members[0]?.name ?? '') : ''
+    const load = team.loadNumber
+      ? `<span class="t-load">LOAD ${team.loadNumber}${team.loadTime ? ` · ${team.loadTime}` : ''}</span>`
+      : ''
+    // A team already named in the app still gets the blank line — names change
+    // at the table, and there's nowhere else to write the new one.
+    const nameHint = team.teamName ? `<span class="fill">${team.teamName}</span>` : ''
+
+    return `<div class="team">
+      <div class="t-head"><span class="t-n">TEAM ${slot}</span>${load}</div>
+      <div class="t-fields">
+        <span class="f-lbl">TEAM NAME</span><span class="f-line">${nameHint}</span>
+        <span class="f-lbl">DIVISION</span><span class="f-line f-short"></span>
+      </div>
+      <div class="t-people">
+        ${members.map(m => personRow(m, m.id === team.videoMemberId)).join('')}
+        ${(team.pendingNames ?? []).map(pendingRow).join('')}
+        ${videoName ? `<div class="p-row p-video"><span class="p-box"></span><span class="p-name">${videoName}</span><span class="p-reg"><span class="tag tag-vid">VIDEO</span></span><span class="p-pay"></span></div>` : ''}
+      </div>
+    </div>`
+  }
+
+  const unassigned = (opts.unassigned ?? []).filter(r => r.status !== 'denied' && r.status !== 'cancelled')
+  const unassignedBlock = unassigned.length ? `<div class="team">
+      <div class="t-head t-head-alt"><span class="t-n">NOT ON A TEAM</span><span class="t-load">${unassigned.length} registered</span></div>
+      <div class="t-people">${unassigned.map(r => personRow(r)).join('')}</div>
+    </div>` : ''
+
+  // Counts worth knowing before the doors open.
+  const allOnTeams = teams.flatMap(t => t.memberIds.map(id => regById[id])).filter(Boolean) as TeamRegistration[]
+  const everyone = [...allOnTeams, ...unassigned]
+  const notReg = everyone.filter(r => r.status === 'pending').length
+    + teams.reduce((s, t) => s + (t.pendingNames?.length ?? 0), 0)
+  const owing = payments
+    ? everyone.filter(r => { const p = paidFor(r.id); return p && p.total === 0 && (r.balance || 0) > 0 }).length
+    : null
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Check-In — ${event.name}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 @page{size:letter portrait;margin:.4in}
@@ -162,35 +265,54 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 .htitle{font-size:20pt;font-weight:900;letter-spacing:.02em}
 .hsub{font-size:9pt;color:#bbb;margin-top:2pt}
 .hbadge{background:#d81818;color:#fff;font-size:8pt;font-weight:800;padding:6pt 12pt;border-radius:3pt;letter-spacing:.06em;white-space:nowrap}
-.hrule{border-bottom:3pt solid #d81818;margin-bottom:8pt}
-.col-hdrs{display:grid;grid-template-columns:1fr 1fr;gap:8pt;margin-bottom:4pt}
-.col-hdr{background:#1a5c2a;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:4pt 10pt;font-size:7.5pt;font-weight:700;letter-spacing:.06em}
-.count-line{font-size:7.5pt;color:#666;margin-bottom:5pt;padding-left:2pt}
-.ci-cols{display:grid;grid-template-columns:1fr 1fr;gap:8pt}
-.ci-row{display:flex;align-items:center;gap:7pt;padding:3.5pt 5pt;border-bottom:1px solid #e8e8e8;min-height:17pt}
-.ci-row:nth-child(even){background:#f8f8f8}
-.ci-box{width:10pt;height:10pt;border:1pt solid #aaa;flex-shrink:0}
-.ci-name{font-size:8.5pt;white-space:nowrap}
-.ci-line{flex:1;border-bottom:1px solid #ccc;height:1em}
-.ci-unpaid .ci-name{color:#999}
-.dfooter{margin-top:10pt;padding-top:5pt;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7.5pt;color:#888}
+.hrule{border-bottom:3pt solid #d81818;margin-bottom:7pt}
+.summary{font-size:8pt;color:#444;margin-bottom:8pt;display:flex;gap:14pt;flex-wrap:wrap}
+.summary b{color:#d81818}
+.team{border:1px solid #ccc;margin-bottom:8pt;break-inside:avoid;page-break-inside:avoid}
+.t-head{background:#1a5c2a;color:#fff;padding:4pt 9pt;display:flex;align-items:baseline;justify-content:space-between;gap:10pt}
+.t-head-alt{background:#555}
+.t-n{font-size:10.5pt;font-weight:900;letter-spacing:.05em}
+.t-load{font-size:7.5pt;font-weight:700;letter-spacing:.06em;opacity:.85}
+.t-fields{display:flex;align-items:center;gap:6pt;padding:5pt 9pt 4pt;border-bottom:1px solid #eee;font-size:6.5pt;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.f-lbl{white-space:nowrap;flex-shrink:0}
+.f-line{flex:1;border-bottom:1px solid #999;height:1.25em;position:relative}
+.f-short{flex:0 0 70pt}
+.fill{position:absolute;left:2pt;bottom:1pt;font-size:8.5pt;font-weight:800;color:#111;text-transform:none;letter-spacing:0}
+.t-people{padding:3pt 9pt 6pt}
+.p-row{display:flex;align-items:center;gap:8pt;padding:3.5pt 0;border-bottom:1px solid #f0f0f0;min-height:19pt}
+.p-row:last-child{border-bottom:none}
+.p-box{width:11pt;height:11pt;border:1.2pt solid #333;border-radius:2pt;flex-shrink:0}
+.p-name{flex:1;font-size:9.5pt;font-weight:700}
+.p-reg{flex:0 0 62pt}
+.p-pay{flex:0 0 165pt;display:flex;align-items:center;gap:5pt}
+.p-video .p-name{font-weight:600;color:#555;font-style:italic}
+.tag{font-size:6.5pt;font-weight:800;letter-spacing:.05em;padding:1.5pt 4pt;border-radius:2pt;white-space:nowrap}
+.tag-ok{background:#e3f2e5;color:#1a5c2a;border:.8pt solid #1a5c2a}
+.tag-bad{background:#fdeaea;color:#d81818;border:.8pt solid #d81818}
+.tag-warn{background:#fff4e0;color:#a86400;border:.8pt solid #a86400}
+.tag-vid{background:#f2e8f7;color:#7b3fa0;border:.8pt solid #7b3fa0}
+.method{font-size:7.5pt;color:#444;text-transform:capitalize}
+.amt{font-size:8.5pt;font-weight:800;flex-shrink:0}
+.amt.none{color:#bbb;font-weight:400}
+.wline{flex:1;border-bottom:1px solid #bbb;height:1em;min-width:44pt}
+.dfooter{margin-top:8pt;padding-top:5pt;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7.5pt;color:#888}
 </style></head><body>
 <div class="dhead">
   <div class="hl"><img class="hlogo" src="${logo}" alt="">
     <div><div class="htitle">${eventTitle(event)}</div><div class="hsub">SoCal SkyQuest • ${event.dropzone}, CA • ${year}</div></div>
   </div>
-  <div class="hbadge">CHECK-IN LIST</div>
+  <div class="hbadge">CHECK-IN</div>
 </div>
 <div class="hrule"></div>
-<div class="col-hdrs">
-  <div class="col-hdr"><span>LAST, FIRST</span><span>CHECKED IN</span></div>
-  <div class="col-hdr"><span>LAST, FIRST</span><span>CHECKED IN</span></div>
+<div class="summary">
+  <span>${teams.length} teams · ${everyone.length} people</span>
+  ${notReg ? `<span><b>${notReg}</b> still to register</span>` : ''}
+  ${owing !== null && owing > 0 ? `<span><b>${owing}</b> still to pay</span>` : ''}
+  ${payments ? '' : '<span>· payment history unavailable — amounts shown are the fee owed</span>'}
 </div>
-<div class="count-line">${confirmed.length} Confirmed Athletes • Alpha by Last Name</div>
-<div class="ci-cols">
-  ${cols.map(col => `<div>${col.map(rowHtml).join('')}</div>`).join('')}
-</div>
-<div class="dfooter"><span>SoCal SkyQuest | furycoaching.com/socal-skyquest</span><span>Page 1</span></div>
+${teams.map((t, i) => teamBlock(t, i + 1)).join('')}
+${unassignedBlock}
+<div class="dfooter"><span>SoCal SkyQuest | furycoaching.com/socal-skyquest</span><span>☐ = checked in</span></div>
 </body></html>`
 }
 

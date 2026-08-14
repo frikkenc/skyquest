@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TeamAssignment, TeamRegistration, EventInstance } from '../../types'
+import type { FuryPayment } from '../../lib/furyClient'
 import {
   buildRegMap, openPrint,
   manifestSlipsHtml, checkInListHtml, paymentStatusHtml, teamsManifestHtml,
@@ -10,12 +11,18 @@ interface Props {
   event: EventInstance
   assignments: TeamAssignment[]
   registrations: TeamRegistration[]
+  /** Payments per registration id, for the check-in sheet. Undefined = not loaded. */
+  payments?: Record<string, FuryPayment[] | undefined>
+  paymentsLoading?: boolean
 }
 
-export default function PrintablesTab({ event, assignments, registrations }: Props) {
+export default function PrintablesTab({ event, assignments, registrations, payments, paymentsLoading }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
   const regById = buildRegMap(registrations)
   const teams = assignments.filter(a => a.eventId === event.id)
+  // Registered but not on any team — they still check in and still pay.
+  const onTeamIds = new Set(teams.flatMap(t => t.memberIds))
+  const unassigned = registrations.filter(r => !onTeamIds.has(r.id) && !r.id.endsWith('-video'))
 
   function shareUrl(type: string) {
     return `${window.location.origin}/print/${event.id}/${type}`
@@ -47,9 +54,11 @@ export default function PrintablesTab({ event, assignments, registrations }: Pro
       id: 'checkin',
       icon: '☑',
       title: 'Check-In List',
-      sub: 'Alphabetical • checkbox per person',
-      action: () => openPrint(checkInListHtml(registrations, event)),
-      disabled: registrations.length === 0,
+      sub: paymentsLoading
+        ? 'By team • loading payment history…'
+        : 'By team • registration + payment status',
+      action: () => openPrint(checkInListHtml(teams, regById, event, { payments, unassigned })),
+      disabled: registrations.length === 0 || paymentsLoading,
     },
     {
       id: 'payment',

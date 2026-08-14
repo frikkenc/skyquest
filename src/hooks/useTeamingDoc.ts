@@ -157,9 +157,11 @@ export function teamingDocToPrintData(tdoc: TeamingDoc, eventId: string): {
         teamName: g.customName || autoName || undefined,
         memberIds: g.memberIds,
         videoPersonId,
+        videoMemberId: g.videoMemberId,
         isConfirmed: false,
         loadNumber,
         loadTime: loadTimes[loadNumber],
+        pendingNames: g.pendingSlots.length ? g.pendingSlots : undefined,
       }
     })
 

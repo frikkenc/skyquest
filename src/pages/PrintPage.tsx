@@ -30,7 +30,10 @@ export default function PrintPage() {
         let html = ''
         switch (type) {
           case 'slips':   html = manifestSlipsHtml(assignments, regById, event); break
-          case 'checkin': html = checkInListHtml(registrations, event); break
+          // No `payments` here: this page is public and payment history is
+          // auth-gated, so the sheet falls back to printing the fee owed with a
+          // write-in line. The admin Printables tab gets the real history.
+          case 'checkin': html = checkInListHtml(assignments, regById, event); break
           case 'payment': html = paymentStatusHtml(registrations, event); break
           case 'teams':   html = teamsManifestHtml(assignments, regById, event); break
         }
