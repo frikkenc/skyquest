@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { EVENT_TYPES, EVENT_TYPE_SETTINGS } from '../../data/mockData'
 import { useLiveEventList } from '../../hooks/useLiveEventList'
@@ -8,7 +8,7 @@ import type { Division, TeamRegistration, TeamGroup, EventInstance } from '../..
 import type { FuryRegistrant } from '../../lib/furyClient'
 import { useFuryRegistrations, useFuryEventStats } from '../../hooks/useFuryData'
 import { useEventDivisions } from '../../hooks/useEventDivisions'
-import { useTeamingDoc, teamingDocToPrintData, type TeamingSaveState } from '../../hooks/useTeamingDoc'
+import { useTeamingDoc, teamingDocToPrintData, loadNumbersFor, type TeamingSaveState } from '../../hooks/useTeamingDoc'
 import styles from './AdminEventInstance.module.css'
 import teamStyles from './AdminTeaming.module.css'
 import PrintablesTab from './AdminPrintables'
@@ -58,8 +58,14 @@ function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
   // "registered" when their slot is active and not awaiting/denied approval;
   // treating 'not_required' as pending is what made the manifest flag everyone
   // NOT REG.
+  //
+  // Cancelled is kept separate from denied: someone who pulls out after teams
+  // are built stays on their team in the teaming doc, and the only thing that
+  // catches it is a visible flag on the Teaming tab. Folding it into 'denied'
+  // made it invisible there.
   const status: TeamRegistration['status'] =
-    r.status === 'canceled' || r.approvalStatus === 'denied' ? 'denied' :
+    r.status === 'canceled' ? 'cancelled' :
+    r.approvalStatus === 'denied' ? 'denied' :
     r.approvalStatus === 'waitlist' ? 'waitlist' :
     r.approvalStatus === 'pending' ? 'pending' :
     'approved'  // 'approved' or 'not_required' on an active slot = registered
@@ -147,6 +153,7 @@ export default function AdminEventInstance() {
     pending: 'var(--sq-yellow)',
     waitlist: '#2196F3',
     denied: 'var(--sq-red)',
+    cancelled: 'var(--sq-red)',
     unmatched: '#ff7043',
   }
   const payColors: Record<string, string> = {
@@ -941,6 +948,25 @@ function TeamingEditor({
     })
   }
 
+  // ── Loads ──
+  // Toggling a break splits the load at this team. Team 1 can't be toggled —
+  // it always opens Load 1 — so the flag is meaningless there.
+  function toggleLoadBreak(groupId: string) {
+    setGroups(prev => prev.map((g, i) => {
+      if (g.id !== groupId || i === 0) return g
+      // Merging back into the load above drops the time with it; a time on a
+      // team that no longer opens a load would never render, and leaving it
+      // behind means it silently reappears if the break comes back.
+      return g.startsLoad
+        ? { ...g, startsLoad: false, loadTime: undefined }
+        : { ...g, startsLoad: true }
+    }))
+  }
+
+  function setLoadTime(groupId: string, time: string) {
+    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, loadTime: time.trim() || undefined } : g))
+  }
+
   function setVideoForGroup(groupId: string, name: string) {
     if (!name.trim()) return
     // Free-text/external video person — not one of the members, so drop any member link.
@@ -1085,6 +1111,17 @@ function TeamingEditor({
   const visiblePool = pool
   const visibleGroups = groups
 
+  const loadNos = loadNumbersFor(visibleGroups)
+  const loadSizes = loadNos.reduce<Record<number, number>>((m: Record<number, number>, n: number) => { m[n] = (m[n] ?? 0) + 1; return m }, {})
+
+  // People who cancelled in Fury Reg but are still sitting on a built team.
+  // Left unflagged this is invisible until someone doesn't show up on meet day.
+  const cancelledIds = new Set(
+    registrations.filter(r => r.status === 'cancelled').map(r => r.id)
+  )
+  const cancelledOnTeams = groups.flatMap(g => g.memberIds).filter(id => cancelledIds.has(id))
+  const cancelledOnTeamsCount = new Set(cancelledOnTeams).size
+
   // People assigned to multiple groups
   const multiTeamIds = new Set(
     groups.flatMap(g => g.memberIds).filter(id => groups.filter(g => g.memberIds.includes(id)).length > 1)
@@ -1100,6 +1137,15 @@ function TeamingEditor({
           <span className={teamStyles.badge} style={{ background: 'rgba(255,255,255,.06)', color: 'var(--adm-mute)' }}>
             {visibleGroups.length} {visibleGroups.length === 1 ? 'team' : 'teams'}
           </span>
+          {cancelledOnTeamsCount > 0 && (
+            <span
+              className={teamStyles.badge}
+              style={{ background: 'rgba(216,24,24,.15)', color: '#ff6b6b', border: '1px solid rgba(216,24,24,.4)' }}
+              title="These people cancelled in Fury Reg but are still on a team — replace or remove them"
+            >
+              ⚠ {cancelledOnTeamsCount} cancelled still on {cancelledOnTeamsCount === 1 ? 'a team' : 'teams'}
+            </span>
+          )}
           <span
             className={teamStyles.badge}
             style={saveState === 'error'
@@ -1207,7 +1253,10 @@ function TeamingEditor({
               >
                 <div className={teamStyles.regName}>
                   <span className={teamStyles.dragHandle}>⠿</span>
-                  {reg.members[0]?.name}
+                  <span className={cancelledIds.has(regId) ? teamStyles.poolNameCancelled : undefined}>
+                    {reg.members[0]?.name}
+                  </span>
+                  {cancelledIds.has(regId) && <span className={teamStyles.cancelledTag} title="Cancelled in Fury Reg — don't put them on a team">cancelled</span>}
                   {reg.offeringType === 'video' && <span className={teamStyles.offeringVideo}>📷 video</span>}
                   {reg.offeringType === 'captain' && <span className={teamStyles.offeringCaptain}>⭐ captain</span>}
                 </div>
@@ -1226,10 +1275,29 @@ function TeamingEditor({
             const isOver = dragOverGroupId === group.id
             const memberCount = group.memberIds.length + group.pendingSlots.length
             const sizeClass = memberCount === 0 ? '' : memberCount < teamSize ? teamStyles.sizeUnder : memberCount === teamSize ? teamStyles.sizeFull : teamStyles.sizeOver
+            const loadNo = loadNos[groupIdx]
+            const opensLoad = groupIdx === 0 || !!group.startsLoad
+            const groupCancelled = group.memberIds.filter(id => cancelledIds.has(id))
             return (
+              <Fragment key={group.id}>
+                {opensLoad && (
+                  <div className={teamStyles.loadDivider}>
+                    <span className={teamStyles.loadLabel}>Load {loadNo}</span>
+                    <input
+                      className={teamStyles.loadTimeInput}
+                      value={group.loadTime ?? ''}
+                      placeholder="takeoff"
+                      title="Takeoff time for this load — free text, so a weather hold only shifts the load it affects"
+                      onChange={e => setLoadTime(group.id, e.target.value)}
+                    />
+                    <span className={teamStyles.loadCount}>
+                      {loadSizes[loadNo]} {loadSizes[loadNo] === 1 ? 'team' : 'teams'}
+                    </span>
+                    <span className={teamStyles.loadRule} />
+                  </div>
+                )}
               <div
-                key={group.id}
-                className={`${teamStyles.groupCard} ${isOver ? teamStyles.groupDragOver : ''}`}
+                className={`${teamStyles.groupCard} ${isOver ? teamStyles.groupDragOver : ''} ${groupCancelled.length ? teamStyles.groupCardAlert : ''}`}
                 onDragOver={e => onGroupDragOver(e, group.id)}
                 onDragLeave={() => setDragOverGroupId(null)}
                 onDrop={e => onGroupDrop(e, group.id)}
@@ -1268,6 +1336,7 @@ function TeamingEditor({
                           // of the row, so skip them here (name shows only once).
                           if (personId === group.videoMemberId) return null
                           const isMulti = multiTeamIds.has(personId)
+                          const isCancelled = cancelledIds.has(personId)
                           // Native title tooltip: full name + details. Native (not a
                           // styled popover) so it can't be clipped by the row's
                           // horizontal-scroll overflow.
@@ -1284,8 +1353,8 @@ function TeamingEditor({
                           return (
                             <div
                               key={personId}
-                              className={`${teamStyles.memberChip} ${isMulti ? teamStyles.memberChipMulti : ''}`}
-                              title={chipTitle}
+                              className={`${teamStyles.memberChip} ${isMulti ? teamStyles.memberChipMulti : ''} ${isCancelled ? teamStyles.memberChipCancelled : ''}`}
+                              title={isCancelled ? `CANCELLED in Fury Reg — replace or remove\n\n${chipTitle}` : chipTitle}
                               draggable
                               onDragStart={e => onPersonDragStart(e, personId, 'group', group.id)}
                               onDragEnd={() => { dragInfo.current = null; setDragOverGroupId(null) }}
@@ -1311,6 +1380,7 @@ function TeamingEditor({
                               })()}
                               {reg.offeringType === 'captain' && <span className={teamStyles.chipOfferingCaptain}>⭐</span>}
                               {isMulti && <span className={teamStyles.multiTag} title="On multiple teams">×2</span>}
+                              {isCancelled && <span className={teamStyles.cancelledTag} title="Cancelled in Fury Reg">cancelled</span>}
                               <button
                                 className={teamStyles.chipRemove}
                                 onClick={e => { e.stopPropagation(); removeFromGroup(group.id, personId) }}
@@ -1398,6 +1468,14 @@ function TeamingEditor({
                     </div>
                   ) : null}
 
+                  {groupCancelled.length > 0 && (
+                    <div className={teamStyles.cancelWarn}>
+                      ⚠ {groupCancelled.map(id => regById[id]?.members[0]?.name ?? id).join(', ')}
+                      {groupCancelled.length === 1 ? ' has ' : ' have '}
+                      cancelled in Fury Reg — this team is down to {group.memberIds.length - groupCancelled.length} of {teamSize}.
+                    </div>
+                  )}
+
                   <div className={teamStyles.groupActions}>
                     <select
                       className={`${teamStyles.divisionSelect} ${group.division ? teamStyles.divisionSelectSet : ''}`}
@@ -1410,6 +1488,18 @@ function TeamingEditor({
                         <option key={d} value={d}>{d}</option>
                       ))}
                     </select>
+                    <button
+                      className={`${teamStyles.moveBtn} ${group.startsLoad ? teamStyles.loadBreakOn : ''}`}
+                      onClick={() => toggleLoadBreak(group.id)}
+                      title={
+                        groupIdx === 0
+                          ? 'Team 1 always opens Load 1'
+                          : group.startsLoad
+                            ? 'Opens a new load — click to move it back onto the load above'
+                            : 'Start a new load with this team'
+                      }
+                      disabled={groupIdx === 0}
+                    >✈</button>
                     <button className={teamStyles.moveBtn} onClick={() => moveGroup(group.id, 'up')} title="Move up" disabled={groupIdx === 0}>↑</button>
                     <button className={teamStyles.moveBtn} onClick={() => moveGroup(group.id, 'down')} title="Move down" disabled={groupIdx === visibleGroups.length - 1}>↓</button>
                     <button
@@ -1423,6 +1513,7 @@ function TeamingEditor({
                   </div>
                 </div>
               </div>
+              </Fragment>
             )
           })}
 

@@ -126,7 +126,9 @@ export function checkInListHtml(regs: TeamRegistration[], event: EventInstance):
   const logo = `${window.location.origin}/logos/skyquest-master.png`
   const year = eventYear(event)
 
-  const confirmed = regs.filter(r => r.status !== 'denied')
+  // Cancelled used to arrive here as 'denied'; it's now its own status, so it
+  // has to be excluded explicitly or people who pulled out reappear on check-in.
+  const confirmed = regs.filter(r => r.status !== 'denied' && r.status !== 'cancelled')
   const sorted = [...confirmed].sort((a, b) => {
     const aLast = (a.members[0]?.name ?? '').split(' ').at(-1) ?? ''
     const bLast = (b.members[0]?.name ?? '').split(' ').at(-1) ?? ''
@@ -198,7 +200,8 @@ export function paymentStatusHtml(regs: TeamRegistration[], event: EventInstance
   const logo = `${window.location.origin}/logos/skyquest-master.png`
   const year = eventYear(event)
 
-  const all = regs.filter(r => r.status !== 'denied')
+  // Same as check-in: cancelled owes nothing and shouldn't be on the collect sheet.
+  const all = regs.filter(r => r.status !== 'denied' && r.status !== 'cancelled')
   const owes = [...all.filter(r => r.paymentStatus !== 'paid')]
     .sort((a, b) => (a.members[0]?.name ?? '').localeCompare(b.members[0]?.name ?? ''))
   const paid = [...all.filter(r => r.paymentStatus === 'paid')]
@@ -288,10 +291,14 @@ export function teamsManifestHtml(teams: TeamAssignment[], regById: RegMap, even
     const memberRow = (reg: TeamRegistration) => {
       const name = reg.members[0]?.name ?? ''
       const fee = reg.balance > 0 ? `$${reg.balance}` : '—'
-      return `<div class="tm-row">
+      // Someone who cancelled after teams were built still sits on the team.
+      // Print it loudly — this sheet is what manifest works from.
+      const cancelled = reg.status === 'cancelled'
+      return `<div class="tm-row${cancelled ? ' tm-row-cxl' : ''}">
         <span class="tm-dot">●</span>
         <span class="tm-name">${name}</span>
-        <span class="tm-fee">${fee}</span>
+        ${cancelled ? '<span class="tm-cxl">CANCELLED</span>' : ''}
+        <span class="tm-fee">${cancelled ? '—' : fee}</span>
         <span class="tm-check"></span>
       </div>`
     }
@@ -344,6 +351,12 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
 .tm-fee{font-size:8.5pt;font-weight:800;color:#111;flex-shrink:0;min-width:32pt;text-align:right}
 .tm-check{width:11pt;height:11pt;border:1.2pt solid #333;border-radius:2pt;flex-shrink:0;margin-left:2pt}
 .tc-video{padding-top:4pt;font-size:8pt;color:#555}
+.tm-row-cxl .tm-name{text-decoration:line-through;color:#999}
+.tm-cxl{font-size:5.5pt;font-weight:800;color:#d81818;letter-spacing:.06em;border:.8pt solid #d81818;border-radius:2pt;padding:.5pt 3pt;flex-shrink:0}
+.load-head{grid-column:1/-1;display:flex;align-items:baseline;gap:8pt;border-bottom:1.5pt solid #111;padding:6pt 2pt 3pt;margin-top:4pt;break-after:avoid;page-break-after:avoid}
+.load-head:first-child{margin-top:0}
+.lh-n{font-size:12pt;font-weight:900;letter-spacing:.06em}
+.lh-t{font-size:9pt;font-weight:700;color:#d81818}
 .footnote{margin-top:12pt;font-size:7pt;color:#888;padding-top:5pt;border-top:1px solid #ddd}
 .dfooter{margin-top:8pt;padding-top:5pt;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7.5pt;color:#888}
 </style></head><body>
@@ -354,7 +367,15 @@ body{font-family:Arial,sans-serif;background:#fff;font-size:9pt}
   <div class="hbadge">TEAMS MANIFEST</div>
 </div>
 <div class="hrule"></div>
-<div class="teams-grid">${teams.map((t, i) => cardHtml(t, i + 1)).join('')}</div>
+<div class="teams-grid">${teams.map((t, i) => {
+  // Teams arrive in saved order, so a load header goes in wherever the load
+  // number changes. Teams with no load set at all just render as a flat list.
+  const prev = i > 0 ? teams[i - 1].loadNumber : undefined
+  const header = t.loadNumber && t.loadNumber !== prev
+    ? `<div class="load-head"><span class="lh-n">LOAD ${t.loadNumber}</span>${t.loadTime ? `<span class="lh-t">${t.loadTime}</span>` : ''}</div>`
+    : ''
+  return header + cardHtml(t, i + 1)
+}).join('')}</div>
 <div class="footnote">$ = registration fee &nbsp;·&nbsp; ☐ = check off as you collect day-of &nbsp;·&nbsp; some may have already paid online</div>
 <div class="dfooter"><span>SoCal SkyQuest | furycoaching.com/socal-skyquest</span><span>Page 1</span></div>
 </body></html>`

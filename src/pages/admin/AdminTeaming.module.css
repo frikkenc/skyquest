@@ -888,3 +888,97 @@
 }
 
 .btnGhost:hover { color: var(--adm-ink); }
+
+/* ── Load planning ─────────────────────────────────────────────────────────
+   Loads are break points in the team order, not a fixed size — see
+   loadNumbersFor() in AdminEventInstance.tsx. The divider renders above the
+   team that opens each load. */
+
+.loadDivider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px 3px;
+}
+
+.loadDivider:first-child { padding-top: 2px; }
+
+.loadLabel {
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--sq-yellow);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.loadTimeInput {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--adm-border);
+  border-radius: 4px;
+  color: var(--adm-ink);
+  font-size: 11px;
+  padding: 2px 7px;
+  width: 84px;
+  flex-shrink: 0;
+}
+
+.loadTimeInput::placeholder { color: var(--adm-mute); opacity: .6; }
+.loadTimeInput:focus { outline: none; border-color: rgba(255,171,64,.5); }
+
+.loadCount {
+  font-size: 10px;
+  color: var(--adm-mute);
+  flex-shrink: 0;
+}
+
+.loadRule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, rgba(255,171,64,.35), transparent);
+}
+
+.loadBreakOn { color: var(--sq-yellow); }
+
+/* ── Cancelled registrations ───────────────────────────────────────────────
+   Someone who cancels in Fury Reg stays on whatever team they were built
+   into. Nothing else surfaces that, so it has to shout here. */
+
+.memberChipCancelled {
+  background: rgba(216,24,24,.12);
+  border-color: rgba(216,24,24,.45);
+}
+
+.memberChipCancelled .memberChipName {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,107,107,.8);
+  opacity: .75;
+}
+
+.cancelledTag {
+  font-size: 9px;
+  background: rgba(216,24,24,.25);
+  color: #ff8a80;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.groupCardAlert { border-color: rgba(216,24,24,.45); }
+
+.cancelWarn {
+  padding: 4px 10px 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #ff8a80;
+  background: rgba(216,24,24,.07);
+  border-top: 1px solid rgba(216,24,24,.2);
+}
+
+.poolNameCancelled {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,107,107,.8);
+  opacity: .7;
+}

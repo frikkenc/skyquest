@@ -81,6 +81,22 @@ function firstNameOf(fullName: string) {
 }
 
 /**
+ * Load number per team, by position in the saved order.
+ *
+ * Loads are break points rather than a fixed teams-per-load count: the first
+ * team opens Load 1, and every team flagged `startsLoad` opens the next one.
+ * Uneven loads are the normal case — a Skyvan and an Otter don't hold the same
+ * number of teams, and a weather hold splits one in half.
+ */
+export function loadNumbersFor(groups: Pick<TeamGroup, 'startsLoad'>[]): number[] {
+  let n = 0
+  return groups.map((g, i) => {
+    if (i === 0 || g.startsLoad) n += 1
+    return n
+  })
+}
+
+/**
  * Turn a saved teaming doc into the TeamAssignment + TeamRegistration shapes
  * the print and check-in surfaces consume. Registrations are synthesized from
  * the denormalized name map (those pages are public and can't call the
@@ -108,10 +124,22 @@ export function teamingDocToPrintData(tdoc: TeamingDoc, eventId: string): {
   const registrations: TeamRegistration[] = Object.entries(tdoc.memberNames)
     .map(([id, name]) => syntheticReg(id, name))
 
+  // Loads are resolved against the FULL group list, before empty shells are
+  // dropped — otherwise removing an empty team would renumber every load below
+  // it. The time is taken from whichever team opens the load, so it survives
+  // even when that team is an empty shell that never prints.
+  const loadNos = loadNumbersFor(tdoc.groups)
+  const loadTimes: Record<number, string> = {}
+  tdoc.groups.forEach((g, i) => {
+    const opens = i === 0 || g.startsLoad
+    if (opens && g.loadTime) loadTimes[loadNos[i]] = g.loadTime
+  })
+
   const assignments: TeamAssignment[] = tdoc.groups
+    .map((g, i) => ({ g, loadNumber: loadNos[i] }))
     // Empty shells (no confirmed members) have nothing to print or check in.
-    .filter(g => g.memberIds.length > 0)
-    .map(g => {
+    .filter(({ g }) => g.memberIds.length > 0)
+    .map(({ g, loadNumber }) => {
       const autoName = g.memberIds
         .map(id => tdoc.memberNames[id])
         .filter(Boolean)
@@ -130,6 +158,8 @@ export function teamingDocToPrintData(tdoc: TeamingDoc, eventId: string): {
         memberIds: g.memberIds,
         videoPersonId,
         isConfirmed: false,
+        loadNumber,
+        loadTime: loadTimes[loadNumber],
       }
     })
 

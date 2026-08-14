@@ -87,7 +87,11 @@ export interface TeamRegistration {
   members: TeamMember[]
   fullName?: string       // legal first+last name (chip shows a preferred name/nickname; this is for the hover tooltip)
   teammateNote?: string   // free-text "who's on your team" from registration form
-  status: 'pending' | 'approved' | 'waitlist' | 'denied' | 'unmatched'
+  // 'cancelled' = they pulled out in Fury Reg after signing up. Distinct from
+  // 'denied' (an admin rejected them) because it needs a different reaction:
+  // a cancelled person is usually still sitting on a built team and has to be
+  // replaced before the meet.
+  status: 'pending' | 'approved' | 'waitlist' | 'denied' | 'cancelled' | 'unmatched'
   paymentStatus: 'unpaid' | 'partial' | 'paid'
   balance: number
   submittedAt: string
@@ -105,6 +109,10 @@ export interface TeamAssignment {
   isConfirmed: boolean
   confirmedAt?: string
   confirmationEmailSentAt?: string
+  // Denormalized from the teaming doc's load break points so print surfaces can
+  // group teams into loads without recomputing the breaks themselves.
+  loadNumber?: number
+  loadTime?: string
 }
 
 // A team being built in the admin Teaming tab. Persisted per event instance
@@ -119,6 +127,12 @@ export interface TeamGroup {
   videoTbd: boolean
   videoMemberId?: string   // set when the team's video person is one of its members (drives the 📷 toggle); videoName is kept in sync for printables
   isAiSuggested?: boolean  // true = created by the AI Suggest button
+  // Load planning. Teams fly in the order they appear in `groups`; a team with
+  // startsLoad begins a new load, so loads are defined by break points rather
+  // than a fixed teams-per-load number (planes differ, and weather splits them).
+  // The first team always starts load 1 whether or not the flag is set.
+  startsLoad?: boolean
+  loadTime?: string        // free-text takeoff time ('7:20 AM') for the load this team starts
 }
 
 // Firestore doc shape for `teaming/{instanceId}`.
