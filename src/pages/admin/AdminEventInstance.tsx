@@ -1466,7 +1466,17 @@ function TeamingEditor({
                     >
                       {group.customName}
                     </div>
-                  ) : null}
+                  ) : (
+                    // Unnamed teams previously rendered nothing here, so the only
+                    // way to name one was clicking the number badge — which reads
+                    // as a position label, not a button. Match the "+ Pending" /
+                    // "+ video" affordances already on this row.
+                    <button
+                      className={teamStyles.addNameBtn}
+                      onClick={() => startRename(group.id, '')}
+                      title="Name this team (defaults to member first names)"
+                    >+ name</button>
+                  )}
 
                   {groupCancelled.length > 0 && (
                     <div className={teamStyles.cancelWarn}>

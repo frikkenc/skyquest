@@ -982,3 +982,26 @@
   text-decoration-color: rgba(255,107,107,.8);
   opacity: .7;
 }
+
+/* Sits where .groupName renders once a team is named, so naming a team is a
+   visible action instead of a hidden click on the number badge. Matches
+   .addSlotBtn ("+ Pending" / "+ video") but stays narrow — it shares the
+   nowrap group row with the division select and the move buttons. */
+.addNameBtn {
+  background: none;
+  border: 1px dashed rgba(255,255,255,.12);
+  color: rgba(255,255,255,.25);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+
+.addNameBtn:hover {
+  border-color: rgba(255,255,255,.25);
+  color: var(--adm-mute);
+}
