@@ -86,6 +86,13 @@ function teamsFromTeaming(tdoc: TeamingDoc): { teams: ScoredTeam[]; missingDivis
     .filter(g => g.memberIds.length > 0)
     .map((g, i) => {
       const members = g.memberIds
+        // The video person doesn't score. When they're also rostered on the
+        // team they'd otherwise be published as a scoring member, and the
+        // season individual standings credit every listed member with the
+        // team's full points (Leaderboard.computeIndividual) — so filming a
+        // team earned you the same points as flying it. Team size is NOT
+        // capped here: alternates are legitimate extra members.
+        .filter(id => id !== g.videoMemberId)
         .map(id => ({ id, name: tdoc.memberNames[id] }))
         .filter((m): m is { id: string; name: string } => Boolean(m.name))
       const autoName = members.map(m => m.name.split(' ')[0]).join('-')
