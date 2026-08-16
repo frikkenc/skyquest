@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { EVENT_INSTANCES, EVENT_RESULTS } from '../../data/mockData'
-import type { Division, TeamResult, TeamRegistration, PublishedEventResult, PublishedTeamResult } from '../../types'
+import { loadTeamingDoc } from '../../hooks/useTeamingDoc'
+import type { Division, TeamResult, TeamRegistration, TeamingDoc, PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
 import AdminScoresPokerRun from './AdminScoresPokerRun'
 import AdminScoresCrazy8 from './AdminScoresCrazy8'
@@ -67,6 +68,68 @@ function initDuelingTeams(_instanceId: string): ScoredTeam[] {
   }))
 }
 
+/**
+ * Build the scoring grid from the teams built on the Teaming tab.
+ *
+ * Until this existed the grid seeded only from EVENT_RESULTS — a mock-data
+ * constant that has an entry for exactly one event — so every real meet opened
+ * the Scores tab to an empty grid with no way to get teams in but a CSV.
+ *
+ * Order is the saved teaming order, so team numbers match the load sheet and
+ * the whiteboard. Divisions come from the Teaming tab; anything outside the
+ * scored set would be filtered out of every division block and vanish, so it
+ * falls back to 'A' and the caller is told how many that hit.
+ */
+function teamsFromTeaming(tdoc: TeamingDoc): { teams: ScoredTeam[]; missingDivision: number } {
+  let missingDivision = 0
+  const teams = tdoc.groups
+    .filter(g => g.memberIds.length > 0)
+    .map((g, i) => {
+      const members = g.memberIds
+        .map(id => ({ id, name: tdoc.memberNames[id] }))
+        .filter((m): m is { id: string; name: string } => Boolean(m.name))
+      const autoName = members.map(m => m.name.split(' ')[0]).join('-')
+      const div = g.division && SCORE_DIVS.includes(g.division) ? g.division : null
+      if (!div) missingDivision += 1
+      return {
+        teamId: g.id,
+        teamName: g.customName || autoName || `Team ${i + 1}`,
+        members,
+        division: div ?? 'A',
+        rounds: Array.from({ length: MAX_ROUNDS }, () => ({ pts: 0, busts: 0 })),
+      }
+    })
+  return { teams, missingDivision }
+}
+
+// Entered scores used to live only in component state. The admin tabs render
+// conditionally, so switching to Printables and back unmounted this component
+// and silently threw away everything typed — and "Save Scores" only flipped a
+// label. Cache on every edit, same as the Poker Run and Crazy 8s tabs.
+interface ScoresCache {
+  teams: ScoredTeam[]
+  statuses: RoundStatus[]
+  hasJumpoff: boolean
+}
+
+function scoresKey(instanceId: string) {
+  return `sq-scores-${instanceId}`
+}
+
+function loadScores(instanceId: string): ScoresCache | null {
+  try {
+    const raw = localStorage.getItem(scoresKey(instanceId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as ScoresCache
+    if (!Array.isArray(parsed?.teams)) return null
+    return parsed
+  } catch { return null }
+}
+
+function saveScores(instanceId: string, cache: ScoresCache) {
+  try { localStorage.setItem(scoresKey(instanceId), JSON.stringify(cache)) } catch { /* quota */ }
+}
+
 function loadJumpData(instanceId: string): JumpData {
   try { return JSON.parse(localStorage.getItem(`sq-jumps-${instanceId}`) ?? '{}') }
   catch { return {} }
@@ -104,12 +167,15 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const isDueling = eventTypeSlug === 'dueling-dzs'
   const defaultRounds = isDueling ? 8 : DEFAULT_ROUNDS
 
+  const cached = useMemo(() => loadScores(instanceId), [instanceId])
+
   const [roundCount, setRoundCount] = useState(() => loadRoundCount(instanceId, defaultRounds))
-  const [statuses, setStatuses] = useState<RoundStatus[]>(Array(MAX_ROUNDS).fill('ok'))
-  const [hasJumpoff, setHasJumpoff] = useState(false)
+  const [statuses, setStatuses] = useState<RoundStatus[]>(cached?.statuses ?? Array(MAX_ROUNDS).fill('ok'))
+  const [hasJumpoff, setHasJumpoff] = useState(cached?.hasJumpoff ?? false)
   const [teams, setTeams] = useState<ScoredTeam[]>(() =>
-    isDueling ? initDuelingTeams(instanceId) : initTeams(EVENT_RESULTS[instanceId] ?? [])
+    cached?.teams ?? (isDueling ? initDuelingTeams(instanceId) : initTeams(EVENT_RESULTS[instanceId] ?? []))
   )
+  const [seedNote, setSeedNote] = useState<string | null>(null)
   const [editCell, setEditCell] = useState<{ tid: string; ri: number } | null>(null)
   const [editVal, setEditVal] = useState('')
   const [saved, setSaved] = useState(false)
@@ -125,6 +191,57 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const fileRef = useRef<HTMLInputElement>(null)
 
   const checkinUrl = `${window.location.origin}/checkin/${instanceId}`
+
+  // Cache every edit. Skip the mount render — that's just the loaded state
+  // echoing back, and writing it would stamp an empty grid over a real cache
+  // if the seed below hasn't landed yet.
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    saveScores(instanceId, { teams, statuses, hasJumpoff })
+  }, [teams, statuses, hasJumpoff, instanceId])
+
+  // Nothing cached and nothing seeded → pull the teams built on the Teaming
+  // tab. Only fires on a genuinely empty grid, so it can't stomp entered
+  // scores; re-pulling later is the explicit button below.
+  useEffect(() => {
+    if (isDueling || cached || teams.length > 0) return
+    let cancelled = false
+    loadTeamingDoc(instanceId)
+      .then(tdoc => {
+        if (cancelled || !tdoc) return
+        const { teams: pulled, missingDivision } = teamsFromTeaming(tdoc)
+        if (!pulled.length) return
+        setTeams(pulled)
+        setSeedNote(
+          `Loaded ${pulled.length} teams from the Teaming tab.` +
+          (missingDivision ? ` ${missingDivision} had no division set and were put in A — fix them on the Teaming tab and re-pull.` : '')
+        )
+      })
+      .catch(() => { /* leave the grid empty; the pull button retries */ })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId])
+
+  /** Re-pull teams, keeping any scores already entered (matched on team id). */
+  async function pullFromTeaming() {
+    const tdoc = await loadTeamingDoc(instanceId).catch(() => null)
+    if (!tdoc) { setSeedNote('Could not read the Teaming tab.'); return }
+    const { teams: pulled, missingDivision } = teamsFromTeaming(tdoc)
+    if (!pulled.length) { setSeedNote('No teams saved on the Teaming tab yet.'); return }
+    const existing = new Map(teams.map(t => [t.teamId, t]))
+    const merged = pulled.map(p => {
+      const prev = existing.get(p.teamId)
+      // Name and division are re-read from Teaming; only the scores are kept.
+      return prev ? { ...p, rounds: prev.rounds } : p
+    })
+    setTeams(merged)
+    setSaved(false)
+    setSeedNote(
+      `Re-pulled ${merged.length} teams; entered scores kept.` +
+      (missingDivision ? ` ${missingDivision} still have no division.` : '')
+    )
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -483,7 +600,16 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const resetTeams = () => { setTeams(isDueling ? initDuelingTeams(instanceId) : initTeams(EVENT_RESULTS[instanceId] ?? [])); setSaved(false) }
+  // Clears the scores, keeps the teams. It used to re-seed from EVENT_RESULTS,
+  // which for every real event is an empty list — so one click next to "Save
+  // Scores" silently emptied the whole grid with no undo. Teams come back with
+  // ⟳ Teams if they're ever genuinely wanted gone.
+  const resetTeams = () => {
+    if (!confirm('Clear every score entered on this tab? Teams stay.')) return
+    setTeams(prev => prev.map(t => ({ ...t, rounds: t.rounds.map(() => ({ pts: 0, busts: 0 })) })))
+    setStatuses(Array(MAX_ROUNDS).fill('ok'))
+    setSaved(false)
+  }
 
   return (
     <div>
@@ -516,8 +642,18 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
           {!saved && <span style={{ fontSize: 12, color: 'var(--sq-yellow)' }}>● Unsaved</span>}
-          <button className={styles.adminBtn} onClick={resetTeams}>Reset</button>
-          <button className={`${styles.adminBtn} ${styles.primary}`} onClick={() => setSaved(true)}>
+          {!isDueling && (
+            <button className={styles.adminBtn} onClick={pullFromTeaming} style={{ fontSize: 11 }}
+              title="Re-read teams, names and divisions from the Teaming tab. Scores already entered are kept.">
+              ⟳ Teams
+            </button>
+          )}
+          <button className={styles.adminBtn} onClick={resetTeams} title="Clear entered scores; teams stay">Clear scores</button>
+          <button
+            className={`${styles.adminBtn} ${styles.primary}`}
+            onClick={() => { saveScores(instanceId, { teams, statuses, hasJumpoff }); setSaved(true) }}
+            title="Scores also save automatically as you type"
+          >
             {saved ? '✓ Saved' : 'Save Scores'}
           </button>
           <button
@@ -530,6 +666,13 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
           </button>
         </div>
       </div>
+
+      {seedNote && (
+        <div style={{ background: 'rgba(100,181,246,.07)', border: '1px solid rgba(100,181,246,.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: 'var(--adm-ink)', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ flex: 1 }}>{seedNote}</span>
+          <button className={styles.adminBtn} style={{ fontSize: 11 }} onClick={() => setSeedNote(null)}>Dismiss</button>
+        </div>
+      )}
 
       {/* ── Check-in status panel (Dueling only) ── */}
       {isDueling && (
