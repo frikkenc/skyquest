@@ -147,6 +147,13 @@ export interface TeamingDoc {
   // regId → display name, denormalized at save time so the public check-in
   // and print pages can render teams without the auth-gated Fury API.
   memberNames: Record<string, string>
+  // regId → full legal name. Display names are preferred names ("Tickle",
+  // "Chuck", "Splatt"), which are right for building teams but wrong for
+  // published results: the season individual standings join people by name, so
+  // a nickname at one event and a legal name at another splits one jumper into
+  // two. Kept alongside rather than replacing memberNames so the Teaming tab
+  // still shows the name everyone actually uses.
+  memberLegalNames?: Record<string, string>
   updatedAt: string
 }
 

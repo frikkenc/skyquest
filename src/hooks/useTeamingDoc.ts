@@ -27,6 +27,9 @@ function parseTeamingDoc(data: Record<string, unknown> | undefined): TeamingDoc 
     memberNames: (data.memberNames && typeof data.memberNames === 'object')
       ? (data.memberNames as Record<string, string>)
       : {},
+    memberLegalNames: (data.memberLegalNames && typeof data.memberLegalNames === 'object')
+      ? (data.memberLegalNames as Record<string, string>)
+      : undefined,
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : '',
   }
 }
@@ -58,13 +61,18 @@ export function useTeamingDoc(instanceId: string) {
 
   // Debounced save-as-you-go. The pending timeout deliberately survives
   // unmount: clicking to another tab within the debounce window still flushes.
-  function scheduleSave(groups: TeamGroup[], pool: string[], memberNames: Record<string, string>) {
+  function scheduleSave(
+    groups: TeamGroup[],
+    pool: string[],
+    memberNames: Record<string, string>,
+    memberLegalNames?: Record<string, string>,
+  ) {
     window.clearTimeout(timer.current)
     setSaveState('saving')
     // JSON round-trip strips `undefined` optional fields (division,
     // isAiSuggested), which Firestore rejects.
     const payload: TeamingDoc = JSON.parse(JSON.stringify({
-      groups, pool, memberNames, updatedAt: new Date().toISOString(),
+      groups, pool, memberNames, memberLegalNames, updatedAt: new Date().toISOString(),
     }))
     timer.current = window.setTimeout(() => {
       setDoc(teamingRef(instanceId), payload)

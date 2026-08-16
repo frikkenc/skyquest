@@ -106,6 +106,12 @@ const NICKNAMES: Record<string, string> = {
   alex: 'alexander',
   zach: 'zachary',
   josh: 'joshua',
+  // Confirmed by matching Fury registration emails across events, not guessed:
+  // each of these registered under the short form at one meet and the legal
+  // form at another, and was scoring as two separate jumpers.
+  chuck: 'charles',   // chuck.b.reilly@gmail.com
+  ron: 'ronald',      // ronaldsetina@gmail.com
+  jim: 'james',       // jstew9253@gmail.com
 }
 function normalizeJumperKey(name: string): string {
   const cleaned = (name || '').toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim()

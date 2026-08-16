@@ -229,7 +229,8 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
             // AdminScores.teamsFromTeaming. Published members feed the season
             // individual standings, so filming a team must not earn its points.
             .filter(id => id !== g.videoMemberId)
-            .map(id => ({ id, name: tdoc.memberNames[id] }))
+            // Legal name for published results — see AdminScores.teamsFromTeaming.
+            .map(id => ({ id, name: tdoc.memberLegalNames?.[id] || tdoc.memberNames[id] }))
             .filter((m): m is { id: string; name: string } => Boolean(m.name))
           const autoName = members.map(m => firstNameOf(m.name)).join('-')
           const prev = existing.get(g.id)

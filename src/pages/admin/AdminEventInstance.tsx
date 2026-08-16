@@ -813,6 +813,11 @@ function TeamingTab({
     : registrations.map(r => r.id)
 
   const memberNames = Object.fromEntries(registrations.map(r => [r.id, r.members[0]?.name ?? '']))
+  // furyToTeamReg puts the legal name in `fullName` only when it differs from
+  // the display name, so fall back to the display name when they're the same.
+  const memberLegalNames = Object.fromEntries(
+    registrations.map(r => [r.id, r.fullName || r.members[0]?.name || ''])
+  )
 
   return (
     <TeamingEditor
@@ -822,7 +827,7 @@ function TeamingTab({
       initialPool={initialPool}
       teamSize={teamSize}
       saveState={saveState}
-      onChange={(groups, pool) => scheduleSave(groups, pool, memberNames)}
+      onChange={(groups, pool) => scheduleSave(groups, pool, memberNames, memberLegalNames)}
     />
   )
 }

@@ -93,7 +93,10 @@ function teamsFromTeaming(tdoc: TeamingDoc): { teams: ScoredTeam[]; missingDivis
         // team earned you the same points as flying it. Team size is NOT
         // capped here: alternates are legitimate extra members.
         .filter(id => id !== g.videoMemberId)
-        .map(id => ({ id, name: tdoc.memberNames[id] }))
+        // Legal name wins for published results — the season standings join
+        // jumpers by name, so publishing "Tickle" here and "Mike Teague"
+        // elsewhere splits one person into two.
+        .map(id => ({ id, name: tdoc.memberLegalNames?.[id] || tdoc.memberNames[id] }))
         .filter((m): m is { id: string; name: string } => Boolean(m.name))
       const autoName = members.map(m => m.name.split(' ')[0]).join('-')
       const div = g.division && SCORE_DIVS.includes(g.division) ? g.division : null
