@@ -106,6 +106,22 @@ function isNewer(a: Crazy8State | null, b: Crazy8State | null): boolean {
   return (a.updatedAt ?? '') > (b.updatedAt ?? '')
 }
 
+/**
+ * How much scoring is actually entered — total cash-ins across all teams.
+ *
+ * Timestamp alone is not safe to resolve local-vs-remote. A pre-sync local copy
+ * has no stamp at all, so ANY remote draft looks newer than it — meaning one
+ * person opening this tab on a second machine and touching a button could
+ * create a near-empty draft that then silently overwrote a whole meet's scoring
+ * on the machine that actually holds it. Never let a sparser copy win
+ * automatically; surface the conflict and let a human choose.
+ */
+function entryWeight(s: Crazy8State | null): number {
+  if (!s?.teams) return 0
+  return s.teams.reduce((sum, t) =>
+    sum + Object.values(t.cashIns ?? {}).reduce((a, b) => a + (b || 0), 0), 0)
+}
+
 function makeTeamId() {
   return `c8-${Math.random().toString(36).slice(2, 10)}`
 }
@@ -135,6 +151,7 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
   const [pulling, setPulling] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [syncState, setSyncState] = useState<'idle' | 'saving' | 'synced' | 'error'>('idle')
+  const [localIsFuller, setLocalIsFuller] = useState<{ localCashIns: number; remoteCashIns: number } | null>(null)
   const syncTimer = useRef<number | undefined>(undefined)
 
   // Adopt the Firestore draft when it's newer than whatever this browser has,
@@ -145,7 +162,16 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
     loadRemote(instanceId).then(remote => {
       if (cancelled) return
       const local = loadLocal(instanceId)
-      if (isNewer(remote, local)) {
+      const rw = entryWeight(remote), lw = entryWeight(local)
+
+      // This browser holds more scoring than the server does. Never overwrite
+      // it — that's how a meet's worth of entry disappears. Hold both and ask.
+      if (remote && lw > rw) {
+        setLocalIsFuller({ localCashIns: lw, remoteCashIns: rw })
+        setSyncState('idle')
+        return
+      }
+      if (isNewer(remote, local) && rw >= lw) {
         setYear(remote!.year ?? defaultYearFor(instanceId))
         setTeams(remote!.teams)
         setSelectedId(remote!.teams[0]?.teamId ?? null)
@@ -445,6 +471,42 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
           </button>
         </div>
       </div>
+
+      {/* Two copies disagree and THIS browser has more entered. Both are kept
+          until someone picks; nothing is overwritten in the meantime. */}
+      {localIsFuller && (
+        <div style={{ background: 'rgba(255,171,64,.10)', border: '1px solid rgba(255,171,64,.45)', color: '#ffab40', padding: '10px 14px', borderRadius: 8, fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
+          <strong>This browser holds more scoring than the server.</strong><br />
+          Here: {localIsFuller.localCashIns} cash-ins. On the server: {localIsFuller.remoteCashIns}. Nothing has been
+          overwritten — the copy on screen is this browser's. Push it up if this is the real judging table.
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className={`${styles.adminBtn} ${styles.primary}`}
+              style={{ fontSize: 11 }}
+              onClick={() => {
+                persist({ year, teams })
+                setLocalIsFuller(null)
+                setMessage({ type: 'ok', text: 'This browser’s judging table is now the saved copy.' })
+              }}
+            >⬆ Use this browser&rsquo;s copy</button>
+            <button
+              className={styles.adminBtn}
+              style={{ fontSize: 11 }}
+              onClick={() => {
+                loadRemote(instanceId).then(r => {
+                  if (!r) return
+                  setYear(r.year ?? defaultYearFor(instanceId))
+                  setTeams(r.teams)
+                  setSelectedId(r.teams[0]?.teamId ?? null)
+                  saveLocal(instanceId, r)
+                  setLocalIsFuller(null)
+                  setMessage({ type: 'ok', text: 'Switched to the server copy.' })
+                })
+              }}
+            >Use the server copy instead</button>
+          </div>
+        </div>
+      )}
 
       {message && (
         <div style={{
