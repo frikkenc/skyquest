@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { doc, setDoc } from 'firebase/firestore'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { EVENT_INSTANCES } from '../../data/mockData'
 import { loadTeamingDoc } from '../../hooks/useTeamingDoc'
@@ -23,8 +23,11 @@ import styles from './AdminEventInstance.module.css'
  * Data flow mirrors AdminScoresPokerRun:
  *   1. Menu comes from Firestore `crazy8config/year_{year}` (Cards ▸ Menu tab).
  *   2. Teams seed from `teaming/{instanceId}`, or are typed in by hand.
- *   3. Entry auto-caches to localStorage `sq-crazy8-{instanceId}`.
- *   4. Publish writes the rolled-up result to `results_2026/{instanceId}`.
+ *   3. Entry auto-saves to Firestore `scoreDrafts/{instanceId}`, with a
+ *      localStorage mirror so a bad signal at the DZ doesn't stall entry.
+ *   4. Publish writes the rolled-up result to `results_2026/{instanceId}`
+ *      and flips `eventConfig/{instanceId}.status` to 'complete'. Until
+ *      Publish runs, nothing is on the public leaderboard.
  */
 
 // PublishedTeamResult.rankingPoints is required by the type but no longer
@@ -43,6 +46,8 @@ interface Crazy8Team {
 interface Crazy8State {
   year: number
   teams: Crazy8Team[]
+  /** ISO stamp, used to decide which of the local/remote copies is newer. */
+  updatedAt?: string
 }
 
 /** A menu combo flattened with the round + letter it's displayed under. */
@@ -70,6 +75,35 @@ function loadLocal(instanceId: string): Crazy8State | null {
 
 function saveLocal(instanceId: string, state: Crazy8State) {
   try { localStorage.setItem(localKey(instanceId), JSON.stringify(state)) } catch { /* quota */ }
+}
+
+/**
+ * Judging-table entry also lives in Firestore, not just localStorage.
+ *
+ * It was browser-local until Publish, which meant a whole meet's scoring could
+ * sit in one laptop where nobody else — another device, or anyone helping —
+ * could reach it, and closing the tab before publishing risked the lot. The
+ * draft now syncs to `scoreDrafts/{instanceId}` as you type; localStorage stays
+ * as the offline copy, which matters at a dropzone with bad signal.
+ */
+const draftRef = (instanceId: string) => doc(db, 'scoreDrafts', instanceId)
+
+async function loadRemote(instanceId: string): Promise<Crazy8State | null> {
+  try {
+    const snap = await getDoc(draftRef(instanceId))
+    if (!snap.exists()) return null
+    const data = snap.data() as Crazy8State
+    return Array.isArray(data?.teams) ? data : null
+  } catch { return null }
+}
+
+/** Later stamp wins. A missing stamp is treated as oldest — pre-sync local
+ *  copies have none, and a remote draft that someone has actually touched
+ *  should not lose to one. */
+function isNewer(a: Crazy8State | null, b: Crazy8State | null): boolean {
+  if (!a) return false
+  if (!b) return true
+  return (a.updatedAt ?? '') > (b.updatedAt ?? '')
 }
 
 function makeTeamId() {
@@ -100,6 +134,36 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
   const [published, setPublished] = useState(false)
   const [pulling, setPulling] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [syncState, setSyncState] = useState<'idle' | 'saving' | 'synced' | 'error'>('idle')
+  const syncTimer = useRef<number | undefined>(undefined)
+
+  // Adopt the Firestore draft when it's newer than whatever this browser has,
+  // and push a pre-sync local copy up when Firestore has nothing — that's the
+  // one-time migration for scoring done before this synced anywhere.
+  useEffect(() => {
+    let cancelled = false
+    loadRemote(instanceId).then(remote => {
+      if (cancelled) return
+      const local = loadLocal(instanceId)
+      if (isNewer(remote, local)) {
+        setYear(remote!.year ?? defaultYearFor(instanceId))
+        setTeams(remote!.teams)
+        setSelectedId(remote!.teams[0]?.teamId ?? null)
+        saveLocal(instanceId, remote!)
+        setSyncState('synced')
+        setMessage({ type: 'ok', text: 'Loaded the saved judging table from the server.' })
+      } else if (!remote && local?.teams?.length) {
+        const stamped = { ...local, updatedAt: local.updatedAt ?? new Date().toISOString() }
+        setDoc(draftRef(instanceId), stamped)
+          .then(() => { if (!cancelled) setSyncState('synced') })
+          .catch(() => { if (!cancelled) setSyncState('error') })
+      } else if (remote) {
+        setSyncState('synced')
+      }
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId])
 
   const { master } = useCrazy8Master()
   const { yearDoc, loading: menuLoading } = useCrazy8Year(year)
@@ -139,16 +203,29 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
 
   const menuIsEmpty = comboById.size === 0
 
+  /** Write both copies: localStorage immediately, Firestore debounced. */
+  function persist(state: Crazy8State) {
+    const stamped: Crazy8State = { ...state, updatedAt: new Date().toISOString() }
+    saveLocal(instanceId, stamped)
+    window.clearTimeout(syncTimer.current)
+    setSyncState('saving')
+    syncTimer.current = window.setTimeout(() => {
+      setDoc(draftRef(instanceId), stamped)
+        .then(() => setSyncState('synced'))
+        .catch(() => setSyncState('error'))
+    }, 700)
+  }
+
   function commit(next: Crazy8Team[], nextYear = year) {
     setTeams(next)
-    saveLocal(instanceId, { year: nextYear, teams: next })
+    persist({ year: nextYear, teams: next })
     setSaved(false)
     setPublished(false)
   }
 
   function changeYear(y: number) {
     setYear(y)
-    saveLocal(instanceId, { year: y, teams })
+    persist({ year: y, teams })
   }
 
   function totalFor(t: Crazy8Team) {
@@ -338,7 +415,21 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
           </span>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {!saved && !published && <span style={{ fontSize: 11, color: 'var(--sq-yellow)' }}>● unsaved · auto-cached</span>}
+          {/* Two distinct states people were conflating: the draft being safely
+              stored, and the results being on the public leaderboard. The old
+              label said "auto-cached", which read as done when nothing had left
+              the browser. */}
+          <span style={{ fontSize: 11, color: syncState === 'error' ? 'var(--sq-red)' : syncState === 'saving' ? 'var(--sq-yellow)' : 'var(--adm-mute)' }}>
+            {syncState === 'error' ? '● not saved to server — stay on this page'
+              : syncState === 'saving' ? '● saving…'
+              : syncState === 'synced' ? '✓ saved to server'
+              : ''}
+          </span>
+          {!published && teams.length > 0 && (
+            <span style={{ fontSize: 11, color: 'var(--sq-yellow)' }} title="Scores are saved but not on the public leaderboard until you publish">
+              not published
+            </span>
+          )}
           <button className={styles.adminBtn} onClick={pullFromTeaming} disabled={pulling} style={{ fontSize: 11 }}>
             {pulling ? 'Loading…' : '⟳ Teams from Teaming'}
           </button>

@@ -118,5 +118,15 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // ── SkyQuest in-progress scoring drafts ─────────────────────────────────
+    // The judging-table entry as it's being typed, before Publish. Was
+    // localStorage-only, which stranded a whole meet's scoring in whichever
+    // browser it was entered on. NOT public: these are unpublished working
+    // numbers, and nothing unauthenticated renders them — published results
+    // live in results_2026, which is the public one.
+    match /scoreDrafts/{instanceId} {
+      allow read, write: if request.auth != null;
+    }
+
   }
 }
