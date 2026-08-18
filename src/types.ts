@@ -86,6 +86,7 @@ export interface TeamRegistration {
   offeringType?: OfferingType   // role they registered as in Fury (default: jumper)
   members: TeamMember[]
   fullName?: string       // legal first+last name (chip shows a preferred name/nickname; this is for the hover tooltip)
+  email?: string          // registrant contact email (from Fury) — powers "copy emails" in Teaming
   teammateNote?: string   // free-text "who's on your team" from registration form
   // 'cancelled' = they pulled out in Fury Reg after signing up. Distinct from
   // 'denied' (an admin rejected them) because it needs a different reaction:

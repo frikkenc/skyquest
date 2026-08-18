@@ -80,6 +80,7 @@ function furyToTeamReg(r: FuryRegistrant, eventId: string): TeamRegistration {
     // Full legal name for the hover tooltip when the chip shows only a
     // preferred name/nickname. Omit when it's identical to the chip label.
     fullName: legalName && legalName !== displayName ? legalName : undefined,
+    email: r.client.email || r.email || r.formData.email || undefined,
     teammateNote: r.formData.teammates || undefined,
     status,
     // The registrations feed carries no per-person paid status (SCSL allows
@@ -872,6 +873,7 @@ function TeamingEditor({
   const [videoDraft, setVideoDraft] = useState('')
   const [addingPendingId, setAddingPendingId] = useState<string | null>(null)
   const [pendingDraft, setPendingDraft] = useState('')
+  const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null)
 
   // Drag state — tracked in ref to avoid re-renders during drag
   const dragInfo = useRef<{ source: 'pool' | 'group'; personId: string; fromGroupId?: string } | null>(null)
@@ -1021,6 +1023,15 @@ function TeamingEditor({
       }
       return { ...g, videoMemberId: personId, videoName: name, videoTbd: false }
     }))
+  }
+
+  function copyTeamEmails(group: TeamGroup) {
+    const emails = [...new Set(group.memberIds.map(id => regById[id]?.email).filter((e): e is string => !!e))]
+    if (emails.length === 0) return
+    navigator.clipboard.writeText(emails.join(', ')).then(() => {
+      setCopiedGroupId(group.id)
+      setTimeout(() => setCopiedGroupId(c => (c === group.id ? null : c)), 1500)
+    })
   }
 
   function addPending(groupId: string, name: string) {
@@ -1303,6 +1314,8 @@ function TeamingEditor({
             const loadNo = loadNos[groupIdx]
             const opensLoad = groupIdx === 0 || !!group.startsLoad
             const groupCancelled = group.memberIds.filter(id => cancelledIds.has(id))
+            const emailCount = new Set(group.memberIds.map(id => regById[id]?.email).filter(Boolean)).size
+            const noEmailCount = group.memberIds.filter(id => regById[id] && !regById[id].email).length
             return (
               <Fragment key={group.id}>
                 {opensLoad && (
@@ -1512,6 +1525,16 @@ function TeamingEditor({
                   )}
 
                   <div className={teamStyles.groupActions}>
+                    <button
+                      className={teamStyles.moveBtn}
+                      onClick={() => copyTeamEmails(group)}
+                      disabled={emailCount === 0}
+                      title={
+                        emailCount === 0
+                          ? 'No emails available for this team'
+                          : `Copy ${emailCount} email${emailCount === 1 ? '' : 's'} to clipboard${noEmailCount > 0 ? ` (${noEmailCount} member${noEmailCount === 1 ? '' : 's'} without email)` : ''}`
+                      }
+                    >{copiedGroupId === group.id ? '✓' : '✉'}</button>
                     <select
                       className={`${teamStyles.divisionSelect} ${group.division ? teamStyles.divisionSelectSet : ''}`}
                       value={group.division ?? ''}
