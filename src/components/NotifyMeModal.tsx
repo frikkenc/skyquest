@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { httpsCallable } from 'firebase/functions'
+import { functions } from '../firebase'
 import styles from './NotifyMeModal.module.css'
 
 interface Props {
@@ -6,8 +8,14 @@ interface Props {
   onClose: () => void
 }
 
-const API_KEY = import.meta.env.VITE_BREVO_API_KEY as string
-const LIST_ID = Number(import.meta.env.VITE_BREVO_LIST_ID)
+// Signup goes through the notifySignup Cloud Function, which holds the Brevo
+// key server-side. Calling Brevo directly from here shipped the API key in the
+// public bundle, and Brevo disables keys it detects as exposed — that was the
+// "auth error" every visitor hit.
+const notifySignup = httpsCallable<{ email: string; eventName: string }, { ok: boolean }>(
+  functions,
+  'notifySignup',
+)
 
 export default function NotifyMeModal({ eventName, onClose }: Props) {
   const [email, setEmail] = useState('')
@@ -19,34 +27,11 @@ export default function NotifyMeModal({ eventName, onClose }: Props) {
     setState('loading')
     setErrorMsg('')
     try {
-      const res = await fetch('https://api.brevo.com/v3/contacts', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'content-type': 'application/json',
-          'api-key': API_KEY,
-        },
-        body: JSON.stringify({
-          email,
-          listIds: [LIST_ID],
-          updateEnabled: true,
-          attributes: { SKYQUEST_NOTIFY: eventName },
-        }),
-      })
-      if (res.ok || res.status === 204) {
-        setState('done')
-      } else {
-        const data = await res.json()
-        // Brevo returns 400 with code DUPLICATE_PARAMETER if contact exists — treat as success
-        if (data?.code === 'DUPLICATE_PARAMETER') {
-          setState('done')
-        } else {
-          setErrorMsg(data?.message ?? 'Something went wrong. Try again.')
-          setState('error')
-        }
-      }
-    } catch {
-      setErrorMsg('Network error. Check your connection and try again.')
+      await notifySignup({ email, eventName })
+      setState('done')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      setErrorMsg(msg || 'Something went wrong. Try again.')
       setState('error')
     }
   }

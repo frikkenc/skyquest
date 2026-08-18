@@ -210,3 +210,67 @@ export const suggestTeams = onCall(
     return { groups, unassigned, conflicts }
   }
 )
+
+/**
+ * Callable function: notifySignup
+ *
+ * "Notify me when reg opens" email capture, proxied server-side. The modal
+ * used to POST straight to api.brevo.com with a VITE_BREVO_API_KEY baked into
+ * the public JS bundle — Brevo detects exposed keys and disables them ("API
+ * Key is not enabled"), which broke the modal for every visitor. Any key
+ * shipped to the browser will eventually meet the same fate, so the key now
+ * lives only here.
+ *
+ * Deliberately NO auth check: this is anonymous email capture from the
+ * marketing site. Input is validated and the only thing a caller can do is
+ * add an email to the notify list — same power the public form always had.
+ *
+ * Configure via `firebase functions:secrets:set BREVO_API_KEY` (generate a
+ * NEW key in Brevo — the leaked one is dead and should stay dead).
+ */
+
+// Brevo list the site's notify-me signups land in (was VITE_BREVO_LIST_ID).
+const BREVO_NOTIFY_LIST_ID = 46
+
+export const notifySignup = onCall(
+  { region: 'us-central1', secrets: ['BREVO_API_KEY'] },
+  async (request) => {
+    const { email, eventName } = (request.data ?? {}) as { email?: unknown; eventName?: unknown }
+
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      throw new HttpsError('invalid-argument', 'A valid email is required')
+    }
+    if (typeof eventName !== 'string' || eventName.trim().length === 0 || eventName.length > 200) {
+      throw new HttpsError('invalid-argument', 'eventName is required')
+    }
+
+    const apiKey = process.env.BREVO_API_KEY
+    if (!apiKey) {
+      throw new HttpsError('internal', 'BREVO_API_KEY is not configured on the server')
+    }
+
+    const res = await fetch('https://api.brevo.com/v3/contacts', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        listIds: [BREVO_NOTIFY_LIST_ID],
+        updateEnabled: true,
+        attributes: { SKYQUEST_NOTIFY: eventName.trim() },
+      }),
+    })
+
+    if (res.ok || res.status === 204) return { ok: true }
+
+    const body = (await res.json().catch(() => null)) as { code?: string; message?: string } | null
+    // Contact already exists — they're on the list, that's success.
+    if (body?.code === 'DUPLICATE_PARAMETER') return { ok: true }
+
+    console.error('Brevo contact create failed', res.status, body)
+    throw new HttpsError('internal', body?.message ?? `Brevo error ${res.status}`)
+  }
+)
