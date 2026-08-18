@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebase'
 import { EVENT_INSTANCES } from '../data/mockData'
-import { useFuryEventList } from './useFuryData'
+import { useFuryPublicEventList } from './useFuryData'
 import type { EventInstance, EventStatus } from '../types'
 import type { FuryEvent } from '../lib/furyClient'
 
@@ -14,18 +14,23 @@ function furyStatusToEventStatus(e: FuryEvent): EventStatus {
   return 'upcoming'
 }
 
+// Take only what Fury is authoritative for: the date and whether reg is open.
+// Name/dropzone stay local — the site's curated copy ("Perris ↔ Elsinore")
+// deliberately differs from Fury's registration titles ("… (SoCal SkyQuest)").
+// Locally-complete events stay complete: Fury keeps past events "live" until
+// archived, and demoting a results-published event back to closed would pull
+// its Results link off the site.
 function mergeFuryIntoInstance(base: EventInstance, fury: FuryEvent): EventInstance {
+  if (base.status === 'complete' || base.status === 'season-finale') return base
   return {
     ...base,
-    name: fury.name,
     date: fury.startDate,
-    dropzone: fury.config.location,
     status: furyStatusToEventStatus(fury),
   }
 }
 
 export function useLiveEventList() {
-  const { data: furyEvents, isLoading, isError } = useFuryEventList()
+  const { data: furyEvents, isLoading, isError } = useFuryPublicEventList()
 
   const { data: configOverrides } = useQuery({
     queryKey: ['eventConfig'],

@@ -16,6 +16,7 @@ interface Props {
  *   season-finale    → Season Finale pill (no action)
  *   open + url       → Sign Up (or custom registrationLabel) — external deep-link
  *   open + no url    → Learn More (internal link)
+ *   closed           → Learn More (reg shut — no signup, no notify)
  *   upcoming / other → Notify Me (opens email-capture modal)
  */
 export default function EventCTA({ evt, onNotifyMe, small = true }: Props) {
@@ -42,7 +43,9 @@ export default function EventCTA({ evt, onNotifyMe, small = true }: Props) {
       </a>
     )
   }
-  if (evt.status === 'open') {
+  if (evt.status === 'open' || evt.status === 'closed') {
+    // closed = reg was open and has shut (event imminent or run, results not
+    // published yet) — "Notify Me" would promise an opening that isn't coming.
     return (
       <Link to={`/events/${evt.typeSlug}/${evt.id}`} className={`btn btn-ghost ${sz}`}>
         Learn More

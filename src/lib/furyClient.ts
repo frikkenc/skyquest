@@ -22,6 +22,16 @@ async function furyGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
+// No auth header — for Fury's public endpoints, callable by anonymous visitors.
+async function furyGetPublic<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`)
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Fury ${path} → ${res.status}: ${text.slice(0, 120)}`)
+  }
+  return res.json() as Promise<T>
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface FurySession {
@@ -159,6 +169,16 @@ export function fetchFuryRegistrationPayments(registrationId: string): Promise<F
 
 export function fetchFuryEventList(): Promise<FuryEvent[]> {
   return furyGet<FuryEvent[]>('/api/admin/events')
+}
+
+/**
+ * Public event list — GET /api/events needs no token, so this works for
+ * anonymous visitors. Only events with eventVisibility=public and an active
+ * base offering come back; a linked event missing from this list just means
+ * "not publicly registrable", not an error.
+ */
+export function fetchFuryPublicEventList(): Promise<FuryEvent[]> {
+  return furyGetPublic<FuryEvent[]>('/api/events')
 }
 
 export function fetchFuryMoneySummary(eventId: string): Promise<FuryMoneySummary> {

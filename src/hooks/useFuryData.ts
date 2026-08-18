@@ -1,7 +1,7 @@
 import { useQuery, useQueries } from '@tanstack/react-query'
 import {
   fetchFurySession, fetchFuryRegistrations, fetchFuryRegistrationPayments,
-  fetchFuryEventList, fetchFuryMoneySummary, fetchFuryOfferingStats,
+  fetchFuryEventList, fetchFuryPublicEventList, fetchFuryMoneySummary, fetchFuryOfferingStats,
   type FuryPayment,
 } from '../lib/furyClient'
 
@@ -91,6 +91,22 @@ export function useFuryEventList() {
   return useQuery({
     queryKey: ['fury', 'events'],
     queryFn: fetchFuryEventList,
+    staleTime: 5 * 60_000,
+    ...FURY_QUERY_OPTS,
+  })
+}
+
+/**
+ * Public (unauthenticated) event list for visitor-facing pages. The admin
+ * list above requires a signed-in session, so using it from Landing/Schedule
+ * meant every anonymous visitor's query failed and the site silently fell
+ * back to the hand-set statuses in mockData — the "reg is open on Fury but
+ * the site still says Notify Me" bug.
+ */
+export function useFuryPublicEventList() {
+  return useQuery({
+    queryKey: ['fury', 'publicEvents'],
+    queryFn: fetchFuryPublicEventList,
     staleTime: 5 * 60_000,
     ...FURY_QUERY_OPTS,
   })
