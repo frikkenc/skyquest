@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { EVENT_INSTANCES, EVENT_RESULTS } from '../../data/mockData'
 import { loadTeamingDoc } from '../../hooks/useTeamingDoc'
@@ -211,24 +211,53 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     saveScores(instanceId, { teams, statuses, hasJumpoff })
   }, [teams, statuses, hasJumpoff, instanceId])
 
-  // Nothing cached and nothing seeded → pull the teams built on the Teaming
-  // tab. Only fires on a genuinely empty grid, so it can't stomp entered
-  // scores; re-pulling later is the explicit button below.
+  // Nothing cached and nothing seeded → restore. Two sources, in order:
+  //   1. The published results doc — it carries the full round grid, so a
+  //      published event's scores come back even when localStorage is gone
+  //      (different machine, cleared cache). Publishing must never be the
+  //      thing that loses the scores.
+  //   2. The Teaming tab (fresh grid, no scores entered yet).
+  // Only fires on a genuinely empty grid, so it can't stomp entered scores;
+  // re-pulling later is the explicit button below.
   useEffect(() => {
-    if (isDueling || cached || teams.length > 0) return
+    if (cached || teams.length > 0) return
     let cancelled = false
-    loadTeamingDoc(instanceId)
-      .then(tdoc => {
-        if (cancelled || !tdoc) return
-        const { teams: pulled, missingDivision } = teamsFromTeaming(tdoc)
-        if (!pulled.length) return
-        setTeams(pulled)
-        setSeedNote(
-          `Loaded ${pulled.length} teams from the Teaming tab.` +
-          (missingDivision ? ` ${missingDivision} had no division set and were put in A — fix them on the Teaming tab and re-pull.` : '')
-        )
-      })
-      .catch(() => { /* leave the grid empty; the pull button retries */ })
+
+    async function restore() {
+      const snap = await getDoc(doc(db, 'results_2026', instanceId)).catch(() => null)
+      if (cancelled) return
+      const result = snap?.exists() ? (snap.data() as PublishedEventResult) : null
+      const withRounds = (result?.teams ?? []).filter(t => (t.roundScores?.length ?? 0) > 0)
+      if (result && withRounds.length > 0) {
+        setTeams(withRounds.map(t => ({
+          teamId: t.teamId, teamName: t.teamName, members: t.members, division: t.division,
+          rounds: Array.from({ length: MAX_ROUNDS }, (_, i) => ({
+            pts: t.roundScores?.[i] ?? 0,
+            busts: t.roundBusts?.[i] ?? 0,
+          })),
+        })))
+        setStatuses(Array.from({ length: MAX_ROUNDS }, (_, i) => result.roundStatuses?.[i] ?? 'ok'))
+        if (result.roundCount) setRoundCount(result.roundCount)
+        if (typeof result.hasJumpoff === 'boolean') setHasJumpoff(result.hasJumpoff)
+        setPublished(true)
+        setSaved(true)
+        setSeedNote(`Restored ${withRounds.length} teams from the published results.`)
+        return
+      }
+
+      if (isDueling) return
+      const tdoc = await loadTeamingDoc(instanceId).catch(() => null)
+      if (cancelled || !tdoc) return
+      const { teams: pulled, missingDivision } = teamsFromTeaming(tdoc)
+      if (!pulled.length) return
+      setTeams(pulled)
+      setSeedNote(
+        `Loaded ${pulled.length} teams from the Teaming tab.` +
+        (missingDivision ? ` ${missingDivision} had no division set and were put in A — fix them on the Teaming tab and re-pull.` : '')
+      )
+    }
+
+    restore()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId])
@@ -354,6 +383,15 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     const event = EVENT_INSTANCES.find(e => e.id === instanceId)
     const publishedTeams: PublishedTeamResult[] = []
 
+    // Publish the raw grid alongside the totals: the public results table
+    // renders round-by-round from it, and the admin grid restores from it
+    // when localStorage is gone (other machine, cleared cache, post-publish).
+    const gridLen = roundCount + (hasJumpoff ? 1 : 0)
+    const roundsOf = (t: ScoredTeam) => ({
+      roundScores: t.rounds.slice(0, gridLen).map(r => r.pts),
+      roundBusts: t.rounds.slice(0, gridLen).map(r => r.busts),
+    })
+
     if (isDueling) {
       const dt = teams
         .map(t => {
@@ -372,6 +410,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         members: t.members, division: 'Open',
         rawScore: t.total, jpp: t.jpp,
         rankingPoints: PLACEHOLDER_RANKING_POINTS,
+        ...roundsOf(t),
       }))
     } else {
       for (const div of SCORE_DIVS) {
@@ -384,6 +423,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
           members: t.members, division: div,
           rawScore: t.total,
           rankingPoints: PLACEHOLDER_RANKING_POINTS,
+          ...roundsOf(t),
         }))
       }
     }
@@ -393,6 +433,9 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
       eventName: event?.name ?? instanceId,
       date: event?.date ?? '',
       teams: publishedTeams,
+      roundCount,
+      roundStatuses: statuses.slice(0, roundCount),
+      hasJumpoff,
     }
 
     // Keep localStorage as local cache

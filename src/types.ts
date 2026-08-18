@@ -248,6 +248,13 @@ export interface PublishedTeamResult {
   rawScore: number
   jpp?: number | null
   rankingPoints: number
+  // Raw per-round grid, indices 0..roundCount-1 (+ jumpoff at index roundCount
+  // when hasJumpoff). Powers the public round-by-round table AND lets the
+  // admin Scores tab rebuild its grid after publish — before this the grid
+  // lived only in one browser's localStorage. Absent on docs published
+  // before 2026-08-18.
+  roundScores?: number[]
+  roundBusts?: number[]
 }
 
 export interface PublishedEventResult {
@@ -255,6 +262,10 @@ export interface PublishedEventResult {
   eventName: string
   date: string
   teams: PublishedTeamResult[]
+  // Round metadata matching the teams' roundScores arrays (see above).
+  roundCount?: number
+  roundStatuses?: ('ok' | 'weather' | 'choice')[]
+  hasJumpoff?: boolean
 }
 
 export interface IndividualStanding {

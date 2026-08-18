@@ -81,6 +81,7 @@ export default function EventInstance() {
   const isOpen = event.status === 'open' && !!event.furyRegistrationUrl
   const isManualOpen = event.status === 'open' && !event.furyRegistrationUrl
   const isUpcoming = event.status === 'upcoming'
+  const isClosed = event.status === 'closed'
   const isFinale = event.status === 'season-finale'
 
   // Tabs surface divisions that actually have published teams — not what the
@@ -95,12 +96,24 @@ export default function EventInstance() {
     : (event.divisions.length > 0 ? event.divisions : (['AAA', 'AA', 'A', 'Rookie'] as Division[]))
 
   // Filter to the active division for this event. published.teams is the
-  // post-Publish snapshot from Firestore — each team carries rawScore (which
-  // is the adjusted total, raw round sum + handicap) but no per-round breakdown,
-  // so the round columns are hidden.
+  // post-Publish snapshot from Firestore.
   const results: PublishedTeamResult[] = (published?.teams ?? [])
     .filter(t => t.division === activeDivision)
     .sort((a, b) => a.rank - b.rank)
+
+  // Round-by-round columns: counted rounds only (weather-scrubbed rounds are
+  // dropped, so labels renumber to what was actually flown), plus the jumpoff.
+  // Docs published before roundScores existed fall back to the total-only table.
+  const publishedGridLen = published?.roundCount ?? 0
+  const roundCols: { idx: number; label: string }[] =
+    published && publishedGridLen > 0 && results.some(t => (t.roundScores?.length ?? 0) > 0)
+      ? [
+          ...Array.from({ length: publishedGridLen }, (_, i) => i)
+            .filter(i => (published.roundStatuses?.[i] ?? 'ok') !== 'weather')
+            .map((idx, k) => ({ idx, label: `R${k + 1}` })),
+          ...(published.hasJumpoff ? [{ idx: publishedGridLen, label: 'JO' }] : []),
+        ]
+      : []
   const photo = getEventPhoto(event.typeSlug)
 
   return (
@@ -179,6 +192,9 @@ export default function EventInstance() {
               <button className="btn btn-ghost" onClick={() => setNotifyOpen(true)}>
                 Notify Me When Reg Opens
               </button>
+            )}
+            {isClosed && (
+              <span style={{ color: 'var(--sq-gray)', fontSize: 14 }}>Registration is closed.</span>
             )}
             {isComplete && (
               <span style={{ color: 'var(--sq-gray)', fontSize: 14 }}>This event is complete.</span>
@@ -289,13 +305,17 @@ export default function EventInstance() {
                   : `No ${activeDivision} teams in this event.`}
               </div>
             ) : (
+              <>
               <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-                <table className="lb" style={{ minWidth: 480 }}>
+                <table className="lb" style={{ minWidth: 480 + roundCols.length * 44 }}>
                   <thead>
                     <tr>
                       <th style={{ width: 52 }}>#</th>
                       <th>Team</th>
-                      <th style={{ textAlign: 'right' }}>Score</th>
+                      {roundCols.map(c => (
+                        <th key={c.idx} style={{ textAlign: 'center', width: 44 }}>{c.label}</th>
+                      ))}
+                      <th style={{ textAlign: 'right' }}>{roundCols.length > 0 ? 'Total' : 'Score'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -308,12 +328,27 @@ export default function EventInstance() {
                             {result.members.map(m => m.name).join(' · ')}
                           </div>
                         </td>
+                        {roundCols.map(c => {
+                          const pts = result.roundScores?.[c.idx] ?? 0
+                          const busts = result.roundBusts?.[c.idx] ?? 0
+                          return (
+                            <td key={c.idx} style={{ textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
+                              {busts > 0 ? `${pts}(${busts})` : pts}
+                            </td>
+                          )
+                        })}
                         <td className="pts">{result.rawScore}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              {roundCols.some(c => c.label === 'JO') && (
+                <p style={{ color: 'var(--sq-gray)', fontSize: 12, marginTop: 8 }}>
+                  JO = jump-off round. Scores in parentheses are busts.
+                </p>
+              )}
+              </>
             )}
 
             {/* Hop to season-wide views */}
