@@ -112,6 +112,7 @@ const NICKNAMES: Record<string, string> = {
   chuck: 'charles',   // chuck.b.reilly@gmail.com
   ron: 'ronald',      // ronaldsetina@gmail.com
   jim: 'james',       // jstew9253@gmail.com
+  bill: 'william',    // willpall@fastmail.com — registered "Bill", legal William Pallies
 }
 function normalizeJumperKey(name: string): string {
   const cleaned = (name || '').toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim()
