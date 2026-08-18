@@ -220,7 +220,11 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   // Only fires on a genuinely empty grid, so it can't stomp entered scores;
   // re-pulling later is the explicit button below.
   useEffect(() => {
-    if (cached || teams.length > 0) return
+    // A cached-but-scoreless grid (e.g. the Teaming seed ran and got saved
+    // before anything was typed) must not block the restore — published data
+    // always beats an empty grid, never a grid someone typed into.
+    const gridHasScores = teams.some(t => t.rounds.some(r => r.pts > 0 || r.busts > 0))
+    if (gridHasScores) return
     let cancelled = false
 
     async function restore() {
@@ -245,7 +249,8 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         return
       }
 
-      if (isDueling) return
+      // Teaming seed only makes sense for a truly empty grid.
+      if (isDueling || cached || teams.length > 0) return
       const tdoc = await loadTeamingDoc(instanceId).catch(() => null)
       if (cancelled || !tdoc) return
       const { teams: pulled, missingDivision } = teamsFromTeaming(tdoc)
