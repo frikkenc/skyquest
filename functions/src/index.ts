@@ -324,10 +324,15 @@ const MAX_JUMPS = 50000
 
 function adminDb() {
   // Lazy for the same module-load-window reason as the Anthropic import.
+  // Check for the DEFAULT app by name, not `apps.length`: firebase-functions
+  // registers its own internal app, so the list is never empty and the
+  // default app was never created ("app/no-app" on every call).
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const admin = require('firebase-admin') as typeof import('firebase-admin')
-  if (!admin.apps.length) admin.initializeApp()
-  return admin.firestore()
+  const { getApps, initializeApp } = require('firebase-admin/app') as typeof import('firebase-admin/app')
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { getFirestore } = require('firebase-admin/firestore') as typeof import('firebase-admin/firestore')
+  if (!getApps().some(a => a.name === '[DEFAULT]')) initializeApp()
+  return getFirestore()
 }
 
 function validJumps(n: unknown): n is number {
