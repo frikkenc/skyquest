@@ -40,6 +40,13 @@
         "headers": [
           { "key": "Cache-Control", "value": "no-store, max-age=0" }
         ]
+      },
+      {
+        "//": "SPA deep links (/schedule, /events/...) are rewritten to index.html but did not match the two rules above, so they got the default max-age=3600 and kept serving the old bundle hash for an hour after a deploy. Any path without a dot is a route, not an asset.",
+        "regex": "^/[^.]*$",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store, max-age=0" }
+        ]
       }
     ]
   },

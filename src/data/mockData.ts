@@ -144,7 +144,7 @@ export const EVENT_INSTANCES: EventInstance[] = [
     name: 'Dueling DZs — Perris ↔ Elsinore',
     shortTagline: 'Take off at one DZ. Land at the other.',
     oneLiner: 'Four rounds of 6-way back and forth between two dropzones — board the plane, fly the round, land, board again. Canyon Lake after for awards and apps.',
-    date: '2026-10-25',
+    date: '2026-11-15',
     dropzone: 'Perris ↔ Elsinore',
     status: 'open',
     divisions: ['Open'],

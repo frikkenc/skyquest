@@ -57,6 +57,9 @@ export function useLiveEventList() {
       const overrides = configOverrides?.[instance.id]
       if (overrides) {
         const { divisions: _div, ...rest } = overrides as Record<string, unknown> & { divisions?: unknown }
+        // Fury owns the date for Fury-linked events. A stale admin Edit override
+        // kept Dueling DZs on Oct 25 after Fury moved it to Nov 15.
+        if (instance.furyEventId) delete rest.date
         merged = { ...merged, ...(rest as Partial<EventInstance>) }
       }
       return merged
