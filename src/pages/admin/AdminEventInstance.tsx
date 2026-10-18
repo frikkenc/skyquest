@@ -9,6 +9,7 @@ import type { FuryRegistrant } from '../../lib/furyClient'
 import { useFuryRegistrations, useFuryEventStats, useFuryPayments } from '../../hooks/useFuryData'
 import { useEventDivisions } from '../../hooks/useEventDivisions'
 import { useTeamingDoc, teamingDocToPrintData, loadNumbersFor, type TeamingSaveState } from '../../hooks/useTeamingDoc'
+import { savePrivateRoster } from '../../hooks/useJumpNumbers'
 import styles from './AdminEventInstance.module.css'
 import teamStyles from './AdminTeaming.module.css'
 import PrintablesTab from './AdminPrintables'
@@ -132,6 +133,15 @@ export default function AdminEventInstance() {
   // registration form. Don't conflate with "not yet assigned in the Teaming UI"
   // (which is everyone until teams are built), or the hero/tab badges balloon.
   const lftCount = furyRegs.filter(r => r.formData.needsTeamUp === 'yes').length
+
+  // Keep the private email roster fresh for jump-number self-entry
+  // (/jumps/:id). Any admin visit to a Dueling DZs event refreshes it. Skipped while the
+  // roster is empty so a failed Fury load can't wipe a good copy.
+  useEffect(() => {
+    if (typeSlug !== 'dueling-dzs' || !instanceId || !furyRegsData || registrations.length === 0) return
+    savePrivateRoster(instanceId, registrations).catch(err => console.error('private roster save failed', err))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId, furyRegsData])
 
   if (!event || !eventType) {
     return <div style={{ padding: 48, color: 'var(--adm-mute)' }}>Event not found.</div>

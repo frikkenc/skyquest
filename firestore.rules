@@ -128,5 +128,23 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // ── SkyQuest Dueling DZs jump numbers (handicap input) ──────────────────
+    // Was localStorage-only, so numbers entered on a jumper's phone never
+    // reached the judging laptop. Public read: the check-in pages show what's
+    // been entered. Public writes go through the submitJumpNumbers Cloud
+    // Function (admin SDK, validates the person is on the event); only
+    // signed-in admins write here directly.
+    match /jumpNumbers/{instanceId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── SkyQuest private roster — regId → email, for jump-number self-entry ──
+    // Mirrored from Fury by the admin event page. NOT public: emails. Only the
+    // Cloud Function (admin SDK) reads it on behalf of the public page.
+    match /teamingPrivate/{instanceId} {
+      allow read, write: if request.auth != null;
+    }
+
   }
 }

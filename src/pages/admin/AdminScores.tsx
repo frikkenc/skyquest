@@ -3,9 +3,11 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { EVENT_INSTANCES, EVENT_RESULTS } from '../../data/mockData'
 import { loadTeamingDoc } from '../../hooks/useTeamingDoc'
+import { useJumpNumbers, teamJumps } from '../../hooks/useJumpNumbers'
 import type { Division, TeamResult, TeamRegistration, TeamingDoc, PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
-import AdminScoresPokerRun from './AdminScoresPokerRun'
+import AdminScoresPokerRun, { SyncPill } from './AdminScoresPokerRun'
+import { loadScoreDraft, pickDraft, useScoreDraftPush } from '../../hooks/useScoreDraft'
 import AdminScoresCrazy8 from './AdminScoresCrazy8'
 
 const MAX_ROUNDS = 20
@@ -13,7 +15,6 @@ const DEFAULT_ROUNDS = 10
 const SCORE_DIVS: Division[] = ['AAA', 'AA', 'A', 'Rookie']
 
 type RoundStatus = 'ok' | 'weather' | 'choice'
-type JumpData = Record<string, number[]>  // assignmentId → per-member counts
 type DzData = Record<string, 'Perris' | 'Elsinore'>
 
 interface REntry { pts: number; busts: number }
@@ -115,11 +116,24 @@ function teamsFromTeaming(tdoc: TeamingDoc): { teams: ScoredTeam[]; missingDivis
 // Entered scores used to live only in component state. The admin tabs render
 // conditionally, so switching to Printables and back unmounted this component
 // and silently threw away everything typed — and "Save Scores" only flipped a
-// label. Cache on every edit, same as the Poker Run and Crazy 8s tabs.
+// label. Cache on every edit, same as the Poker Run and Crazy 8s tabs — and,
+// like them, sync to Firestore `scoreDrafts/{instanceId}` so the grid isn't
+// stranded in one browser until Publish.
 interface ScoresCache {
   teams: ScoredTeam[]
   statuses: RoundStatus[]
   hasJumpoff: boolean
+  // Carried in the server draft so a second device gets the whole table, not
+  // just the cells. Locally these still also live in their own keys.
+  roundCount?: number
+  dz?: DzData
+  tiebreaks?: Record<string, number>
+  updatedAt?: string
+}
+
+/** Entered cells — decides local vs server on load. */
+function scoresWeight(c: ScoresCache) {
+  return c.teams.reduce((n, t) => n + t.rounds.filter(r => r.pts > 0 || r.busts > 0).length, 0)
 }
 
 function scoresKey(instanceId: string) {
@@ -138,11 +152,6 @@ function loadScores(instanceId: string): ScoresCache | null {
 
 function saveScores(instanceId: string, cache: ScoresCache) {
   try { localStorage.setItem(scoresKey(instanceId), JSON.stringify(cache)) } catch { /* quota */ }
-}
-
-function loadJumpData(instanceId: string): JumpData {
-  try { return JSON.parse(localStorage.getItem(`sq-jumps-${instanceId}`) ?? '{}') }
-  catch { return {} }
 }
 
 function loadDzData(instanceId: string): DzData {
@@ -193,14 +202,22 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const [photoMode, setPhotoMode] = useState(false)
   const [photoUploaded, setPhotoUploaded] = useState(false)
   const [photoProcessing, setPhotoProcessing] = useState(false)
-  const [jumpData, setJumpData] = useState<JumpData>(() => isDueling ? loadJumpData(instanceId) : {})
+  // Shared Firestore doc, live — numbers jumpers submit from their phones land here.
+  const liveJumps = useJumpNumbers(instanceId)
+  const byReg = isDueling ? liveJumps ?? {} : {}
+  const jumpsFor = (t: ScoredTeam) => teamJumps(byReg, t.members.map(m => m.id))
   const [dzData, setDzData] = useState<DzData>(() => isDueling ? loadDzData(instanceId) : {})
   const [manualTiebreak, setManualTiebreak] = useState<Record<string, number>>(() => loadTiebreaks(instanceId))
   const [linkCopied, setLinkCopied] = useState(false)
   const [published, setPublished] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const { push, syncState } = useScoreDraftPush(instanceId)
+  // No server writes until the server copy has been checked, so a stray edit
+  // can't overwrite a fuller draft from another machine.
+  const remoteChecked = useRef(false)
 
   const checkinUrl = `${window.location.origin}/checkin/${instanceId}`
+  const jumpsUrl = `${window.location.origin}/jumps/${instanceId}`
 
   // Cache every edit. Skip the mount render — that's just the loaded state
   // echoing back, and writing it would stamp an empty grid over a real cache
@@ -208,10 +225,15 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const firstRender = useRef(true)
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return }
-    saveScores(instanceId, { teams, statuses, hasJumpoff })
-  }, [teams, statuses, hasJumpoff, instanceId])
+    const cache = { teams, statuses, hasJumpoff, roundCount, dz: dzData, tiebreaks: manualTiebreak }
+    saveScores(instanceId, { ...cache, updatedAt: new Date().toISOString() })
+    if (remoteChecked.current) push(cache)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams, statuses, hasJumpoff, roundCount, dzData, manualTiebreak, instanceId])
 
-  // Nothing cached and nothing seeded → restore. Two sources, in order:
+  // On mount: the Firestore draft wins when it holds more scoring than this
+  // browser (another device, cleared cache). Then, for an empty grid only,
+  // restore from two sources, in order:
   //   1. The published results doc — it carries the full round grid, so a
   //      published event's scores come back even when localStorage is gone
   //      (different machine, cleared cache). Publishing must never be the
@@ -220,14 +242,35 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   // Only fires on a genuinely empty grid, so it can't stomp entered scores;
   // re-pulling later is the explicit button below.
   useEffect(() => {
-    // A cached-but-scoreless grid (e.g. the Teaming seed ran and got saved
-    // before anything was typed) must not block the restore — published data
-    // always beats an empty grid, never a grid someone typed into.
-    const gridHasScores = teams.some(t => t.rounds.some(r => r.pts > 0 || r.busts > 0))
-    if (gridHasScores) return
     let cancelled = false
 
     async function restore() {
+      // 0. The server draft, when it holds more scoring than this browser.
+      const remote = await loadScoreDraft<ScoresCache>(instanceId)
+      if (cancelled) return
+      const validRemote = remote && Array.isArray(remote.teams) ? remote : null
+      const pick = pickDraft(cached, validRemote, scoresWeight)
+      remoteChecked.current = true
+      if (pick === 'remote' && validRemote && validRemote.teams.length > 0) {
+        setTeams(validRemote.teams)
+        setStatuses(validRemote.statuses ?? Array(MAX_ROUNDS).fill('ok'))
+        setHasJumpoff(!!validRemote.hasJumpoff)
+        if (validRemote.roundCount) setRoundCount(validRemote.roundCount)
+        if (validRemote.dz) setDzData(validRemote.dz)
+        if (validRemote.tiebreaks) setManualTiebreak(validRemote.tiebreaks)
+        saveScores(instanceId, validRemote)
+        setSeedNote('Loaded the saved scores from the server.')
+        return
+      }
+      if (pick === 'local' && cached) {
+        push({ ...cached, roundCount, dz: dzData, tiebreaks: manualTiebreak })
+      }
+
+      // A cached-but-scoreless grid (e.g. the Teaming seed ran and got saved
+      // before anything was typed) must not block the restore — published data
+      // always beats an empty grid, never a grid someone typed into.
+      if (teams.some(t => t.rounds.some(r => r.pts > 0 || r.busts > 0))) return
+
       const snap = await getDoc(doc(db, 'results_2026', instanceId)).catch(() => null)
       if (cancelled) return
       const result = snap?.exists() ? (snap.data() as PublishedEventResult) : null
@@ -250,7 +293,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
       }
 
       // Teaming seed only makes sense for a truly empty grid.
-      if (isDueling || cached || teams.length > 0) return
+      if (cached || teams.length > 0) return
       const tdoc = await loadTeamingDoc(instanceId).catch(() => null)
       if (cancelled || !tdoc) return
       const { teams: pulled, missingDivision } = teamsFromTeaming(tdoc)
@@ -258,7 +301,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
       setTeams(pulled)
       setSeedNote(
         `Loaded ${pulled.length} teams from the Teaming tab.` +
-        (missingDivision ? ` ${missingDivision} had no division set and were put in A — fix them on the Teaming tab and re-pull.` : '')
+        (missingDivision && !isDueling ? ` ${missingDivision} had no division set and were put in A — fix them on the Teaming tab and re-pull.` : '')
       )
     }
 
@@ -283,7 +326,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     setSaved(false)
     setSeedNote(
       `Re-pulled ${merged.length} teams; entered scores kept.` +
-      (missingDivision ? ` ${missingDivision} still have no division.` : '')
+      (missingDivision && !isDueling ? ` ${missingDivision} still have no division.` : '')
     )
   }
 
@@ -358,14 +401,10 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   }
 
   function copyCheckinLink() {
-    navigator.clipboard.writeText(checkinUrl).then(() => {
+    navigator.clipboard.writeText(jumpsUrl).then(() => {
       setLinkCopied(true)
       setTimeout(() => setLinkCopied(false), 2000)
     })
-  }
-
-  function refreshJumps() {
-    setJumpData(loadJumpData(instanceId))
   }
 
   function adjustTiebreak(teamId: string, delta: number) {
@@ -400,7 +439,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     if (isDueling) {
       const dt = teams
         .map(t => {
-          const jumps = jumpData[t.teamId] ?? []
+          const jumps = jumpsFor(t)
           const total = effectiveTotal(t)
           return { ...t, total, jpp: calcJpp(total, jumps) }
         })
@@ -574,9 +613,12 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
                           <option value="Perris">Perris</option>
                           <option value="Elsinore">Elsinore</option>
                         </select>
-                        {!(jumpData[team.teamId]?.length) && (
-                          <span style={{ fontSize: 10, color: '#ff7043', fontWeight: 600 }}>⚠ no jump #</span>
-                        )}
+                        {(() => {
+                          const missing = jumpsFor(team).filter(n => !n).length
+                          return missing > 0 && (
+                            <span style={{ fontSize: 10, color: '#ff7043', fontWeight: 600 }}>⚠ {missing} jump # missing</span>
+                          )
+                        })()}
                       </div>
                     )}
                   </td>
@@ -694,22 +736,25 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
           </button>
           {isDueling && (
             <button className={styles.adminBtn} onClick={copyCheckinLink} style={{ fontSize: 11 }}>
-              {linkCopied ? '✓ Copied' : '📱 Check-in link'}
+              {linkCopied ? '✓ Copied' : '📱 Copy jump # link'}
             </button>
           )}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-          {!saved && <span style={{ fontSize: 12, color: 'var(--sq-yellow)' }}>● Unsaved</span>}
-          {!isDueling && (
-            <button className={styles.adminBtn} onClick={pullFromTeaming} style={{ fontSize: 11 }}
-              title="Re-read teams, names and divisions from the Teaming tab. Scores already entered are kept.">
-              ⟳ Teams
-            </button>
-          )}
+          <SyncPill state={syncState} />
+          <button className={styles.adminBtn} onClick={pullFromTeaming} style={{ fontSize: 11 }}
+            title="Re-read teams, names and divisions from the Teaming tab. Scores already entered are kept.">
+            ⟳ Teams
+          </button>
           <button className={styles.adminBtn} onClick={resetTeams} title="Clear entered scores; teams stay">Clear scores</button>
           <button
             className={`${styles.adminBtn} ${styles.primary}`}
-            onClick={() => { saveScores(instanceId, { teams, statuses, hasJumpoff }); setSaved(true) }}
+            onClick={() => {
+              const cache = { teams, statuses, hasJumpoff, roundCount, dz: dzData, tiebreaks: manualTiebreak }
+              saveScores(instanceId, cache)
+              if (remoteChecked.current) push(cache)
+              setSaved(true)
+            }}
             title="Scores also save automatically as you type"
           >
             {saved ? '✓ Saved' : 'Save Scores'}
@@ -737,10 +782,14 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         <div style={{ background: 'rgba(100,181,246,.06)', border: '1px solid rgba(100,181,246,.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: '#64b5f6', fontWeight: 700, letterSpacing: '.04em' }}>JUMP # CHECK-IN</span>
           <span style={{ fontSize: 12, color: 'var(--adm-mute)' }}>
-            {Object.keys(jumpData).length}/{teams.length} teams submitted
+            {teams.filter(t => t.members.length > 0 && jumpsFor(t).every(n => n > 0)).length}/{teams.length} teams complete · live
           </span>
-          <button className={styles.adminBtn} onClick={refreshJumps} style={{ fontSize: 11, marginLeft: 'auto' }}>↻ Refresh</button>
-          <span style={{ fontSize: 11, color: 'var(--adm-mute)', userSelect: 'all' }}>{checkinUrl}</span>
+          <a href={jumpsUrl} target="_blank" rel="noreferrer" className={styles.adminBtn} style={{ fontSize: 11, marginLeft: 'auto', textDecoration: 'none' }}
+            title="Self-entry by email. Signed in, it also shows everyone with editable numbers.">
+            ✎ Edit all jump #s
+          </a>
+          <span style={{ fontSize: 11, color: 'var(--adm-mute)', userSelect: 'all' }} title="Self-entry by email">{jumpsUrl}</span>
+          <span style={{ fontSize: 11, color: 'var(--adm-mute)', userSelect: 'all' }} title="One phone per team">{checkinUrl}</span>
         </div>
       )}
 
@@ -796,7 +845,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
       {isDueling && (() => {
         const dt = teams
           .map(t => {
-            const jumps = jumpData[t.teamId] ?? []
+            const jumps = jumpsFor(t)
             const total = effectiveTotal(t)
             return { ...t, total, jpp: calcJpp(total, jumps) }
           })
@@ -815,7 +864,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 2px', borderBottom: '2px solid var(--adm-border)', marginBottom: 1 }}>
               <span style={{ fontFamily: 'Bungee', fontStyle: 'italic', fontSize: 15, color: 'var(--adm-ink)', letterSpacing: '.04em' }}>Open</span>
               <span style={{ fontSize: 11, color: 'var(--adm-mute)' }}>{dt.length} team{dt.length !== 1 ? 's' : ''}</span>
-              {Object.keys(jumpData).length > 0 && (
+              {Object.keys(byReg).length > 0 && (
                 <span style={{ fontSize: 11, color: '#64b5f6', marginLeft: 4 }}>· ranked by JPP</span>
               )}
             </div>

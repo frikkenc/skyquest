@@ -85,8 +85,19 @@ export const suggestTeams = onCall(
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const client = new Anthropic({ apiKey })
 
+    // Short aliases instead of the 36-char Fury UUIDs. Every id is echoed back
+    // in the JSON, so with a real roster the UUIDs alone ran the reply past
+    // max_tokens and it came back cut off mid-array ("unparseable response").
+    // Short ids are also far harder for the model to garble.
+    const aliasToId = new Map<string, string>()
+    const idToAlias = new Map<string, string>()
+    registrants.forEach((r, i) => {
+      aliasToId.set(`p${i + 1}`, r.id)
+      idToAlias.set(r.id, `p${i + 1}`)
+    })
+
     const participantList = registrants
-      .map((r) => `  - id="${r.id}" name="${r.name}" wants="${r.teammateNote?.trim() || '(no preference)'}"`)
+      .map((r) => `  - id="${idToAlias.get(r.id)}" name="${r.name}" wants="${r.teammateNote?.trim() || '(no preference)'}"`)
       .join('\n')
 
     const systemPrompt =
@@ -135,17 +146,22 @@ export const suggestTeams = onCall(
       `Every id you emit must come from the PARTICIPANTS list above.`
 
     let rawText = ''
+    let stopReason: string | null = null
     try {
       const message = await client.messages.create({
         model: 'claude-haiku-4-5',
-        max_tokens: 2048,
+        max_tokens: 8192,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       })
       rawText = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+      stopReason = message.stop_reason
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       throw new HttpsError('internal', `Anthropic API error: ${msg}`)
+    }
+    if (stopReason === 'max_tokens') {
+      throw new HttpsError('internal', `AI reply was cut off (roster of ${registrants.length} too long) — try again or team up a few by hand first`)
     }
 
     // The model sometimes wraps the JSON in markdown fences and/or appends
@@ -169,6 +185,16 @@ export const suggestTeams = onCall(
     }
     if (!parsed) {
       throw new HttpsError('internal', `AI returned unparseable response: ${rawText.slice(0, 160)}`)
+    }
+
+    // Map aliases back to real registration ids. Anything unrecognized becomes
+    // '' and is dropped by the validation below.
+    const unalias = (v: unknown) => (typeof v === 'string' ? aliasToId.get(v.trim()) ?? '' : '')
+    if (Array.isArray(parsed.groups)) {
+      parsed.groups.forEach((g) => { if (Array.isArray(g?.confirmedIds)) g.confirmedIds = g.confirmedIds.map(unalias) })
+    }
+    if (Array.isArray(parsed.conflicts)) {
+      parsed.conflicts.forEach((c) => { if (Array.isArray(c?.involvedIds)) c.involvedIds = c.involvedIds.map(unalias) })
     }
 
     // Validate + scrub: drop any IDs that aren't in the registrant list, dedupe,
@@ -272,5 +298,100 @@ export const notifySignup = onCall(
 
     console.error('Brevo contact create failed', res.status, body)
     throw new HttpsError('internal', body?.message ?? `Brevo error ${res.status}`)
+  }
+)
+
+/**
+ * Callable function: submitJumpNumbers
+ *
+ * Public write path for the Dueling DZs handicap (JPP = score × 1000 ÷ team
+ * jump total). Jumpers aren't signed in, so they can't write
+ * `jumpNumbers/{instanceId}` directly — the rules keep that sign-in only and
+ * this function is the narrow door: it can only set a jump count for a
+ * person who is actually on the event.
+ *
+ * Two modes:
+ *   { instanceId, email, jumps, regId? }   — self-entry from /jumps/:id.
+ *       Email is matched against `teamingPrivate/{instanceId}` (mirrored from
+ *       Fury by the admin event page; never public). One email can sit on
+ *       more than one registration (a couple sharing an inbox), so with
+ *       several matches and no regId it returns the names to pick from
+ *       instead of guessing.
+ *   { instanceId, teamId, teamJumps[] }    — whole-team entry from /checkin/:id.
+ *       teamJumps is in the team's scoring-member order (video person excluded).
+ */
+const MAX_JUMPS = 50000
+
+function adminDb() {
+  // Lazy for the same module-load-window reason as the Anthropic import.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const admin = require('firebase-admin') as typeof import('firebase-admin')
+  if (!admin.apps.length) admin.initializeApp()
+  return admin.firestore()
+}
+
+function validJumps(n: unknown): n is number {
+  return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= MAX_JUMPS
+}
+
+export const submitJumpNumbers = onCall(
+  { region: 'us-central1' },
+  async (request) => {
+    const data = (request.data ?? {}) as Record<string, unknown>
+    const instanceId = data.instanceId
+    if (typeof instanceId !== 'string' || !/^[\w-]{1,100}$/.test(instanceId)) {
+      throw new HttpsError('invalid-argument', 'instanceId is required')
+    }
+
+    const db = adminDb()
+    const now = new Date().toISOString()
+    const jumpRef = db.doc(`jumpNumbers/${instanceId}`)
+
+    // ── Whole team ──
+    if (typeof data.teamId === 'string') {
+      const teamJumps = data.teamJumps
+      if (!Array.isArray(teamJumps) || !teamJumps.every(validJumps)) {
+        throw new HttpsError('invalid-argument', `Every jump number must be a whole number from 1 to ${MAX_JUMPS}`)
+      }
+      const teaming = (await db.doc(`teaming/${instanceId}`).get()).data()
+      const groups = (teaming?.groups ?? []) as { id: string; memberIds: string[]; videoMemberId?: string }[]
+      const group = groups.find(g => g.id === data.teamId)
+      if (!group) throw new HttpsError('not-found', 'That team is not on this event')
+      const memberIds = group.memberIds.filter(id => id !== group.videoMemberId)
+      if (memberIds.length !== teamJumps.length) {
+        throw new HttpsError('failed-precondition', 'The team roster changed — reload the page')
+      }
+      const byReg: Record<string, unknown> = {}
+      memberIds.forEach((id, i) => { byReg[id] = { jumps: teamJumps[i], updatedAt: now, by: 'team' } })
+      await jumpRef.set({ byReg }, { merge: true })
+      const names = teaming?.memberNames ?? {}
+      return { status: 'saved', names: memberIds.map(id => names[id] ?? '') }
+    }
+
+    // ── One person, by email ──
+    const email = data.email
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || email.length > 254) {
+      throw new HttpsError('invalid-argument', 'A valid email is required')
+    }
+    if (!validJumps(data.jumps)) {
+      throw new HttpsError('invalid-argument', `Jump number must be a whole number from 1 to ${MAX_JUMPS}`)
+    }
+    const priv = (await db.doc(`teamingPrivate/${instanceId}`).get()).data()
+    const people = (priv?.people ?? {}) as Record<string, { email: string; name: string }>
+    const want = email.trim().toLowerCase()
+    const matches = Object.entries(people).filter(([, p]) => p.email === want)
+    if (matches.length === 0) {
+      throw new HttpsError('not-found', "That email isn't on this event's registration list")
+    }
+    let regIds = matches.map(([id]) => id)
+    if (matches.length > 1) {
+      if (typeof data.regId !== 'string') {
+        return { status: 'choose', options: matches.map(([regId, p]) => ({ regId, name: p.name })) }
+      }
+      if (!regIds.includes(data.regId)) throw new HttpsError('invalid-argument', 'Pick one of the listed names')
+      regIds = [data.regId]
+    }
+    await jumpRef.set({ byReg: { [regIds[0]]: { jumps: data.jumps, updatedAt: now, by: 'self' } } }, { merge: true })
+    return { status: 'saved', names: [people[regIds[0]].name] }
   }
 )

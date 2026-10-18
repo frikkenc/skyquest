@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { EVENT_INSTANCES, POKER_RUN_SEEDS } from '../../data/mockData'
 import type { PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
+import { loadScoreDraft, pickDraft, useScoreDraftPush } from '../../hooks/useScoreDraft'
 
 /**
  * Poker Run scoring tab.
@@ -21,7 +22,9 @@ import styles from './AdminEventInstance.module.css'
  * Data flow:
  *   1. On mount, load from localStorage `sq-pokerrun-{instanceId}` if present.
  *   2. Otherwise seed from `POKER_RUN_SEEDS[instanceId]` (curated mock data).
- *   3. Save-as-you-go to localStorage; Publish writes the rolled-up
+ *   3. Save-as-you-go to localStorage AND Firestore `scoreDrafts/{instanceId}`
+ *      (hooks/useScoreDraft) so entry isn't stranded in one browser; on load
+ *      the copy with more scoring wins. Publish writes the rolled-up
  *      PublishedEventResult to Firestore `results_2026/{instanceId}`.
  */
 
@@ -43,6 +46,12 @@ interface PokerTeam {
 interface PokerState {
   rounds: number
   teams: PokerTeam[]
+  updatedAt?: string
+}
+
+/** How much scoring a copy holds — decides local vs server on load. */
+function pokerWeight(s: PokerState) {
+  return s.teams.reduce((n, t) => n + t.scores.filter(v => v > 0).length, 0)
 }
 
 function localKey(instanceId: string) {
@@ -113,6 +122,29 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null)
   const [saved, setSaved] = useState(true)  // starts in saved state since we just loaded
   const [published, setPublished] = useState(false)
+  const { push, syncState } = useScoreDraftPush(instanceId)
+  // Don't push anything until the server copy has been checked — an edit in
+  // that window would overwrite a fuller draft from another machine.
+  const remoteChecked = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    loadScoreDraft<PokerState>(instanceId).then(remote => {
+      if (cancelled) return
+      const local = loadLocal(instanceId)
+      const pick = pickDraft(local, remote && Array.isArray(remote.teams) ? remote : null, pokerWeight)
+      remoteChecked.current = true
+      if (pick === 'remote' && remote) {
+        setRoundsState(remote.rounds)
+        setTeamsState(remote.teams)
+        saveLocal(instanceId, remote)
+      } else if (pick === 'local' && local) {
+        push(local)
+      }
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId])
 
   function commit(next: { rounds?: number; teams?: PokerTeam[] }) {
     const merged: PokerState = {
@@ -121,7 +153,8 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
     }
     if (next.rounds != null) setRoundsState(merged.rounds)
     if (next.teams != null) setTeamsState(merged.teams)
-    saveLocal(instanceId, merged)
+    saveLocal(instanceId, { ...merged, updatedAt: new Date().toISOString() })
+    if (remoteChecked.current) push(merged)
     setSaved(false)
     setPublished(false)
   }
@@ -272,9 +305,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
           >
             {published ? '✓ Published' : 'Publish results'}
           </button>
-          {!saved && !published && (
-            <span style={{ fontSize: 11, color: 'var(--sq-yellow)' }}>● unsaved · auto-cached</span>
-          )}
+          <SyncPill state={syncState} />
         </div>
       </div>
 
@@ -454,4 +485,14 @@ function TeamMetaEditor({
       </label>
     </div>
   )
+}
+
+export function SyncPill({ state }: { state: 'idle' | 'saving' | 'synced' | 'error' }) {
+  if (state === 'idle') return null
+  const look = {
+    saving: { c: 'var(--sq-yellow)', t: '● saving…' },
+    synced: { c: 'var(--sq-signal)', t: '✓ saved to server' },
+    error: { c: 'var(--sq-red)', t: '⚠ not saved to server — kept on this device' },
+  }[state]
+  return <span style={{ fontSize: 11, color: look.c }}>{look.t}</span>
 }

@@ -3,12 +3,13 @@ import { useParams } from 'react-router-dom'
 import { EVENT_INSTANCES } from '../data/mockData'
 import type { TeamAssignment, TeamRegistration } from '../types'
 import { loadTeamingDoc, teamingDocToPrintData } from '../hooks/useTeamingDoc'
+import { useJumpNumbers, teamJumps, submitJumpNumbers } from '../hooks/useJumpNumbers'
 
-type JumpData = Record<string, number[]>  // assignmentId → per-member jump counts
-
-function lsKey(instanceId: string) { return `sq-jumps-${instanceId}` }
-function loadJumps(id: string): JumpData { try { return JSON.parse(localStorage.getItem(lsKey(id)) ?? '{}') } catch { return {} } }
-function saveJumps(id: string, data: JumpData) { localStorage.setItem(lsKey(id), JSON.stringify(data)) }
+// The video person doesn't count toward the team's jump total (same rule as
+// the Scores tab), so they don't get an input here.
+function scoringIds(team: TeamAssignment) {
+  return team.memberIds.filter(id => id !== team.videoMemberId)
+}
 
 export default function CheckInPage() {
   const { instanceId = '' } = useParams<{ instanceId: string }>()
@@ -37,14 +38,17 @@ export default function CheckInPage() {
   const [view, setView] = useState<'list' | 'entry' | 'done'>('list')
   const [selected, setSelected] = useState<TeamAssignment | null>(null)
   const [jumps, setJumps] = useState<number[]>([])
-  const [allJumps, setAllJumps] = useState<JumpData>(() => loadJumps(instanceId))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const byReg = useJumpNumbers(instanceId) ?? {}
 
   useEffect(() => {
-    if (selected) {
-      const existing = allJumps[selected.id]
-      setJumps(existing ? [...existing] : Array(selected.memberIds.length).fill(0))
-    }
+    if (selected) setJumps(teamJumps(byReg, scoringIds(selected)))
+    setError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected])
+
+  const isDone = (team: TeamAssignment) => scoringIds(team).every(id => byReg[id]?.jumps)
 
   if (!event) {
     return (
@@ -67,23 +71,29 @@ export default function CheckInPage() {
     setView('entry')
   }
 
-  function submit() {
-    if (!selected) return
-    const updated = { ...allJumps, [selected.id]: [...jumps] }
-    saveJumps(instanceId, updated)
-    setAllJumps(updated)
-    setView('done')
+  async function submit() {
+    if (!selected || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await submitJumpNumbers({ instanceId, teamId: selected.id, teamJumps: jumps })
+      setView('done')
+    } catch (e) {
+      setError((e as { message?: string }).message || 'Could not save — check your signal and try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function memberNames(team: TeamAssignment) {
-    return team.memberIds.map(id => regById[id]?.members[0]?.name ?? '—')
+    return scoringIds(team).map(id => regById[id]?.members[0]?.name ?? '—')
   }
 
   const eventDate = new Date(event.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
   // ── List ──────────────────────────────────────────────────────────────────────
   if (view === 'list') {
-    const checkedIn = teams.filter(t => allJumps[t.id]).length
+    const checkedIn = teams.filter(isDone).length
     return (
       <div style={{ minHeight: '100vh', background: '#0f0f0f', color: '#fff', fontFamily: 'Arial, sans-serif', maxWidth: 540, margin: '0 auto' }}>
         <div style={{ background: '#1a1a1a', borderBottom: '3px solid #d81818', padding: '18px 20px 16px' }}>
@@ -104,8 +114,8 @@ export default function CheckInPage() {
         <div style={{ padding: '0 16px 40px' }}>
           {teams.map((team, i) => {
             const names = memberNames(team)
-            const done = !!allJumps[team.id]
-            const totalJumps = done ? allJumps[team.id].reduce((s, n) => s + (n || 0), 0) : 0
+            const done = isDone(team)
+            const totalJumps = teamJumps(byReg, scoringIds(team)).reduce((s, n) => s + n, 0)
             return (
               <div key={team.id} onClick={() => selectTeam(team)}
                 style={{
@@ -141,7 +151,7 @@ export default function CheckInPage() {
         </div>
 
         <div style={{ textAlign: 'center', padding: '0 0 24px', fontSize: 11, color: '#444' }}>
-          SoCal SkyQuest · furycoaching.com/socal-skyquest
+          SoCal SkyQuest
         </div>
       </div>
     )
@@ -207,16 +217,19 @@ export default function CheckInPage() {
             </div>
           )}
           <button onClick={submit}
-            disabled={!allFilled}
+            disabled={!allFilled || saving}
             style={{
               width: '100%', padding: '17px', borderRadius: 10, border: 'none',
               background: allFilled ? '#1a5c2a' : '#222',
               color: allFilled ? '#fff' : '#555',
-              fontSize: 16, fontWeight: 800, cursor: allFilled ? 'pointer' : 'not-allowed',
+              fontSize: 16, fontWeight: 800, cursor: allFilled && !saving ? 'pointer' : 'not-allowed',
               letterSpacing: '.05em', textTransform: 'uppercase',
             }}>
-            Submit Jump Numbers
+            {saving ? 'Saving…' : 'Submit Jump Numbers'}
           </button>
+          {error && (
+            <p style={{ textAlign: 'center', fontSize: 13, color: '#ff6b6b', marginTop: 10 }}>{error}</p>
+          )}
           {!allFilled && (
             <p style={{ textAlign: 'center', fontSize: 11, color: '#555', marginTop: 8 }}>
               Enter all {names.length} jump numbers to continue
@@ -231,8 +244,8 @@ export default function CheckInPage() {
   if (view === 'done' && selected) {
     const label = selected.teamName || `Team ${teams.indexOf(selected) + 1}`
     const names = memberNames(selected)
-    const savedJumps = allJumps[selected.id] ?? []
-    const total = savedJumps.reduce((s, n) => s + (n || 0), 0)
+    const savedJumps = teamJumps(byReg, scoringIds(selected))
+    const total = savedJumps.reduce((s, n) => s + n, 0)
 
     return (
       <div style={{ minHeight: '100vh', background: '#0f0f0f', color: '#fff', fontFamily: 'Arial, sans-serif', maxWidth: 540, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
@@ -263,7 +276,7 @@ export default function CheckInPage() {
         </button>
 
         <div style={{ marginTop: 48, fontSize: 11, color: '#333' }}>
-          SoCal SkyQuest · furycoaching.com/socal-skyquest
+          SoCal SkyQuest
         </div>
       </div>
     )

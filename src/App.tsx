@@ -17,6 +17,7 @@ import AdminCrazy8Cards from './pages/admin/AdminCrazy8Cards'
 import AdminLogin from './pages/admin/AdminLogin'
 import PrintPage from './pages/PrintPage' 
 import CheckInPage from './pages/CheckInPage'
+import JumpsPage from './pages/JumpsPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function KeyedAdminEventType() {
@@ -67,6 +68,8 @@ export default function App() {
           <Route path="/print/:instanceId/:type" element={<PrintPage />} />
           {/* Day-of check-in — public, no auth */}
           <Route path="/checkin/:instanceId" element={<CheckInPage />} />
+          {/* Jump-number self-entry by email — public; signed-in admins get the whole roster */}
+          <Route path="/jumps/:instanceId" element={<JumpsPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
