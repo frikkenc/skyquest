@@ -3,7 +3,10 @@ import { auth } from '../firebase'
 
 const BASE = import.meta.env.DEV
   ? '/fury-api'
-  : (import.meta.env.VITE_FURY_API_URL as string | undefined) ?? ''
+  // CI sets VITE_FURY_API_URL; a local `npm run deploy:hosting` doesn't, and
+  // the old '' fallback sent every Fury call to the static site, which
+  // answered with index.html ("Unexpected token '<'"). Default to the real API.
+  : (import.meta.env.VITE_FURY_API_URL as string | undefined) || 'https://api-wj2a2vwtsq-uc.a.run.app'
 
 async function headers(): Promise<Record<string, string>> {
   const user = auth.currentUser
