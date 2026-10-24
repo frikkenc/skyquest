@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { EventInstance } from '../types'
 import { normalizeRegistrationUrl } from '../utils/registrationUrl'
+import { isEventDay } from '../utils/eventDay'
 
 interface Props {
   evt: EventInstance
@@ -13,6 +14,7 @@ interface Props {
  * Single source of truth for what action button an event card / row shows.
  *
  *   complete         → Results (internal link)
+ *   event day        → Live Scores (event page, scores section)
  *   season-finale    → Season Finale pill (no action)
  *   open + url       → Sign Up (or custom registrationLabel) — external deep-link
  *   open + no url    → Learn More (internal link)
@@ -26,6 +28,13 @@ export default function EventCTA({ evt, onNotifyMe, small = true }: Props) {
     return (
       <Link to={`/events/${evt.typeSlug}/${evt.id}`} className={`btn btn-ghost ${sz}`}>
         Results
+      </Link>
+    )
+  }
+  if (evt.status !== 'season-finale' && isEventDay(evt.date)) {
+    return (
+      <Link to={`/events/${evt.typeSlug}/${evt.id}#scores`} className={`btn btn-primary ${sz}`}>
+        ● Live Scores
       </Link>
     )
   }

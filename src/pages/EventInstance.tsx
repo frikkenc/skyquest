@@ -11,6 +11,7 @@ import { EVENT_TYPES } from '../data/mockData'
 import { useLiveEventList } from '../hooks/useLiveEventList'
 import { getEventPhoto } from '../lib/eventPhotos'
 import { normalizeRegistrationUrl } from '../utils/registrationUrl'
+import { isEventDay as onEventDay } from '../utils/eventDay'
 import type { Division, PublishedEventResult, PublishedTeamResult } from '../types'
 import styles from './EventInstance.module.css'
 
@@ -64,6 +65,14 @@ export default function EventInstance() {
     )
   }, [instanceId, event?.status])
 
+  // /events/...#scores (the Live Scores buttons): jump to the section once it renders.
+  const hasEvent = !!event
+  useEffect(() => {
+    if (window.location.hash !== '#scores' || !hasEvent) return
+    const t = window.setTimeout(() => document.getElementById('scores')?.scrollIntoView({ behavior: 'smooth' }), 150)
+    return () => window.clearTimeout(t)
+  }, [hasEvent, live, published])
+
   // When the event or published results resolve, snap the active division to
   // one that actually has data (or, failing that, to the first division on
   // the event metadata). Prevents the "Results not yet available for AA" bug
@@ -98,9 +107,7 @@ export default function EventInstance() {
   // Live standings only on event day (through the next day, for a weather
   // spill-over) and only once a score has actually been entered — test entries
   // weeks out, or a grid of zeros before the first load lands, stay hidden.
-  const today = new Date().toLocaleDateString('en-CA')
-  const dayAfter = new Date(new Date(event.date + 'T12:00:00').getTime() + 864e5).toLocaleDateString('en-CA')
-  const isEventDay = today >= event.date && today <= dayAfter
+  const isEventDay = onEventDay(event.date)
   const isLive = !isComplete && isEventDay && !!live && live.teams.some(t => t.rawScore > 0)
   const shown = isComplete ? published : isLive ? live : null
 
@@ -200,6 +207,9 @@ export default function EventInstance() {
 
           {/* CTA in hero */}
           <div className={styles.heroCta}>
+            {isEventDay && !isComplete && (
+              <a href="#scores" className="btn btn-primary">● Live Scores</a>
+            )}
             {isOpen && (
               <a href={normalizeRegistrationUrl(event.furyRegistrationUrl)} target="_blank" rel="noreferrer" className="btn btn-primary">
                 {event.registrationLabel ?? 'Sign Up'}
@@ -299,9 +309,21 @@ export default function EventInstance() {
           </div>
         </div>
 
+        {/* Before scores exist: tell visitors this is where they'll show up */}
+        {!isComplete && !isLive && !isFinale && (
+          <div id="scores" className={styles.scoresAnchor}>
+            <div className="section-title" style={{ marginTop: 48 }}>Scores</div>
+            <div className="card" style={{ textAlign: 'center', color: 'var(--sq-gray)', padding: 32 }}>
+              {isEventDay
+                ? 'Live scores will appear here as soon as the first round is judged — check back, this page updates on its own.'
+                : `Live scores will show here on ${formatDate(event.date)}, updated as the judges enter them.`}
+            </div>
+          </div>
+        )}
+
         {/* Results — final for complete events, live (not final) on event day */}
         {(isComplete || isLive) && (
-          <>
+          <div id="scores" className={styles.scoresAnchor}>
             <div className="section-title" style={{ marginTop: 48 }}>{isLive ? 'Live Standings' : 'Results'}</div>
             {isLive && (
               <div className={styles.liveNote}>
@@ -408,7 +430,7 @@ export default function EventInstance() {
                 </Link>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 

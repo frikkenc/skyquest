@@ -250,3 +250,5 @@
 }
 .liveMeta { font-weight: 400; letter-spacing: 0; color: var(--sq-gray); font-size: 12px; }
 @keyframes livePulse { 50% { opacity: .25; } }
+
+.scoresAnchor { scroll-margin-top: 80px; }
