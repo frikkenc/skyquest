@@ -387,3 +387,9 @@
   font-size: 12px;
   color: var(--adm-mute);
 }
+
+/* Phone: the event table scrolls sideways instead of clipping columns */
+@media (max-width: 760px) {
+  .eventTable { overflow-x: auto; }
+  .eventTableHead, .eventRow { min-width: 880px; }
+}

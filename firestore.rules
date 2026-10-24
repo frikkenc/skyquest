@@ -128,6 +128,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Day-of standings mirrored from the score draft on every edit, in the
+    // published-result shape — public so the event page can show live,
+    // not-final scores before Publish.
+    match /liveScores/{instanceId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     // ── SkyQuest Dueling DZs jump numbers (handicap input) ──────────────────
     // Was localStorage-only, so numbers entered on a jumper's phone never
     // reached the judging laptop. Public read: the check-in pages show what's

@@ -149,3 +149,8 @@
   border: 1px solid rgba(255,171,64,.2);
   border-radius: 6px;
 }
+
+@media (max-width: 760px) {
+  .card { flex-wrap: wrap; }
+  .cardActions { flex-wrap: wrap; flex-shrink: 1; }
+}

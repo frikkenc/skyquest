@@ -419,3 +419,8 @@
 .urKpiL { font-size: 9px; color: var(--adm-mute); text-transform: uppercase; letter-spacing: .06em; }
 .urKpiYellow { color: var(--sq-yellow) !important; }
 .urKpiWarn { color: #ffab40 !important; }
+
+@media (max-width: 760px) {
+  .apiLabel, .apiTag { display: none; }
+  .statStrip { padding: 10px 12px; }
+}

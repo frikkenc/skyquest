@@ -228,3 +228,25 @@
   border-color: var(--sq-red);
   color: var(--sq-white);
 }
+
+/* Day-of live standings banner */
+.liveNote {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 14px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: var(--sq-red);
+}
+.liveDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sq-red);
+  animation: livePulse 1.4s ease-in-out infinite;
+}
+.liveMeta { font-weight: 400; letter-spacing: 0; color: var(--sq-gray); font-size: 12px; }
+@keyframes livePulse { 50% { opacity: .25; } }

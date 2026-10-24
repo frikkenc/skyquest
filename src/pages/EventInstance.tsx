@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
@@ -33,6 +33,7 @@ export default function EventInstance() {
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [published, setPublished] = useState<PublishedEventResult | null>(null)
   const [resultsLoading, setResultsLoading] = useState(false)
+  const [live, setLive] = useState<(PublishedEventResult & { updatedAt?: string }) | null>(null)
 
   // Load the published event result for this instance. results_2026 is
   // public-read so unauthenticated visitors can see it. Only fetch for
@@ -50,6 +51,17 @@ export default function EventInstance() {
       })
       .catch(console.error)
       .finally(() => setResultsLoading(false))
+  }, [instanceId, event?.status])
+
+  // Day-of: the admin scoring tab mirrors its standings to liveScores on every
+  // edit. Listen until the event is published, then the final results take over.
+  useEffect(() => {
+    if (!instanceId || !event || event.status === 'complete') { setLive(null); return }
+    return onSnapshot(
+      doc(db, 'liveScores', instanceId),
+      snap => setLive(snap.exists() ? (snap.data() as PublishedEventResult & { updatedAt?: string }) : null),
+      () => setLive(null),
+    )
   }, [instanceId, event?.status])
 
   // When the event or published results resolve, snap the active division to
@@ -83,13 +95,21 @@ export default function EventInstance() {
   const isUpcoming = event.status === 'upcoming'
   const isClosed = event.status === 'closed'
   const isFinale = event.status === 'season-finale'
+  // Live standings only on event day (through the next day, for a weather
+  // spill-over) and only once a score has actually been entered — test entries
+  // weeks out, or a grid of zeros before the first load lands, stay hidden.
+  const today = new Date().toLocaleDateString('en-CA')
+  const dayAfter = new Date(new Date(event.date + 'T12:00:00').getTime() + 864e5).toLocaleDateString('en-CA')
+  const isEventDay = today >= event.date && today <= dayAfter
+  const isLive = !isComplete && isEventDay && !!live && live.teams.some(t => t.rawScore > 0)
+  const shown = isComplete ? published : isLive ? live : null
 
   // Tabs surface divisions that actually have published teams — not what the
   // event metadata says. The Poker Run lists 'Open' in event.divisions but
   // its teams publish under 'AAA' (so they roll up into the AAA season
   // standings), so the tab needs to follow the data, not the schedule.
   const divisionsWithResults = Array.from(
-    new Set((published?.teams ?? []).map(t => t.division)),
+    new Set((shown?.teams ?? []).map(t => t.division)),
   ) as Division[]
   const visibleDivisions: Division[] = divisionsWithResults.length > 0
     ? divisionsWithResults
@@ -97,23 +117,25 @@ export default function EventInstance() {
 
   // Filter to the active division for this event. published.teams is the
   // post-Publish snapshot from Firestore.
-  const results: PublishedTeamResult[] = (published?.teams ?? [])
+  const results: PublishedTeamResult[] = (shown?.teams ?? [])
     .filter(t => t.division === activeDivision)
     .sort((a, b) => a.rank - b.rank)
 
   // Round-by-round columns: counted rounds only (weather-scrubbed rounds are
   // dropped, so labels renumber to what was actually flown), plus the jumpoff.
   // Docs published before roundScores existed fall back to the total-only table.
-  const publishedGridLen = published?.roundCount ?? 0
+  const publishedGridLen = shown?.roundCount ?? 0
   const roundCols: { idx: number; label: string }[] =
-    published && publishedGridLen > 0 && results.some(t => (t.roundScores?.length ?? 0) > 0)
+    shown && publishedGridLen > 0 && results.some(t => (t.roundScores?.length ?? 0) > 0)
       ? [
           ...Array.from({ length: publishedGridLen }, (_, i) => i)
-            .filter(i => (published.roundStatuses?.[i] ?? 'ok') !== 'weather')
+            .filter(i => (shown.roundStatuses?.[i] ?? 'ok') !== 'weather')
             .map((idx, k) => ({ idx, label: `R${k + 1}` })),
-          ...(published.hasJumpoff ? [{ idx: publishedGridLen, label: 'JO' }] : []),
+          ...(shown.hasJumpoff ? [{ idx: publishedGridLen, label: 'JO' }] : []),
         ]
       : []
+  // Dueling DZs ranks on the jump-number handicap (JPP), not the raw total.
+  const showJpp = results.some(t => t.jpp != null)
   const photo = getEventPhoto(event.typeSlug)
 
   return (
@@ -277,10 +299,19 @@ export default function EventInstance() {
           </div>
         </div>
 
-        {/* Results — only for complete events */}
-        {isComplete && (
+        {/* Results — final for complete events, live (not final) on event day */}
+        {(isComplete || isLive) && (
           <>
-            <div className="section-title" style={{ marginTop: 48 }}>Results</div>
+            <div className="section-title" style={{ marginTop: 48 }}>{isLive ? 'Live Standings' : 'Results'}</div>
+            {isLive && (
+              <div className={styles.liveNote}>
+                <span className={styles.liveDot} /> LIVE · NOT FINAL
+                <span className={styles.liveMeta}>
+                  Scores update as the judges enter them
+                  {live?.updatedAt && ` · last update ${new Date(live.updatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+                </span>
+              </div>
+            )}
 
             <div className={styles.divTabs}>
               {visibleDivisions.map(div => (
@@ -300,14 +331,14 @@ export default function EventInstance() {
               </div>
             ) : results.length === 0 ? (
               <div className="card" style={{ textAlign: 'center', color: 'var(--sq-gray)', padding: 48 }}>
-                {published == null
+                {shown == null
                   ? 'Results not yet published for this event.'
                   : `No ${activeDivision} teams in this event.`}
               </div>
             ) : (
               <>
               <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-                <table className="lb" style={{ minWidth: 480 + roundCols.length * 44 }}>
+                <table className="lb" style={{ minWidth: 320 + roundCols.length * 44 + (showJpp ? 60 : 0) }}>
                   <thead>
                     <tr>
                       <th style={{ width: 52 }}>#</th>
@@ -316,6 +347,7 @@ export default function EventInstance() {
                         <th key={c.idx} style={{ textAlign: 'center', width: 44 }}>{c.label}</th>
                       ))}
                       <th style={{ textAlign: 'right' }}>{roundCols.length > 0 ? 'Total' : 'Score'}</th>
+                      {showJpp && <th style={{ textAlign: 'right' }} title="Points × 1000 ÷ team jump numbers">JPP</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -338,11 +370,17 @@ export default function EventInstance() {
                           )
                         })}
                         <td className="pts">{result.rawScore}</td>
+                        {showJpp && <td className="pts">{result.jpp != null ? result.jpp.toFixed(1) : '—'}</td>}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              {showJpp && (
+                <p style={{ color: 'var(--sq-gray)', fontSize: 12, marginTop: 8 }}>
+                  JPP = points × 1000 ÷ the team's total jump numbers — the handicap ranking.
+                </p>
+              )}
               {roundCols.some(c => c.label === 'JO') && (
                 <p style={{ color: 'var(--sq-gray)', fontSize: 12, marginTop: 8 }}>
                   JO = jump-off round. Scores in parentheses are busts.
@@ -352,7 +390,7 @@ export default function EventInstance() {
             )}
 
             {/* Hop to season-wide views */}
-            {published != null && (
+            {isComplete && published != null && (
               <div
                 style={{
                   marginTop: 24,

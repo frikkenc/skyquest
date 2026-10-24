@@ -475,3 +475,8 @@
   display: flex;
   gap: 6px;
 }
+
+@media (max-width: 760px) {
+  .kpiStrip { flex-wrap: wrap; }
+  .kpi { flex: 1 1 40%; padding: 10px 12px; border-bottom: 1px solid var(--adm-border); }
+}

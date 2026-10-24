@@ -100,7 +100,7 @@
 }
 
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Unassigned pool */
@@ -1004,4 +1004,22 @@
 .addNameBtn:hover {
   border-color: rgba(255,255,255,.25);
   color: var(--adm-mute);
+}
+
+/* Phone: badge / name / actions on one line, the member chips wrap below */
+@media (max-width: 760px) {
+  .groupRow { flex-wrap: wrap; padding: 6px 8px; gap: 6px; }
+  .groupName, .addNameBtn, .nameInput { order: 1; }
+  .groupName { max-width: 140px; font-size: 11px; }
+  .groupActions { order: 2; margin-left: auto; gap: 4px; }
+  .chipRow { order: 3; flex: 1 1 100%; overflow: visible; gap: 5px; }
+  .cancelWarn { order: 4; flex: 1 1 100%; }
+  .moveBtn, .deleteGroupBtn { min-width: 30px; min-height: 30px; }
+  .memberChip { font-size: 13px; padding: 4px 10px; }
+  .chipRemove, .chipVideoToggle { padding: 2px 4px; }
+  .regCard { padding-top: 10px; padding-bottom: 10px; }
+  .pool { position: static; }
+  .divTabs { overflow-x: auto; scrollbar-width: none; }
+  .divTab { white-space: nowrap; flex-shrink: 0; }
+  .loadTimeInput, .nameInput, .inlineChipInput, .newGroupInput { font-size: 16px; }
 }

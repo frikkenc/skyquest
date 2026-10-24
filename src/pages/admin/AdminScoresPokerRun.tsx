@@ -139,7 +139,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
         setTeamsState(remote.teams)
         saveLocal(instanceId, remote)
       } else if (pick === 'local' && local) {
-        push(local)
+        push(local, buildResult(local))
       }
     })
     return () => { cancelled = true }
@@ -154,7 +154,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
     if (next.rounds != null) setRoundsState(merged.rounds)
     if (next.teams != null) setTeamsState(merged.teams)
     saveLocal(instanceId, { ...merged, updatedAt: new Date().toISOString() })
-    if (remoteChecked.current) push(merged)
+    if (remoteChecked.current) push(merged, buildResult(merged))
     setSaved(false)
     setPublished(false)
   }
@@ -217,14 +217,10 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
     commit({ teams: teams.map(t => t.teamId === teamId ? { ...t, ...patch } : t) })
   }
 
-  function publishResults() {
-    if (!event) {
-      alert('Event not found — cannot publish.')
-      return
-    }
-
-    const ranked = teams
-      .map(t => ({ t, raw: rawTotalFor(t, rounds), adj: adjustedTotalFor(t, rounds) }))
+  /** Ranked standings in the public results shape — Publish and the live feed share it. */
+  function buildResult(state: PokerState = { rounds, teams }): PublishedEventResult {
+    const ranked = state.teams
+      .map(t => ({ t, raw: rawTotalFor(t, state.rounds), adj: adjustedTotalFor(t, state.rounds) }))
       .sort((a, b) => b.adj - a.adj)
 
     // rawScore on the public leaderboard is the *adjusted* total — that's the
@@ -243,12 +239,20 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
       rankingPoints: PLACEHOLDER_RANKING_POINTS,
     }))
 
-    const result: PublishedEventResult = {
+    return {
       instanceId,
-      eventName: event.name,
-      date: event.date,
+      eventName: event?.name ?? instanceId,
+      date: event?.date ?? '',
       teams: publishedTeams,
     }
+  }
+
+  function publishResults() {
+    if (!event) {
+      alert('Event not found — cannot publish.')
+      return
+    }
+    const result = buildResult()
 
     // Mirror SCSL ScoresTab: cache to localStorage, then write Firestore.
     try {
@@ -295,7 +299,7 @@ export default function AdminScoresPokerRun({ instanceId }: { instanceId: string
             <button className={styles.adminBtn} onClick={() => setRounds(rounds + 1)} disabled={rounds >= 10}>+</button>
           </div>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button className={styles.adminBtn} onClick={addTeam}>+ Add Team</button>
           <button
             className={`${styles.adminBtn} ${styles.primary}`}
@@ -452,7 +456,7 @@ function TeamMetaEditor({
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 720 }}>
+    <div className={styles.stackOnPhone} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 720 }}>
       <label style={{ fontSize: 11, color: 'var(--adm-mute)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
         Team name
         <input

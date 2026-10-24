@@ -33,20 +33,31 @@ export function pickDraft<T extends { updatedAt?: string }>(
   return (remote.updatedAt ?? '') >= (local.updatedAt ?? '') ? 'remote' : 'local'
 }
 
-/** Debounced Firestore push. */
+/**
+ * Day-of standings, public-read at `liveScores/{instanceId}`: the same shape
+ * as a published result, rewritten on every draft push so the event page can
+ * show "live, not final" scores before Publish. The draft itself stays
+ * admin-only.
+ */
+export const liveScoresRef = (instanceId: string) => doc(db, 'liveScores', instanceId)
+
+/** Debounced Firestore push. `live` (optional) is the public standings snapshot. */
 export function useScoreDraftPush(instanceId: string) {
   const [syncState, setSyncState] = useState<SyncState>('idle')
   const timer = useRef<number | undefined>(undefined)
 
-  function push<T extends object>(state: T) {
+  function push<T extends object>(state: T, live?: object) {
+    const updatedAt = new Date().toISOString()
     // JSON round-trip strips `undefined` fields, which Firestore rejects.
-    const payload = JSON.parse(JSON.stringify({ ...state, updatedAt: new Date().toISOString() }))
+    const payload = JSON.parse(JSON.stringify({ ...state, updatedAt }))
+    const livePayload = live ? JSON.parse(JSON.stringify({ ...live, updatedAt })) : null
     window.clearTimeout(timer.current)
     setSyncState('saving')
     timer.current = window.setTimeout(() => {
       setDoc(draftRef(instanceId), payload)
         .then(() => setSyncState('synced'))
         .catch(() => setSyncState('error'))
+      if (livePayload) setDoc(liveScoresRef(instanceId), livePayload).catch(console.error)
     }, 700)
   }
 

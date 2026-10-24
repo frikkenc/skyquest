@@ -613,3 +613,38 @@
   letter-spacing: .1em;
   text-transform: uppercase;
 }
+
+/* Phone */
+@media (max-width: 760px) {
+  .hero { gap: 12px; margin-bottom: 14px; }
+  .heroTitle { font-size: 18px; }
+  .heroActions { width: 100%; }
+  .kpiStrip { flex-wrap: wrap; }
+  .kpi { flex: 1 1 33%; padding: 10px 12px; border-bottom: 1px solid var(--adm-border); }
+  .kpiNum { font-size: 18px; }
+  /* Tabs scroll sideways instead of stacking into a wall */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-bottom: 14px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 10px 12px; white-space: nowrap; flex-shrink: 0; }
+  .emailName { min-width: 0; }
+  .adminBtn, .actBtn, .aqBtn { min-height: 36px; }
+  .scoreInput, .inlineInput, .inlineSelect, .filterInput { font-size: 16px; } /* stops iOS zoom-on-focus */
+}
+
+/* Score grid: keep the team name in view while the rounds scroll sideways */
+.stickyTeamCol {}
+.stackOnPhone {}
+@media (max-width: 760px) {
+  .stickyTeamCol th:nth-child(2), .stickyTeamCol td:nth-child(2) {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--adm-card);
+    min-width: 130px !important;
+    max-width: 150px;
+    box-shadow: 4px 0 6px -4px rgba(0,0,0,.6);
+  }
+  .stickyTeamCol td > div { min-height: 34px !important; }
+  /* Inline-styled two-column panels collapse to one column */
+  .stackOnPhone { grid-template-columns: minmax(0, 1fr) !important; }
+}

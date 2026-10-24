@@ -209,6 +209,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
   const [dzData, setDzData] = useState<DzData>(() => isDueling ? loadDzData(instanceId) : {})
   const [manualTiebreak, setManualTiebreak] = useState<Record<string, number>>(() => loadTiebreaks(instanceId))
   const [linkCopied, setLinkCopied] = useState(false)
+  const [liveCopied, setLiveCopied] = useState(false)
   const [published, setPublished] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const { push, syncState } = useScoreDraftPush(instanceId)
@@ -227,9 +228,10 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     if (firstRender.current) { firstRender.current = false; return }
     const cache = { teams, statuses, hasJumpoff, roundCount, dz: dzData, tiebreaks: manualTiebreak }
     saveScores(instanceId, { ...cache, updatedAt: new Date().toISOString() })
-    if (remoteChecked.current) push(cache)
+    if (remoteChecked.current) push(cache, buildResult())
+    // liveJumps: a jumper submitting their number moves the public JPP standings.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teams, statuses, hasJumpoff, roundCount, dzData, manualTiebreak, instanceId])
+  }, [teams, statuses, hasJumpoff, roundCount, dzData, manualTiebreak, instanceId, liveJumps])
 
   // On mount: the Firestore draft wins when it holds more scoring than this
   // browser (another device, cleared cache). Then, for an empty grid only,
@@ -263,7 +265,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
         return
       }
       if (pick === 'local' && cached) {
-        push({ ...cached, roundCount, dz: dzData, tiebreaks: manualTiebreak })
+        push({ ...cached, roundCount, dz: dzData, tiebreaks: manualTiebreak }, buildResult())
       }
 
       // A cached-but-scoreless grid (e.g. the Teaming seed ran and got saved
@@ -407,6 +409,13 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     })
   }
 
+  function copyLiveLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/events/${eventTypeSlug}/${instanceId}`).then(() => {
+      setLiveCopied(true)
+      setTimeout(() => setLiveCopied(false), 2000)
+    })
+  }
+
   function adjustTiebreak(teamId: string, delta: number) {
     setManualTiebreak(prev => {
       const next = { ...prev, [teamId]: (prev[teamId] ?? 0) + delta }
@@ -423,7 +432,8 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
     })
   }
 
-  function publishResults() {
+  /** Ranked standings in the public results shape — Publish and the live feed share it. */
+  function buildResult(): PublishedEventResult {
     const event = EVENT_INSTANCES.find(e => e.id === instanceId)
     const publishedTeams: PublishedTeamResult[] = []
 
@@ -481,6 +491,11 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
       roundStatuses: statuses.slice(0, roundCount),
       hasJumpoff,
     }
+    return result
+  }
+
+  function publishResults() {
+    const result = buildResult()
 
     // Keep localStorage as local cache
     const existing: PublishedEventResult[] = JSON.parse(localStorage.getItem('sq-results-2026') ?? '[]')
@@ -531,7 +546,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
 
     return (
       <div className={styles.scoreGridWrap}>
-        <table className={styles.scoreGrid}>
+        <table className={`${styles.scoreGrid} ${styles.stickyTeamCol}`}>
           <thead>
             <tr>
               <th style={{ textAlign: 'left', width: 36 }}>#</th>
@@ -739,8 +754,12 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
               {linkCopied ? '✓ Copied' : '📱 Copy jump # link'}
             </button>
           )}
+          <button className={styles.adminBtn} onClick={copyLiveLink} style={{ fontSize: 11 }}
+            title="Public event page — shows these standings live (marked not final) until you Publish">
+            {liveCopied ? '✓ Copied' : '📺 Copy live scores link'}
+          </button>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <SyncPill state={syncState} />
           <button className={styles.adminBtn} onClick={pullFromTeaming} style={{ fontSize: 11 }}
             title="Re-read teams, names and divisions from the Teaming tab. Scores already entered are kept.">
@@ -752,7 +771,7 @@ export default function ScoresTab({ eventTypeSlug, instanceId }: { eventTypeSlug
             onClick={() => {
               const cache = { teams, statuses, hasJumpoff, roundCount, dz: dzData, tiebreaks: manualTiebreak }
               saveScores(instanceId, cache)
-              if (remoteChecked.current) push(cache)
+              if (remoteChecked.current) push(cache, buildResult())
               setSaved(true)
             }}
             title="Scores also save automatically as you type"

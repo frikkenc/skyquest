@@ -468,3 +468,8 @@
   font-weight: 700;
   text-align: center;
 }
+
+@media (max-width: 760px) {
+  .innerTabs { overflow-x: auto; scrollbar-width: none; }
+  .innerTab { white-space: nowrap; flex-shrink: 0; padding: 8px 10px; }
+}

@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { EVENT_INSTANCES } from '../../data/mockData'
 import { loadTeamingDoc } from '../../hooks/useTeamingDoc'
+import { liveScoresRef } from '../../hooks/useScoreDraft'
 import { useCrazy8Master, useCrazy8Year } from '../../hooks/useCrazy8'
 import type { PublishedEventResult, PublishedTeamResult } from '../../types'
 import styles from './AdminEventInstance.module.css'
@@ -239,6 +240,9 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
       setDoc(draftRef(instanceId), stamped)
         .then(() => setSyncState('synced'))
         .catch(() => setSyncState('error'))
+      // Public day-of standings (see liveScoresRef).
+      setDoc(liveScoresRef(instanceId), JSON.parse(JSON.stringify({ ...buildResult(state.teams), updatedAt: stamped.updatedAt })))
+        .catch(console.error)
     }, 700)
   }
 
@@ -360,12 +364,9 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
     }
   }
 
-  function publishResults() {
-    if (!event) {
-      setMessage({ type: 'err', text: 'Event not found — cannot publish.' })
-      return
-    }
-    const ranked = [...teams]
+  /** Ranked standings in the public results shape — Publish and the live feed share it. */
+  function buildResult(list: Crazy8Team[] = teams): PublishedEventResult {
+    const ranked = [...list]
       .map(t => ({ t, total: totalFor(t) }))
       .sort((a, b) => b.total - a.total)
 
@@ -382,12 +383,20 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
       rankingPoints: PLACEHOLDER_RANKING_POINTS,
     }))
 
-    const result: PublishedEventResult = {
+    return {
       instanceId,
-      eventName: event.name,
-      date: event.date,
+      eventName: event?.name ?? instanceId,
+      date: event?.date ?? '',
       teams: publishedTeams,
     }
+  }
+
+  function publishResults() {
+    if (!event) {
+      setMessage({ type: 'err', text: 'Event not found — cannot publish.' })
+      return
+    }
+    const result = buildResult()
 
     try {
       const existing: PublishedEventResult[] = JSON.parse(localStorage.getItem('sq-results-2026') ?? '[]')
@@ -440,7 +449,7 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
             {menuLoading ? 'loading menu…' : `${comboById.size} combo${comboById.size === 1 ? '' : 's'} · ${teams.length} team${teams.length === 1 ? '' : 's'}`}
           </span>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {/* Two distinct states people were conflating: the draft being safely
               stored, and the results being on the public leaderboard. The old
               label said "auto-cached", which read as done when nothing had left
@@ -533,7 +542,7 @@ export default function AdminScoresCrazy8({ instanceId }: { instanceId: string }
           No teams yet. Pull them with <strong>⟳ Teams from Teaming</strong>, or click <strong>+ Add team</strong>.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 320px) 1fr', gap: 16, alignItems: 'start' }}>
+        <div className={styles.stackOnPhone} style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 320px) 1fr', gap: 16, alignItems: 'start' }}>
 
           {/* ── Standings / team picker ── */}
           <div style={{ border: '1px solid var(--adm-border)', borderRadius: 8, overflow: 'hidden' }}>

@@ -1,5 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase'
 import { useAuth } from '../hooks/useAuth'
@@ -50,6 +50,10 @@ export default function AdminLayout() {
   const [unmatchedBadge] = useState(2)
   const { user } = useAuth()
   const navigate = useNavigate()
+  // Phone: the sidebar is a slide-out drawer; close it whenever the route changes.
+  const [navOpen, setNavOpen] = useState(false)
+  const { pathname } = useLocation()
+  useEffect(() => { setNavOpen(false) }, [pathname])
 
   function handleSignOut() {
     signOut(auth).then(() => navigate('/admin/login'))
@@ -62,6 +66,7 @@ export default function AdminLayout() {
     <div className={styles.shell}>
       {/* Top bar */}
       <header className={styles.topbar}>
+        <button className={styles.tbMenu} onClick={() => setNavOpen(o => !o)} aria-label="Menu">☰</button>
         <div className={styles.tbBrand}>
           <span className={styles.tbLogo}>Sky<span>Quest</span></span>
           <span className={styles.tbAdminBadge}>Admin</span>
@@ -97,7 +102,8 @@ export default function AdminLayout() {
 
       <div className={styles.body}>
         {/* Sidebar */}
-        <aside className={styles.sidebar}>
+        {navOpen && <div className={styles.scrim} onClick={() => setNavOpen(false)} />}
+        <aside className={`${styles.sidebar} ${navOpen ? styles.sidebarOpen : ''}`}>
           {Object.entries(NAV_ITEMS).map(([section, items]) => (
             <div key={section}>
               <div className={styles.sbSection}>{section}</div>

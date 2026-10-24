@@ -231,3 +231,8 @@
 .settingsRow:last-child { border-bottom: none; }
 .settingsLabel { color: var(--adm-mute); min-width: 200px; font-size: 12px; }
 .settingsInput { background: rgba(255,255,255,.07); border: 1px solid var(--adm-border); color: var(--adm-ink); padding: 6px 10px; border-radius: 5px; font-family: inherit; font-size: 13px; }
+
+@media (max-width: 760px) {
+  .kpiStrip { flex-wrap: wrap; }
+  .kpi { flex: 1 1 40%; padding: 10px 12px; border-bottom: 1px solid var(--adm-border); }
+}
